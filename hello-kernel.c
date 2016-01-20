@@ -1,4 +1,5 @@
 #include <linux/module.h>
+#include <linux/kernel.h>
 
 static int __init hellomod_init(void)
 {
