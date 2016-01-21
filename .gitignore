@@ -1,6 +1,9 @@
 # backup files
 *.backup
 
-# object files
+# object and build files
 *.o
 *.ko
+*.cmd
+*.mod.c
+*.mod.o
