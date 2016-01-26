@@ -21,7 +21,7 @@ int main()
         char buf[256];
         read(volup_fd, buf, 256);
 
-        if (buf[0])
+        if (buf[1])
         {
             write(led4_fd, "1", 2);
         }
@@ -29,7 +29,7 @@ int main()
         {
             write(led4_fd, "0", 2);
         }
-        printf("vol = %d\n", buf[0]);
+        printf("PIR input = %d, led on = %d\n", buf[0], buf[1]);
         usleep(100000);
     }
 
