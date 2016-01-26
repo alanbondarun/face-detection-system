@@ -7,7 +7,7 @@
 
 int main()
 {
-    int volup_fd = open("/dev/volumeup", O_RDONLY);
+    int volup_fd = open("/dev/pir", O_RDONLY);
     int led4_fd = open(LED4, O_WRONLY);   
 
     if (volup_fd < 0 || led4_fd < 0)
@@ -29,6 +29,8 @@ int main()
         {
             write(led4_fd, "0", 2);
         }
+        printf("vol = %d\n", buf[0]);
+        usleep(100000);
     }
 
     close(volup_fd);

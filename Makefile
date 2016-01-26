@@ -1,8 +1,9 @@
 obj-m += hello-kernel.o
-obj-m += vol-up-irq.o
+#obj-m += vol-up-irq.o
+obj-m += pir-irq.o
 
 KDIR := /lib/modules/$(shell uname -r)/build
-USR_TARGET = vol-up-user
+USR_TARGET = led-user
 
 .PHONY: all clean
 
