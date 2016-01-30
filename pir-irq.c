@@ -6,9 +6,11 @@
 #include <linux/device.h>
 #include <linux/time.h>
 #include <linux/suspend.h>
+#include <linux/pm.h>
+#include <linux/pm_wakeup.h>
+#include <linux/pm_wakeirq.h>
 #include <linux/workqueue.h>
 #include <asm/uaccess.h>
-#include <asm/fiq.h>
 
 #define DEVICE_NAME "pir"
 #define IR_GPIO_PORT 28
@@ -26,7 +28,10 @@ static ssize_t device_write(struct file *, const char *, size_t, loff_t *);
 static int suspend_valid(suspend_state_t state);
 static int suspend_enter(suspend_state_t state);
 
+static int device_on_runtime_suspend(struct device *dev);
+
 static struct class *device_class;
+static struct device *pir_device;
 static dev_t devdev;
 
 static int major_num;
@@ -50,26 +55,47 @@ static struct platform_suspend_ops sops = {
     .enter = suspend_enter
 };
 
+static struct dev_pm_ops dpmops = {
+    .runtime_suspend = device_on_runtime_suspend
+};
+
 static void suspend_func(struct work_struct *dummy)
 {
     int ret;
     if ((ret = pm_suspend(PM_SUSPEND_MEM)) < 0)
     {
-        printk("pm_suspend ret=%d", ret);
+        printk("pm_suspend failed, ret=%d", ret);
     }
 }
+
+static DECLARE_WORK(suspend_work, suspend_func);
 
 static int suspend_valid(suspend_state_t state)
 {
     return (state == PM_SUSPEND_MEM);
 }
 
+static int device_on_runtime_suspend(struct device *dev)
+{
+    int ret;
+
+    printk("device_on_runtime_suspend\n");
+
+    ret = enable_irq_wake(pir_int_num);
+    if (ret < 0)
+    {
+        printk("ERROR at enable_irq_wake: error code %d\n", ret);
+        return ret;
+    }
+    dev_pm_enable_wake_irq(pir_device);
+
+    return 0;
+}
+
 static int suspend_enter(suspend_state_t state)
 {
     return 0;
 }
-
-static DECLARE_WORK(suspend_work, suspend_func);
 
 irqreturn_t irq_handler(int irq, void *dev_id)
 {
@@ -83,7 +109,7 @@ irqreturn_t irq_handler(int irq, void *dev_id)
         time_last_zero_bit = current_kernel_time();
     }
 
-    if (event_detected)
+    if (!event_detected)
     {
         schedule_work(&suspend_work);
     }
@@ -107,9 +133,10 @@ static int __init init_pir_module(void)
         printk("ERROR: class create error\n");
         return -1;
     }
+    device_class->pm = &dpmops;
 
     devdev = MKDEV(major_num, 0);
-    device_create(device_class, NULL, devdev, NULL, DEVICE_NAME);
+    pir_device = device_create(device_class, NULL, devdev, NULL, DEVICE_NAME);
 
     /* PIR GPIO registration */
     int ret = gpio_request(IR_GPIO_PORT, "IR GPIO");
@@ -142,6 +169,28 @@ static int __init init_pir_module(void)
         return request_ret;
     }
 
+    /* device wakeup setting */
+    ret = device_init_wakeup(pir_device, true);
+    if (ret != 0)
+    {
+        printk("ERROR at device_init_wakeup: error code %d\n", ret);
+        return ret;
+    }
+
+    ret = dev_pm_set_wake_irq(pir_device, pir_int_num);
+    if (ret != 0)
+    {
+        printk("ERROR at dev_pm_set_wake_irq: error code %d\n", ret);
+        return ret;
+    }
+
+    if (!device_may_wakeup(pir_device))
+    {
+        printk("???\n");
+        return -1;
+    }
+
+    /* suspend opeartions setup */
     suspend_set_ops(&sops);
 
     return 0;
