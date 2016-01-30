@@ -5,7 +5,10 @@
 #include <linux/fs.h>
 #include <linux/device.h>
 #include <linux/time.h>
+#include <linux/suspend.h>
+#include <linux/workqueue.h>
 #include <asm/uaccess.h>
+#include <asm/fiq.h>
 
 #define DEVICE_NAME "pir"
 #define IR_GPIO_PORT 28
@@ -19,6 +22,9 @@ static int device_open(struct inode *, struct file *);
 static int device_release(struct inode *, struct file *);
 static ssize_t device_read(struct file *, char *, size_t, loff_t *);
 static ssize_t device_write(struct file *, const char *, size_t, loff_t *);
+
+static int suspend_valid(suspend_state_t state);
+static int suspend_enter(suspend_state_t state);
 
 static struct class *device_class;
 static dev_t devdev;
@@ -39,9 +45,35 @@ static struct file_operations fops = {
     .release = device_release
 };
 
+static struct platform_suspend_ops sops = {
+    .valid = suspend_valid,
+    .enter = suspend_enter
+};
+
+static void suspend_func(struct work_struct *dummy)
+{
+    int ret;
+    if ((ret = pm_suspend(PM_SUSPEND_MEM)) < 0)
+    {
+        printk("pm_suspend ret=%d", ret);
+    }
+}
+
+static int suspend_valid(suspend_state_t state)
+{
+    return (state == PM_SUSPEND_MEM);
+}
+
+static int suspend_enter(suspend_state_t state)
+{
+    return 0;
+}
+
+static DECLARE_WORK(suspend_work, suspend_func);
+
 irqreturn_t irq_handler(int irq, void *dev_id)
 {
-    event_detected = gpio_get_value(IR_GPIO_PORT);
+    event_detected = !event_detected;
     if (event_detected)
     {
         waiting_bit = 1;
@@ -49,6 +81,11 @@ irqreturn_t irq_handler(int irq, void *dev_id)
     if (waiting_bit && !event_detected)
     {
         time_last_zero_bit = current_kernel_time();
+    }
+
+    if (event_detected)
+    {
+        schedule_work(&suspend_work);
     }
 
     return IRQ_HANDLED;
@@ -104,6 +141,8 @@ static int __init init_pir_module(void)
         printk("ERROR: cannot request IRQ %d, error code %d\n", pir_int_num, request_ret);
         return request_ret;
     }
+
+    suspend_set_ops(&sops);
 
     return 0;
 }
