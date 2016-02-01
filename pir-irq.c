@@ -9,7 +9,6 @@
 #include <linux/types.h>
 #include <linux/suspend.h>
 #include <linux/pm.h>
-#include <linux/pm_runtime.h>
 #include <linux/pm_wakeup.h>
 #include <linux/pm_wakeirq.h>
 #include <linux/workqueue.h>
@@ -31,7 +30,9 @@ static int suspend_valid(suspend_state_t state);
 static int suspend_enter(suspend_state_t state);
 
 /* device power management callbacks */
-static int device_on_runtime_suspend(struct device *dev);
+static int device_on_prepare(struct device *dev);
+static int device_on_suspend(struct device *dev);
+static int device_on_resume(struct device *dev);
 
 /* timer helper functions */
 static void pir_timer_register(struct timer_list *ptimer, unsigned long timeover);
@@ -64,7 +65,9 @@ static struct platform_suspend_ops sops = {
 };
 
 static struct dev_pm_ops dpmops = {
-    .runtime_suspend = device_on_runtime_suspend
+    .prepare = device_on_prepare,
+    .suspend = device_on_suspend,
+    .resume = device_on_resume
 };
 
 static struct dev_pm_domain dpmdomain;
@@ -85,11 +88,18 @@ static int suspend_valid(suspend_state_t state)
     return (state == PM_SUSPEND_MEM);
 }
 
-static int device_on_runtime_suspend(struct device *dev)
+static int device_on_prepare(struct device *dev)
+{
+    printk("device_on_suspend\n");
+
+    return 0;
+}
+
+static int device_on_suspend(struct device *dev)
 {
     int ret;
 
-    printk("device_on_runtime_suspend\n");
+    printk("device_on_prepare\n");
 
     ret = enable_irq_wake(pir_int_num);
     if (ret < 0)
@@ -97,9 +107,15 @@ static int device_on_runtime_suspend(struct device *dev)
         printk("ERROR at enable_irq_wake: error code %d\n", ret);
         return ret;
     }
-    dev_pm_enable_wake_irq(dev);
 
-    return -1;
+    return 0;
+}
+
+static int device_on_resume(struct device *dev)
+{
+    printk("device_on_resume\n");
+    disable_irq_wake(pir_int_num);
+    return 0;
 }
 
 static int suspend_enter(suspend_state_t state)
@@ -107,13 +123,26 @@ static int suspend_enter(suspend_state_t state)
     return 0;
 }
 
+static void wakeup_func(struct work_struct *dummy)
+{
+    printk("Wakeup!\n");
+}
+
+static DECLARE_WORK(wakeup_work, wakeup_func);
+
 irqreturn_t irq_handler(int irq, void *dev_id)
 {
+    static int initial_event = 1;
+
     event_detected = !event_detected;
     if (event_detected)
     {
+        schedule_work(&wakeup_work);
         waiting_bit = 1;
         pir_timer_delete(&pir_timer);
+        if (!initial_event)
+            pm_wakeup_event(pir_device, 0);
+        initial_event = 0;
     }
     if (waiting_bit && !event_detected)
     {
@@ -209,6 +238,11 @@ static int __init init_pir_module(void)
 
 static void __exit exit_pir_module(void)
 {
+    if (pir_device)
+    {
+        device_init_wakeup(pir_device, false);
+    }
+
     pir_timer_delete(&pir_timer);
     free_irq(pir_int_num, NULL);
     gpio_free(IR_GPIO_PORT);
@@ -275,7 +309,7 @@ static void pir_timer_timeover(unsigned long arg)
     printk("PIR motion detection timeout!\n");
     waiting_bit = 0;
     pir_timer_delete(&pir_timer);
-//    schedule_work(&suspend_work);
+    schedule_work(&suspend_work);
 }
 
 static void pir_timer_delete(struct timer_list *ptimer)
