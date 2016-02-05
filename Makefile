@@ -1,14 +1,18 @@
-obj-m += pir-irq.o
+SRC_DIR := src
+BUILD_DIR := build
 
 KDIR := /lib/modules/$(shell uname -r)/build
-USR_TARGET = led-user
+
+obj-m := pir-irq.o
+
+ALGO_SUBDIR := algorithm
 
 .PHONY: all clean
 
 all:
-	make -C $(KDIR) M=$(PWD) modules
-	gcc -o $(USR_TARGET) $(USR_TARGET).c
+	[ -e $(BUILD_DIR) ] || mkdir $(BUILD_DIR)
+	[ -e $(BUILD_DIR)/$(ALGO_SUBDIR) ] || mkdir $(BUILD_DIR)/$(ALGO_SUBDIR)
+	$(MAKE) -C $(SRC_DIR) all
 
 clean:
-	make -C $(KDIR) M=$(PWD) clean
-	rm -rf ./$(USR_TARGET)
+	$(MAKE) -C $(SRC_DIR) clean

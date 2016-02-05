@@ -207,7 +207,7 @@ static int __init init_pir_module(void)
     }
 
     /* device wakeup setting */
-    ret = device_init_wakeup(pir_device, true);
+/*    ret = device_init_wakeup(pir_device, true);
     if (ret != 0)
     {
         printk("ERROR at device_init_wakeup: error code %d\n", ret);
@@ -225,7 +225,7 @@ static int __init init_pir_module(void)
     {
         printk("???\n");
         return -1;
-    }
+    }*/
 
     dpmdomain.ops = dpmops;
     pir_device->pm_domain = &dpmdomain;
