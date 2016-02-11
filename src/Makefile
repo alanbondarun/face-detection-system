@@ -28,7 +28,7 @@ endif
 all: $(OBJECTS)
 ifeq ($(TARGET_OS),LINUX)
 	# we build kernel modules only in Linux environment
-	$(MAKE) -C $(KDIR) SUBDIRS=$(shell pwd) modules
+	$(MAKE) -C $(KDIR) M=$(shell pwd) modules
 endif
 
 led-user:
@@ -40,6 +40,6 @@ algorithm/test:
 clean:
 ifeq ($(TARGET_OS),LINUX)
 	# we clean kernel modules only in Linux environment
-	$(MAKE) -C $(KDIR) SUBDIRS=$(shell pwd) clean
+	$(MAKE) -C $(KDIR) M=$(shell pwd) clean
 endif
 	rm -rf ../$(BUILD_DIR)

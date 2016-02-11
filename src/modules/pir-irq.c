@@ -9,6 +9,7 @@
 #include <linux/types.h>
 #include <linux/suspend.h>
 #include <linux/pm.h>
+#include <linux/pm_runtime.h>
 #include <linux/pm_wakeup.h>
 #include <linux/pm_wakeirq.h>
 #include <linux/workqueue.h>
@@ -90,7 +91,7 @@ static int suspend_valid(suspend_state_t state)
 
 static int device_on_prepare(struct device *dev)
 {
-    printk("device_on_suspend\n");
+    printk("device_on_prepare\n");
 
     return 0;
 }
@@ -99,7 +100,7 @@ static int device_on_suspend(struct device *dev)
 {
     int ret;
 
-    printk("device_on_prepare\n");
+    printk("device_on_suspend, int=%d\n", pir_int_num);
 
     ret = enable_irq_wake(pir_int_num);
     if (ret < 0)
@@ -207,25 +208,12 @@ static int __init init_pir_module(void)
     }
 
     /* device wakeup setting */
-/*    ret = device_init_wakeup(pir_device, true);
+    ret = device_init_wakeup(pir_device, true);
     if (ret != 0)
     {
         printk("ERROR at device_init_wakeup: error code %d\n", ret);
         return ret;
     }
-
-    ret = dev_pm_set_wake_irq(pir_device, pir_int_num);
-    if (ret != 0)
-    {
-        printk("ERROR at dev_pm_set_wake_irq: error code %d\n", ret);
-        return ret;
-    }
-
-    if (!device_may_wakeup(pir_device))
-    {
-        printk("???\n");
-        return -1;
-    }*/
 
     dpmdomain.ops = dpmops;
     pir_device->pm_domain = &dpmdomain;
@@ -309,7 +297,7 @@ static void pir_timer_timeover(unsigned long arg)
     printk("PIR motion detection timeout!\n");
     waiting_bit = 0;
     pir_timer_delete(&pir_timer);
-    schedule_work(&suspend_work);
+//    schedule_work(&suspend_work);    
 }
 
 static void pir_timer_delete(struct timer_list *ptimer)

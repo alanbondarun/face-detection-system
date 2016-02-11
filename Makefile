@@ -3,8 +3,6 @@ BUILD_DIR := build
 
 KDIR := /lib/modules/$(shell uname -r)/build
 
-obj-m := pir-irq.o
-
 ALGO_SUBDIR := algorithm
 
 .PHONY: all clean
