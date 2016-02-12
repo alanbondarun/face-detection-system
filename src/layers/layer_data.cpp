@@ -9,16 +9,16 @@ namespace NeuralNet
 		
 		/* memory allocation */
 		data = new double*[DATA_COUNT];
-		data[ACTIVATION] = new double[current_len];
-		data[INTER_VALUE] = new double[current_len];
-		data[WEIGHT] = new double[prev_len * current_len];
-		data[BIAS] = new double[current_len];
-		data[ERROR] = new double[current_len];
+		data[static_cast<int>(DataIndex::ACTIVATION)] = new double[current_len];
+		data[static_cast<int>(DataIndex::INTER_VALUE)] = new double[current_len];
+		data[static_cast<int>(DataIndex::WEIGHT)] = new double[prev_len * current_len];
+		data[static_cast<int>(DataIndex::BIAS)] = new double[current_len];
+		data[static_cast<int>(DataIndex::ERROR)] = new double[current_len];
 	}
 	
 	LayerData::~LayerData()
 	{
-		for (int i = static_cast<int>(START); i <= static_cast<int>(END);
+		for (int i = static_cast<int>(DataIndex::START); i <= static_cast<int>(DataIndex::END);
 				i++)
 		{
 			delete [] data[i];

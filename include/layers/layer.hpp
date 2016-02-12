@@ -6,8 +6,8 @@
 
 namespace NeuralNet
 {
-	/* interface representing a layer.
-	 *
+	/**
+	 * interface representing a layer.
 	 */
 	class Layer
 	{
@@ -25,7 +25,7 @@ namespace NeuralNet
 		}
 
 		/* backpropagation of the layer */
-		void backward(LayerData& prev, const LayerData& current)
+		void backward(LayerData& prev, LayerData& current)
 		{
 #ifdef USES_GPU
 			backward_gpu(prev, current);
@@ -34,14 +34,15 @@ namespace NeuralNet
 #endif
 		}
 		
+	protected:
 		/**
 		 * CPU and GPU versions of the forward() and backward() that child classes
 		 * need to implement
 		 */
 		virtual void forward_cpu(const LayerData& prev, LayerData& current) = 0;
 		virtual void forward_gpu(const LayerData& prev, LayerData& current) = 0;
-		virtual void backward_cpu(LayerData& prev, const LayerData& current) = 0;
-		virtual void backward_gpu(LayerData& prev, const LayerData& current) = 0;
+		virtual void backward_cpu(LayerData& prev, LayerData& current) = 0;
+		virtual void backward_gpu(LayerData& prev, LayerData& current) = 0;
 	};
 }
 

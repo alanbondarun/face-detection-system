@@ -1,10 +1,18 @@
 SRC_DIR := src
 BUILD_DIR := build
 MODULE_DIR := modules
+INCLUDE_DIR := include
+OBJ_DIR := obj
 
 ALGO_SUBDIR := algorithm
+LAYER_SUBDIR := layers
+CALC_SUBDIR := calc
 
-OBJECTS := led-user $(ALGO_SUBDIR)/test
+TARGETS := led-user $(ALGO_SUBDIR)/test
+MIDDLE_OBJS := $(LAYER_SUBDIR)/layer_data.o $(LAYER_SUBDIR)/sigmoid_layer.o \
+	$(CALC_SUBDIR)/calc-cpu.o
+
+CXXFLAGS := -std=c++0x -I$(INCLUDE_DIR) -Wall
 
 .PHONY: all clean directory program
 
@@ -27,8 +35,11 @@ all: directory program
 directory:
 	mkdir -p $(BUILD_DIR)
 	mkdir -p $(BUILD_DIR)/$(ALGO_SUBDIR)
+	mkdir -p $(OBJ_DIR)
+	mkdir -p $(OBJ_DIR)/$(LAYER_SUBDIR)
+	mkdir -p $(OBJ_DIR)/$(CALC_SUBDIR)
     
-program: $(OBJECTS)
+program: $(MIDDLE_OBJS) $(TARGETS)
 ifeq ($(TARGET_OS),LINUX)
 	# we build kernel modules only in Linux environment
 	$(MAKE) -C $(MODULE_DIR) all
@@ -40,9 +51,19 @@ ifeq ($(TARGET_OS),LINUX)
 	$(MAKE) -C $(MODULE_DIR) clean
 endif
 	rm -rf $(BUILD_DIR)
+	rm -rf $(OBJ_DIR)
 
 led-user:
-	$(CXX) -o $(BUILD_DIR)/led-user $(SRC_DIR)/led-user.c
+	$(CXX) $(CXXFLAGS) -o $(BUILD_DIR)/led-user $(SRC_DIR)/led-user.c
+	
+$(CALC_SUBDIR)/calc-cpu.o:
+	$(CXX) $(CXXFLAGS) -c -o $(OBJ_DIR)/$(CALC_SUBDIR)/calc-cpu.o $(SRC_DIR)/$(CALC_SUBDIR)/calc-cpu.cpp
 
 $(ALGO_SUBDIR)/test:
-	$(CXX) -o $(BUILD_DIR)/$(ALGO_SUBDIR)/test $(SRC_DIR)/$(ALGO_SUBDIR)/test.cpp
+	$(CXX) $(CXXFLAGS) -o $(BUILD_DIR)/$(ALGO_SUBDIR)/test $(SRC_DIR)/$(ALGO_SUBDIR)/test.cpp
+
+$(LAYER_SUBDIR)/layer_data.o:
+	$(CXX) $(CXXFLAGS) -c -o $(OBJ_DIR)/$(LAYER_SUBDIR)/layer_data.o $(SRC_DIR)/$(LAYER_SUBDIR)/layer_data.cpp
+	
+$(LAYER_SUBDIR)/sigmoid_layer.o:
+	$(CXX) $(CXXFLAGS) -c -o $(OBJ_DIR)/$(LAYER_SUBDIR)/sigmoid_layer.o $(SRC_DIR)/$(LAYER_SUBDIR)/sigmoid_layer.cpp

@@ -1,6 +1,8 @@
 #ifndef __LAYER_DATA_HPP
 #define __LAYER_DATA_HPP
 
+#include <cstdlib>
+
 namespace NeuralNet
 {
     class LayerData
@@ -25,11 +27,14 @@ namespace NeuralNet
 		
 		/* returns the desired array */
 		double *get(DataIndex idx) const;
+		
+		/* returns the dimensions */
+		size_t getNum() const { return m_current_len; }
 
     private:
         size_t m_prev_len, m_current_len;
         double **data;
-		constexpr size_t DATA_COUNT = static_cast<int>(DataIndex::END)
+		static constexpr size_t DATA_COUNT = static_cast<int>(DataIndex::END)
 				- static_cast<int>(DataIndex::START) + 1;
     };
 }
