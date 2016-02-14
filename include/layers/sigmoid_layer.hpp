@@ -19,6 +19,9 @@ namespace NeuralNet
 		
 		static const std::function<double(double)> f_sigmoid;
 		static const std::function<double(double)> f_sigmoid_prime;
+		
+	private:
+		static const double eta;
 	};
 }
 

@@ -73,4 +73,45 @@ namespace NeuralNet
 			}
 		}
 	}
+	
+	void sum_vec(const double *vset, double *vres, size_t dim_v, size_t num_v)
+	{
+		double *p_vres = vres;
+		const double *p_vset = vset;
+		
+		while (vres - p_vres < dim_v)
+		{
+			*vres = 0;
+			vres++;
+		}
+		vres = p_vres;
+		
+		while (vset - p_vset < dim_v*num_v)
+		{
+			while (vres - p_vres < dim_v)
+			{
+				*vres += *vset;
+				vres++;
+				vset++;
+			}
+			vres = p_vres;
+		}
+	}
+	
+	void vec_outer_prod(const double *v1, const double *v2, double *mres, size_t dim_n, size_t dim_m)
+	{
+		const double *p_v1 = v1;
+		const double *p_v2 = v2;
+		while (v1 - p_v1 < dim_n)
+		{
+			while (v2 - p_v2 < dim_m)
+			{
+				*mres = (*v1) * (*v2);
+				mres++;
+				v2++;
+			}
+			v1++;
+			v2 = p_v2;
+		}
+	}
 }

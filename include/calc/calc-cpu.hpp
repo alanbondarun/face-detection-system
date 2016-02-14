@@ -21,6 +21,12 @@ namespace NeuralNet
 	
 	/* transpose a given matrix */
 	void transpose_mat(const double *m, double *mres, size_t dim_r, size_t dim_c);
+	
+	/* sum up a set of vectors */
+	void sum_vec(const double *vset, double *vres, size_t dim_v, size_t num_v);
+
+	/* vector outer product */
+	void vec_outer_prod(const double *v1, const double *v2, double *mres, size_t dim_n, size_t dim_m);
 }
 
 #endif // __CALC_CPU_HPP
