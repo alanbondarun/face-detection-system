@@ -53,6 +53,16 @@ namespace NeuralNet
 		}
 	}
 	
+	void apply_vec(double *v, size_t dim, std::function<double(double)> func)
+	{
+		double *pres = v;
+		while (v - pres < dim)
+		{
+			*v = func(*v);
+			v++;
+		}
+	}
+	
 	void transpose_mat(const double *m, double *mres, size_t dim_r, size_t dim_c)
 	{
 		for (int i=0; i<dim_r; i++)

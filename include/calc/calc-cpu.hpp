@@ -2,6 +2,7 @@
 #define __CALC_CPU_HPP
 
 #include <cstdlib>
+#include <functional>
 
 namespace NeuralNet
 {
@@ -16,6 +17,7 @@ namespace NeuralNet
 	
 	/* apply function to a vector */
 	void apply_vec(double *v, size_t dim, double(*func)(const double));
+	void apply_vec(double *v, size_t dim, std::function<double(double)> func);
 	
 	/* transpose a given matrix */
 	void transpose_mat(const double *m, double *mres, size_t dim_r, size_t dim_c);

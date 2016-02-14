@@ -3,6 +3,7 @@
 
 #include "layers/layer.hpp"
 #include <cmath>
+#include <functional>
 
 namespace NeuralNet
 {
@@ -15,6 +16,9 @@ namespace NeuralNet
 		virtual void forward_gpu(const LayerData& prev, LayerData& current);
 		virtual void backward_cpu(LayerData& prev, LayerData& current);
 		virtual void backward_gpu(LayerData& prev, LayerData& current);
+		
+		static const std::function<double(double)> f_sigmoid;
+		static const std::function<double(double)> f_sigmoid_prime;
 	};
 }
 
