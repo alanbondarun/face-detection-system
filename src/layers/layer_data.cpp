@@ -2,35 +2,25 @@
 
 namespace NeuralNet
 {
-	LayerData::LayerData(size_t train_num, size_t prev_len, size_t current_len)
-		: m_train_num(train_num), m_prev_len(prev_len), m_current_len(current_len)
+	LayerData::LayerData(size_t train_num, size_t data_num)
+		: m_train_num(train_num), m_data_num(data_num)
 	{
 		/* memory allocation */
-		data = new double*[DATA_COUNT];
-		data[static_cast<int>(DataIndex::ACTIVATION)] = new double[train_num * current_len];
-		data[static_cast<int>(DataIndex::INTER_VALUE)] = new double[train_num * current_len];
-		data[static_cast<int>(DataIndex::WEIGHT)] = new double[prev_len * current_len];
-		data[static_cast<int>(DataIndex::BIAS)] = new double[current_len];
-		data[static_cast<int>(DataIndex::ERROR)] = new double[train_num * current_len];
+		data = new double[DATA_COUNT * train_num * data_num];
 	}
 	
 	LayerData::~LayerData()
 	{
-		for (int i = static_cast<int>(DataIndex::START); i <= static_cast<int>(DataIndex::END);
-				i++)
-		{
-			delete [] data[i];
-		}
 		delete [] data;
 	}
 	
-	void LayerData::resize(size_t train_num, size_t prev_len, size_t current_len)
+	void LayerData::resize(size_t train_num, size_t data_num)
 	{
 		/* TODO */
 	}
 	
 	double *LayerData::get(LayerData::DataIndex idx) const
 	{
-		return data[static_cast<size_t>(idx)];
+		return data + (static_cast<int>(idx) * m_train_num * m_data_num);
 	}
 }

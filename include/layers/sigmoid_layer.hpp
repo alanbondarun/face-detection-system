@@ -2,7 +2,6 @@
 #define __SIGMOID_LAYER_HPP
 
 #include "layers/layer.hpp"
-#include <cmath>
 #include <functional>
 
 namespace NeuralNet
@@ -10,7 +9,8 @@ namespace NeuralNet
 	class SigmoidLayer: public Layer
 	{
     public:
-        virtual ~SigmoidLayer() {}
+		SigmoidLayer(size_t prev_neurons, size_t current_neurons);
+        virtual ~SigmoidLayer();
 
 		virtual void forward_cpu(const LayerData& prev, LayerData& current);
 		virtual void forward_gpu(const LayerData& prev, LayerData& current);
@@ -22,6 +22,10 @@ namespace NeuralNet
 		
 	private:
 		static const double eta;
+		
+		size_t m_prev_d, m_current_d;
+		double *m_weight;
+		double *m_bias;
 	};
 }
 
