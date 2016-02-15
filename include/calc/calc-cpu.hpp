@@ -27,6 +27,13 @@ namespace NeuralNet
 
 	/* vector outer product */
 	void vec_outer_prod(const double *v1, const double *v2, double *mres, size_t dim_n, size_t dim_m);
+	
+	/* calculate downsampling */
+	void downsample_max(const double *m, const double *mres, size_t dim_w, size_t dim_h, size_t pool_w, size_t pool_h);
+	
+	/* calculate upsampling */
+	void upsample_max(const double *me, const double *ma, double *me_res,
+			size_t dim_w, size_t dim_h, size_t pool_w, size_t pool_h);
 }
 
 #endif // __CALC_CPU_HPP

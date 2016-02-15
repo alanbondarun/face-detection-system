@@ -114,4 +114,59 @@ namespace NeuralNet
 			v2 = p_v2;
 		}
 	}
+	
+	void downsample_max(const double *m, double *mres, size_t dim_w, size_t dim_h, size_t pool_w, size_t pool_h)
+	{
+		const size_t ratio_w = dim_w / pool_w;
+		double vmax;
+		for (int i=0; i<dim_h; i += pool_h)
+		{
+			for (int j=0; j<dim_w; j += pool_w)
+			{
+				vmax = m[i*dim_w + j];
+				for (int y=i; y<std::min(i+pool_h, dim_h); y++)
+				{
+					for (int x=j; x<std::min(j+pool_w, dim_w); x++)
+					{
+						vmax = std::max(vmax, m[y*dim_w + x]);
+					}
+				}
+				mres[(i/pool_h) * ratio_w + (j/pool_w)] = vmax;
+			}
+		}
+	}
+	
+	void upsample_max(const double *me, const double *ma, double *me_res,
+			size_t dim_w, size_t dim_h, size_t pool_w, size_t pool_h)
+	{
+		const size_t ratio_w = dim_w / pool_w;
+		const size_t ratio_h = dim_h / pool_h;
+		
+		for (int i=0; i<dim_w * dim_h; i++)
+		{
+			me_res[i] = 0;
+		}
+		
+		for (int i=0; i<dim_h; i += pool_h)
+		{
+			for (int j=0; j<dim_w; j += pool_w)
+			{
+				int max_x = 0, max_y = 0;
+				double vmax = ma[i*dim_w + j];
+				for (int y=i; y<std::min(i+pool_h, dim_h); y++)
+				{
+					for (int x=j; x<std::min(j+pool_w, dim_w); x++)
+					{
+						if (vmax < ma[y*dim_w + x])
+						{
+							vmax = ma[y*dim_w + x];
+							max_x = x;
+							max_y = y;
+						}
+					}
+				}
+				me_res[max_x * dim_w + max_y] = me[(i/pool_h) * ratio_w + (j/pool_w)];
+			}
+		}
+	}
 }

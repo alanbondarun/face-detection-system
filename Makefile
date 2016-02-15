@@ -9,8 +9,10 @@ LAYER_SUBDIR := layers
 CALC_SUBDIR := calc
 
 TARGETS := led-user $(ALGO_SUBDIR)/test
-MIDDLE_OBJS := $(LAYER_SUBDIR)/layer_data.o $(LAYER_SUBDIR)/sigmoid_layer.o \
-	$(CALC_SUBDIR)/calc-cpu.o
+MIDDLE_OBJS := $(CALC_SUBDIR)/calc-cpu.o $(LAYER_SUBDIR)/layer_data.o \
+	$(LAYER_SUBDIR)/sigmoid_layer.o \
+	$(LAYER_SUBDIR)/max_pool_layer.o
+#	$(LAYER_SUBDIR)/conv_layer.o
 
 CXXFLAGS := -std=c++0x -I$(INCLUDE_DIR) -Wall
 
@@ -67,3 +69,9 @@ $(LAYER_SUBDIR)/layer_data.o:
 	
 $(LAYER_SUBDIR)/sigmoid_layer.o:
 	$(CXX) $(CXXFLAGS) -c -o $(OBJ_DIR)/$(LAYER_SUBDIR)/sigmoid_layer.o $(SRC_DIR)/$(LAYER_SUBDIR)/sigmoid_layer.cpp
+
+#$(LAYER_SUBDIR)/conv_layer.o:	
+#	$(CXX) $(CXXFLAGS) -c -o $(OBJ_DIR)/$(LAYER_SUBDIR)/conv_layer.o $(SRC_DIR)/$(LAYER_SUBDIR)/conv_layer.cpp
+
+$(LAYER_SUBDIR)/max_pool_layer.o:
+	$(CXX) $(CXXFLAGS) -c -o $(OBJ_DIR)/$(LAYER_SUBDIR)/max_pool_layer.o $(SRC_DIR)/$(LAYER_SUBDIR)/max_pool_layer.cpp

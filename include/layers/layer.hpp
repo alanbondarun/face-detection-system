@@ -2,6 +2,7 @@
 #define __LAYER_HPP
 
 #include <cstdlib>
+#include <memory>
 #include "layers/layer_data.hpp"
 
 namespace NeuralNet
@@ -43,6 +44,9 @@ namespace NeuralNet
 		virtual void forward_gpu(const LayerData& prev, LayerData& current) = 0;
 		virtual void backward_cpu(LayerData& prev, LayerData& current) = 0;
 		virtual void backward_gpu(LayerData& prev, LayerData& current) = 0;
+		
+		/* creation of appropriate layer data for the layer */
+		virtual std::unique_ptr<LayerData> createLayerData() = 0;
 	};
 }
 
