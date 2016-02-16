@@ -225,7 +225,7 @@ namespace NeuralNet
 			int dim_w, int dim_h, int dim_conv_w, int dim_conv_h)
 	{
 		convolution_mat(m_in, m_conv, m_res, dim_w, dim_h, dim_conv_w, dim_conv_h, MatrixRange(
-			-(dim_conv_w/2), -(dim_conv_h/2), dim_w - (dim_conv_w/2), dim_h - (dim_conv_h/2)
+			-(dim_conv_w/2), -(dim_conv_h/2), dim_w, dim_h
 		));
 	}
     
@@ -233,7 +233,7 @@ namespace NeuralNet
 			int dim_w, int dim_h, int dim_conv_w, int dim_conv_h)
 	{
 		convolution_mat(m_in, m_conv, m_res, dim_w, dim_h, dim_conv_w, dim_conv_h, MatrixRange(
-			-dim_conv_w+1, -dim_conv_h+1, dim_w, dim_h
+			-dim_conv_w+1, -dim_conv_h+1, dim_w+dim_conv_w-1, dim_h+dim_conv_h-1
 		));
 	}
 }
