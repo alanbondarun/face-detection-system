@@ -175,12 +175,20 @@ namespace NeuralNet
 		const double *pm = m;
 		double *pmres = mres + (dim_w*dim_h - 1);
 		
-		while (m - pm < dim_w * dim_h)
+		if (m == mres)
 		{
-			*mres = *m;
-			m++;
-			mres--;
+			/* TODO */
 		}
+		else
+		{
+			while (m - pm < dim_w * dim_h)
+			{
+				*mres = *m;
+				m++;
+				mres--;
+			}
+		}
+		
 	}
 	
 	void convolution_mat_zeropad(const double *m_in, const double *m_conv, double *m_res,
@@ -190,6 +198,12 @@ namespace NeuralNet
 	}
 	
 	void convolution_mat(const double *m_in, const double *m_conv, double *m_res,
+			size_t dim_w, size_t dim_h, size_t dim_conv_w, size_t dim_conv_h)
+	{
+		/* TODO */
+	}
+	
+	void convolution_mat_zeropad_wide(const double *m_in, const double *m_conv, double *m_res,
 			size_t dim_w, size_t dim_h, size_t dim_conv_w, size_t dim_conv_h)
 	{
 		/* TODO */

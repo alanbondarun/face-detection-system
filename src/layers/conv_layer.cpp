@@ -35,19 +35,12 @@ namespace NeuralNet
 			m_output_height = m_set.image_height - (m_set.recep_size - 1);
 		}
 		
-		m_weight = new double[m_set.prev_map_num * m_set.current_map_num
+		m_weight = new double[m_set.current_map_num * m_set.prev_map_num
 				* m_set.recep_size * m_set.recep_size];
-		if (m_set.train_bias)
-		{
-			m_bias = new double[m_set.current_map_num * m_set.recep_size
-					* m_set.recep_size];
-		}
 	}
 	
 	ConvLayer::~ConvLayer()
 	{
-		if (m_set.train_bias)
-			delete [] m_bias;
 		delete [] m_weight;
 	}
 	
@@ -58,42 +51,39 @@ namespace NeuralNet
 		auto cur_a = current.get(LayerData::DataIndex::ACTIVATION);
 		auto cur_z = current.get(LayerData::DataIndex::INTER_VALUE);
 		
+		memset(cur_z, 0, sizeof(double) * m_set.train_num
+				* m_set.current_map_num * m_output_width * m_output_height);
+		double *temp_z = new double[m_output_width * m_output_height];
+		
 		for (size_t i=0; i<m_set.train_num; i++)
 		{		
 			size_t w_offset = 0;
-			size_t b_offset = 0;
-			size_t prev_offset = i * m_set.prev_map_num * m_set.image_width * m_set.image_height * sizeof(double);
-			size_t cur_offset = 0;
-			for (size_t nprev = 0; nprev < m_set.prev_map_num; nprev++)
+			size_t prev_offset = 0;
+			size_t cur_offset = i * m_set.current_map_num * m_output_width * m_output_height * sizeof(double);
+			
+			for (size_t ncur = 0; ncur < m_set.current_map_num; ncur++)
 			{
-				b_offset = 0;
-				cur_offset = i * m_set.current_map_num * m_output_width * m_output_height * sizeof(double);
-				for (size_t ncur = 0; ncur < m_set.current_map_num; ncur++)
+				prev_offset = i * m_set.prev_map_num * m_set.image_width * m_set.image_height * sizeof(double);
+				for (size_t nprev = 0; nprev < m_set.prev_map_num; nprev++)
 				{
 					f_convolution(
-						prev_a + prev_offset, m_weight + w_offset, cur_z + cur_offset,
+						prev_a + prev_offset, m_weight + w_offset, temp_z,
 						m_set.image_width, m_set.image_height, m_set.recep_size, m_set.recep_size
 					);
-					if (m_set.train_bias)
-					{
-						add_vec(cur_z + cur_offset, m_bias + b_offset, cur_a + cur_offset,
-								m_output_width * m_output_height);
-						apply_vec(cur_a + cur_offset, cur_a + cur_offset, m_output_width * m_output_height,
-								f_activation);
-					}
-					else
-					{
-						apply_vec(cur_z + cur_offset, cur_a + cur_offset, m_output_width * m_output_height,
-								f_activation);
-					}
+					add_vec(cur_z + cur_offset, temp_z, cur_z + cur_offset, m_output_width * m_output_height);
 					
 					w_offset += (m_set.recep_size * m_set.recep_size * sizeof(double));
-					b_offset += (m_set.recep_size * m_set.recep_size * sizeof(double));
-					cur_offset += (m_output_width * m_output_height * sizeof(double));
+					prev_offset += (m_set.image_width * m_set.image_height * sizeof(double));
 				}
-				prev_offset += (m_set.image_width * m_set.image_height * sizeof(double));
+				
+				apply_vec(cur_z + cur_offset, cur_a + cur_offset, m_output_width * m_output_height,
+						f_activation);
+				cur_offset += (m_output_width * m_output_height * sizeof(double));
 			}
+			
 		}
+		
+		delete [] temp_z;
 	}
 	
 	void ConvLayer::forward_gpu(const LayerData& prev, LayerData& current)

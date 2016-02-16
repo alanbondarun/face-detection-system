@@ -20,7 +20,6 @@ namespace NeuralNet
 			size_t image_height;
 			size_t recep_size;
 			bool enable_zero_pad;
-			bool train_bias;
 		};
 		
 		enum class ActivationFunc
@@ -50,7 +49,6 @@ namespace NeuralNet
 				size_t, size_t, size_t, size_t);
 
 		double *m_weight;
-		double *m_bias;
 	};
 }
 

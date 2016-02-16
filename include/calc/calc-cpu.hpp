@@ -47,6 +47,9 @@ namespace NeuralNet
 	/* calculate convolution without zero padding */
 	void convolution_mat(const double *m_in, const double *m_conv, double *m_res,
 			size_t dim_w, size_t dim_h, size_t dim_conv_w, size_t dim_conv_h);
+			
+	void convolution_mat_zeropad_wide(const double *m_in, const double *m_conv, double *m_res,
+			size_t dim_w, size_t dim_h, size_t dim_conv_w, size_t dim_conv_h);
 }
 
 #endif // __CALC_CPU_HPP
