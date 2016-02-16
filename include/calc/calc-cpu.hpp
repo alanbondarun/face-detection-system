@@ -16,7 +16,6 @@ namespace NeuralNet
 	void mul_mat_vec(const double *m, const double *v, double *vres, size_t dim_r, size_t dim_c);
 	
 	/* apply function to a vector */
-	void apply_vec(double *v, double *vres, size_t dim, double(*func)(const double));
 	void apply_vec(double *v, double *vres, size_t dim, std::function<double(double)> func);
 	
 	/* transpose a given matrix */
