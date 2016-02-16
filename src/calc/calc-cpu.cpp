@@ -191,46 +191,49 @@ namespace NeuralNet
 
 	}
 
-	void convolution_mat_zeropad(const double *m_in, const double *m_conv, double *m_res,
-			size_t dim_w, size_t dim_h, size_t dim_conv_w, size_t dim_conv_h)
-	{
-	    int wt = dim_w-dim_conv_w+1;
-	    int ht = dim_h-dim_conv_h+1;
-	    int i,j,ii,jj,k,sum;
-	    int mid=dim_conv_w/2;
-	    for(i=0;i<wt;i++){
-            for(j=0;j<ht;<j++){
-                sum=0;
-                for(jj=0;jj<dim_conv_h;jj++){
-                    for(ii=0;ii<dim_conv_w;ii++){
-                        for(k=0;k<dim_conv_w;k++){
-                            //sum+=m_conv[jj][k]*m_in[j+k][i+ii];
-                            sum+=m_conv[jj*dim_conv_w+k]*m_in[(j+k)*dim_conv_h+i+ii];
-                        }
-                    }
-                    m_res[(i+1)*dim_conv_w+j+1]=sum;
-                }
-            }
-	    }
-	    for(i=0;i<dim_h;ii++){
-            for(j=0;j<dim_w;j++){
-                if((i==0|j==0)|(i==dim_h-1|j==dim_w-1)){
-                    m_res[i*dim_conv_w+j]=m_in[i*dim_conv_w+j];
-                }
-            }
-	    }
-		/* TODO */
-	}
-
 	void convolution_mat(const double *m_in, const double *m_conv, double *m_res,
-			size_t dim_w, size_t dim_h, size_t dim_conv_w, size_t dim_conv_h)
+			int dim_w, int dim_h, int dim_conv_w, int dim_conv_h,
+			const MatrixRange& range)
 	{
-		/* TODO */
+        const int i_dim_w = dim_w;
+        const int i_dim_h = dim_h;
+	    for (int j=0;j<range.h;j++) {
+            for (int i=0;i<range.w;i++) {
+                double sum=0;
+                for (int jj=0;jj<dim_conv_h;jj++) {
+                    for (int ii=0;ii<dim_conv_w;ii++) {
+                        int in_i = range.x + i + ii;
+                        int in_j = range.y + j + jj;
+                        if (in_i >= 0 && in_i < i_dim_w && in_j >= 0 && in_j < i_dim_h)
+                            sum += m_conv[jj*dim_conv_w + ii] * m_in[in_j*dim_w + in_i];
+                    }
+                }
+				m_res[j*range.w + i] = sum;
+            }
+	    }
 	}
-
-	void convolution_mat_zeropad_wide(const double *m_in, const double *m_conv, double *m_res,
-			size_t dim_w, size_t dim_h, size_t dim_conv_w, size_t dim_conv_h)
+    
+    void convolution_mat_no_zeros(const double *m_in, const double *m_conv, double *m_res,
+			int dim_w, int dim_h, int dim_conv_w, int dim_conv_h)
 	{
-		/* TODO */
+		convolution_mat(m_in, m_conv, m_res, dim_w, dim_h, dim_conv_w, dim_conv_h, MatrixRange(
+			0, 0, dim_w - dim_conv_w + 1, dim_h - dim_conv_h + 1
+		));
+	}
+    
+    void convolution_mat_same_zeros(const double *m_in, const double *m_conv, double *m_res,
+			int dim_w, int dim_h, int dim_conv_w, int dim_conv_h)
+	{
+		convolution_mat(m_in, m_conv, m_res, dim_w, dim_h, dim_conv_w, dim_conv_h, MatrixRange(
+			-(dim_conv_w/2), -(dim_conv_h/2), dim_w - (dim_conv_w/2), dim_h - (dim_conv_h/2)
+		));
+	}
+    
+    void convolution_mat_wide_zeros(const double *m_in, const double *m_conv, double *m_res,
+			int dim_w, int dim_h, int dim_conv_w, int dim_conv_h)
+	{
+		convolution_mat(m_in, m_conv, m_res, dim_w, dim_h, dim_conv_w, dim_conv_h, MatrixRange(
+			-dim_conv_w+1, -dim_conv_h+1, dim_w, dim_h
+		));
 	}
 }

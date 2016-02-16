@@ -38,18 +38,24 @@ namespace NeuralNet
 	/* flip (rotate 180 deg) a matrix */
 	void flip_mat(const double *m, double *mres, size_t dim_w, size_t dim_h);
 	
-	/* calculate convolution with zero padding, so that the resulting matrix has
-	 * the same dimension as the input matrix
-	 */
-	void convolution_mat_zeropad(const double *m_in, const double *m_conv, double *m_res,
-			size_t dim_w, size_t dim_h, size_t dim_conv_w, size_t dim_conv_h);
-			
-	/* calculate convolution without zero padding */
+	struct MatrixRange
+	{
+		int x, y, w, h;
+		MatrixRange(int _x, int _y, int _w, int _h)
+			: x(_x), y(_y), w(_w), h(_h) {}
+	};
+	
+	/* calculate convolution */
 	void convolution_mat(const double *m_in, const double *m_conv, double *m_res,
-			size_t dim_w, size_t dim_h, size_t dim_conv_w, size_t dim_conv_h);
+			int dim_w, int dim_h, int dim_conv_w, int dim_conv_h,
+			const MatrixRange& range);
 			
-	void convolution_mat_zeropad_wide(const double *m_in, const double *m_conv, double *m_res,
-			size_t dim_w, size_t dim_h, size_t dim_conv_w, size_t dim_conv_h);
+	void convolution_mat_no_zeros(const double *m_in, const double *m_conv, double *m_res,
+			int dim_w, int dim_h, int dim_conv_w, int dim_conv_h);
+	void convolution_mat_same_zeros(const double *m_in, const double *m_conv, double *m_res,
+			int dim_w, int dim_h, int dim_conv_w, int dim_conv_h);
+	void convolution_mat_wide_zeros(const double *m_in, const double *m_conv, double *m_res,
+			int dim_w, int dim_h, int dim_conv_w, int dim_conv_h);
 }
 
 #endif // __CALC_CPU_HPP
