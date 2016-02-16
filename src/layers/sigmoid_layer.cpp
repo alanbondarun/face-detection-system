@@ -38,7 +38,7 @@ namespace NeuralNet
 			add_vec(cur_z + (i*m_current_d), m_bias + (i*m_current_d),
 					cur_a + (i*m_current_d), m_current_d);
 		}
-		apply_vec(cur_a, m_current_d * m_train_num, f_sigmoid);
+		apply_vec(cur_a, cur_a, m_current_d * m_train_num, f_sigmoid);
 	}
 	
 	void SigmoidLayer::forward_gpu(const LayerData& prev, LayerData& current)
@@ -57,8 +57,7 @@ namespace NeuralNet
 		
 		/* calculate error value for previous layer */
 		double *sprime_z = new double[m_prev_d * m_train_num];
-		memcpy(sprime_z, prev_z, sizeof(double) * m_prev_d * m_train_num);
-		apply_vec(sprime_z, m_prev_d * m_train_num, f_sigmoid_prime);
+		apply_vec(prev_z, sprime_z, m_prev_d * m_train_num, f_sigmoid_prime);
 		
 		double *temp_w = new double[m_prev_d * m_current_d];
 		transpose_mat(m_weight, temp_w, m_current_d, m_prev_d);
@@ -73,7 +72,7 @@ namespace NeuralNet
 		double *delta_b = new double[m_current_d];
 		
 		sum_vec(cur_e, delta_b, m_current_d, m_train_num);
-		apply_vec(delta_b, m_current_d, [train_num](double in) -> double {
+		apply_vec(delta_b, delta_b, m_current_d, [train_num](double in) -> double {
 			return -in*eta/train_num;
 		});
 		add_vec(m_bias, delta_b, m_bias, m_current_d);
@@ -87,7 +86,7 @@ namespace NeuralNet
 			vec_outer_prod(cur_e, prev_a, temp_w, m_current_d, m_prev_d);
 			add_vec(delta_w, temp_w, delta_w, m_prev_d * m_current_d);
 		}
-		apply_vec(delta_w, m_prev_d * m_current_d, [train_num](double in) -> double {
+		apply_vec(delta_w, delta_w, m_prev_d * m_current_d, [train_num](double in) -> double {
 			return -in*eta/train_num;
 		});
 		add_vec(m_weight, delta_w, m_weight, m_prev_d * m_current_d);

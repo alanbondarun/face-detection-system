@@ -16,8 +16,8 @@ namespace NeuralNet
 	void mul_mat_vec(const double *m, const double *v, double *vres, size_t dim_r, size_t dim_c);
 	
 	/* apply function to a vector */
-	void apply_vec(double *v, size_t dim, double(*func)(const double));
-	void apply_vec(double *v, size_t dim, std::function<double(double)> func);
+	void apply_vec(double *v, double *vres, size_t dim, double(*func)(const double));
+	void apply_vec(double *v, double *vres, size_t dim, std::function<double(double)> func);
 	
 	/* transpose a given matrix */
 	void transpose_mat(const double *m, double *mres, size_t dim_r, size_t dim_c);
@@ -34,6 +34,19 @@ namespace NeuralNet
 	/* calculate upsampling */
 	void upsample_max(const double *me, const double *ma, double *me_res,
 			size_t dim_w, size_t dim_h, size_t pool_w, size_t pool_h);
+			
+	/* flip (rotate 180 deg) a matrix */
+	void flip_mat(const double *m, double *mres, size_t dim_w, size_t dim_h);
+	
+	/* calculate convolution with zero padding, so that the resulting matrix has
+	 * the same dimension as the input matrix
+	 */
+	void convolution_mat_zeropad(const double *m_in, const double *m_conv, double *m_res,
+			size_t dim_w, size_t dim_h, size_t dim_conv_w, size_t dim_conv_h);
+			
+	/* calculate convolution without zero padding */
+	void convolution_mat(const double *m_in, const double *m_conv, double *m_res,
+			size_t dim_w, size_t dim_h, size_t dim_conv_w, size_t dim_conv_h);
 }
 
 #endif // __CALC_CPU_HPP

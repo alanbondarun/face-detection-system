@@ -43,22 +43,22 @@ namespace NeuralNet
 		}
 	}
 	
-	void apply_vec(double *v, size_t dim, double(*func)(const double))
+	void apply_vec(double *v, double *vres, size_t dim, double(*func)(const double))
 	{
 		double *pres = v;
 		while (v - pres < dim)
 		{
-			*v = func(*v);
+			*vres = func(*v);
 			v++;
 		}
 	}
 	
-	void apply_vec(double *v, size_t dim, std::function<double(double)> func)
+	void apply_vec(double *v, double *vres, size_t dim, std::function<double(double)> func)
 	{
 		double *pres = v;
 		while (v - pres < dim)
 		{
-			*v = func(*v);
+			*vres = func(*v);
 			v++;
 		}
 	}
@@ -168,5 +168,30 @@ namespace NeuralNet
 				me_res[max_x * dim_w + max_y] = me[(i/pool_h) * ratio_w + (j/pool_w)];
 			}
 		}
+	}
+	
+	void flip_mat(const double *m, double *mres, size_t dim_w, size_t dim_h)
+	{
+		const double *pm = m;
+		double *pmres = mres + (dim_w*dim_h - 1);
+		
+		while (m - pm < dim_w * dim_h)
+		{
+			*mres = *m;
+			m++;
+			mres--;
+		}
+	}
+	
+	void convolution_mat_zeropad(const double *m_in, const double *m_conv, double *m_res,
+			size_t dim_w, size_t dim_h, size_t dim_conv_w, size_t dim_conv_h)
+	{
+		/* TODO */
+	}
+	
+	void convolution_mat(const double *m_in, const double *m_conv, double *m_res,
+			size_t dim_w, size_t dim_h, size_t dim_conv_w, size_t dim_conv_h)
+	{
+		/* TODO */
 	}
 }
