@@ -46,9 +46,9 @@ namespace NeuralNet
 		std::function<double(double)> f_activation;
 		std::function<double(double)> f_activation_prime;
 		void (*f_convolution)(const double *, const double *, double *,
-				size_t, size_t, size_t, size_t);
+				int, int, int, int);
 		void (*f_convol_back)(const double *, const double *, double *,
-				size_t, size_t, size_t, size_t);
+				int, int, int, int);
 				
 		double *m_weight;
 	};

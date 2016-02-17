@@ -170,7 +170,7 @@ namespace NeuralNet
 					{
 						convolution_mat(prev_a + prev_offset, cur_e + cur_offset, temp_w,
 							m_set.image_width, m_set.image_height, m_output_width, m_output_height,
-							MatrixRange(-(i_recep_size/2), -(i_recep_size/2), recep_size, recep_size));
+							MatrixRange(-(i_recep_size/2), -(i_recep_size/2), i_recep_size, i_recep_size));
 					}
 					add_vec(delta_w, temp_w, delta_w, m_set.recep_size * m_set.recep_size);
 					

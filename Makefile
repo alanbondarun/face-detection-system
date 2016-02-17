@@ -7,9 +7,11 @@ OBJ_DIR := obj
 ALGO_SUBDIR := algorithm
 LAYER_SUBDIR := layers
 CALC_SUBDIR := calc
+EXTLIB_SUBDIR := extlib
 
 TARGETS := led-user $(ALGO_SUBDIR)/test
-MIDDLE_OBJS := $(CALC_SUBDIR)/calc-cpu.o $(LAYER_SUBDIR)/layer_data.o \
+MIDDLE_OBJS := $(EXTLIB_SUBDIR)/jsoncpp.o \
+	$(CALC_SUBDIR)/calc-cpu.o $(LAYER_SUBDIR)/layer_data.o \
 	$(LAYER_SUBDIR)/sigmoid_layer.o \
 	$(LAYER_SUBDIR)/max_pool_layer.o \
 	$(LAYER_SUBDIR)/conv_layer.o
@@ -38,6 +40,7 @@ directory:
 	mkdir -p $(BUILD_DIR)
 	mkdir -p $(BUILD_DIR)/$(ALGO_SUBDIR)
 	mkdir -p $(OBJ_DIR)
+	mkdir -p $(OBJ_DIR)/$(EXTLIB_SUBDIR)
 	mkdir -p $(OBJ_DIR)/$(LAYER_SUBDIR)
 	mkdir -p $(OBJ_DIR)/$(CALC_SUBDIR)
     
@@ -57,6 +60,9 @@ endif
 
 led-user:
 	$(CXX) $(CXXFLAGS) -o $(BUILD_DIR)/led-user $(SRC_DIR)/led-user.c
+	
+$(EXTLIB_SUBDIR)/jsoncpp.o:
+	$(CXX) $(CXXFLAGS) -c -o $(OBJ_DIR)/$(EXTLIB_SUBDIR)/jsoncpp.o $(SRC_DIR)/$(EXTLIB_SUBDIR)/jsoncpp.cpp
 	
 $(CALC_SUBDIR)/calc-cpu.o:
 	$(CXX) $(CXXFLAGS) -c -o $(OBJ_DIR)/$(CALC_SUBDIR)/calc-cpu.o $(SRC_DIR)/$(CALC_SUBDIR)/calc-cpu.cpp

@@ -13,7 +13,7 @@ namespace NeuralNet
 	class Layer
 	{
     public:
-		virtual ~Layer();
+		virtual ~Layer() {}
 
 		/* forwarding input of the layer */
 		void forward(const LayerData& prev, LayerData& current)
