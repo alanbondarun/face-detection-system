@@ -4,6 +4,7 @@
 #include <memory>
 #include <string>
 #include <cstdlib>
+#include <unordered_map>
 #include "json/json.h"
 #include "layers/layer.hpp"
 #include "layers/layer_data.hpp"
@@ -43,10 +44,11 @@ namespace NeuralNet
 		
 	private:
 		struct Node;
+		using NodeUPtr = std::unique_ptr<Node>;
 		
 		void addLayer(const Json::Value& jsonLayer);
-		std::vector<Node *> feedForward(Node *in);
-		Node *backPropagate(Node *in);
+		std::vector<int> feedForward(int in_idx);
+		int backPropagate(int in_idx);
 		
 		InputType m_in_type;
 		struct InputSize
@@ -56,7 +58,8 @@ namespace NeuralNet
 		} m_in_size;
 		size_t m_train_size, m_batch_size;
 		
-		Node *root;
+		int root_idx;
+		std::unordered_map<int, NodeUPtr> node_map;
 	};
 }
 

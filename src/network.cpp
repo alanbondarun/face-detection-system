@@ -8,13 +8,13 @@ namespace NeuralNet
 	{
 		std::unique_ptr<Layer> layer;
 		std::unique_ptr<LayerData> data;
-		std::vector<Node *> next;
-		Node *prev;
+		std::vector<int> next_idx;
+		int prev_idx;
 	};
 	
 	/* may emit Json::Exception while execution */
 	Network::Network(const Json::Value& setting)
-		: root(nullptr)
+		: root_idx(0)
 	{
 		/* input file description */
 		auto input_val = setting["input"];
@@ -45,7 +45,7 @@ namespace NeuralNet
 
 		auto layer1 = layers[0u];
 		addLayer(layer1);
-		for (size_t idx = 1; idx < layers.size(); idx++)
+		for (int idx = 1; idx < layers.size(); idx++)
 		{
 			addLayer(layers[idx]);
 		}
@@ -53,7 +53,6 @@ namespace NeuralNet
 	
 	void Network::addLayer(const Json::Value& jsonLayer)
 	{
-		
 	}
 	
 	Network::~Network()
@@ -70,12 +69,12 @@ namespace NeuralNet
 		
 	}
 	
-	std::vector<Network::Node *> Network::feedForward(Network::Node *in)
+	std::vector<int> Network::feedForward(int in_idx)
 	{
 		
 	}
 	
-	Network::Node* Network::backPropagate(Network::Node *in)
+	int Network::backPropagate(int in_idx)
 	{
 		
 	}
