@@ -15,6 +15,7 @@ MIDDLE_OBJS := $(addprefix $(OBJ_DIR)/, $(EXTLIB_SUBDIR)/jsoncpp.o \
 	$(LAYER_SUBDIR)/sigmoid_layer.o \
 	$(LAYER_SUBDIR)/max_pool_layer.o \
 	$(LAYER_SUBDIR)/conv_layer.o \
+	$(LAYER_SUBDIR)/layer_factory.o \
 	network.o led-user.o )
 
 CXXFLAGS := -std=c++0x -I$(INCLUDE_DIR) -Wall

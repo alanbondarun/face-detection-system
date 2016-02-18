@@ -8,6 +8,7 @@
 #include "json/json.h"
 #include "layers/layer.hpp"
 #include "layers/layer_data.hpp"
+#include "layers/layer_factory.hpp"
 
 namespace NeuralNet
 {
@@ -46,7 +47,8 @@ namespace NeuralNet
 		struct Node;
 		using NodeUPtr = std::unique_ptr<Node>;
 		
-		void addLayer(const Json::Value& jsonLayer);
+		LayerFactory::LayerSetting addLayer(const Json::Value& jsonLayer,
+			const LayerFactory::LayerSetting& prevSetting);
 		std::vector<int> feedForward(int in_idx);
 		int backPropagate(int in_idx);
 		
@@ -54,7 +56,7 @@ namespace NeuralNet
 		struct InputSize
 		{
 			size_t size;
-			size_t width, height;
+			size_t width, height, channel_num;
 		} m_in_size;
 		size_t m_train_size, m_batch_size;
 		

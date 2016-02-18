@@ -35,6 +35,9 @@ namespace NeuralNet
 #endif
 		}
 		
+		/* creation of appropriate layer data for the layer */
+		virtual std::unique_ptr<LayerData> createLayerData() = 0;
+		
 	protected:
 		/**
 		 * CPU and GPU versions of the forward() and backward() that child classes
@@ -44,9 +47,6 @@ namespace NeuralNet
 		virtual void forward_gpu(const LayerData& prev, LayerData& current) = 0;
 		virtual void backward_cpu(LayerData& prev, LayerData& current) = 0;
 		virtual void backward_gpu(LayerData& prev, LayerData& current) = 0;
-		
-		/* creation of appropriate layer data for the layer */
-		virtual std::unique_ptr<LayerData> createLayerData() = 0;
 	};
 }
 
