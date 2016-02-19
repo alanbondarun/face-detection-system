@@ -1,7 +1,9 @@
 #include <string>
 #include <utility>
 #include <algorithm>
+#include <queue>
 #include "network.hpp"
+#include "calc/calc-cpu.hpp"
 #include "layers/layer_factory.hpp"
 #include "utils/make_unique.hpp"
 
@@ -21,6 +23,7 @@ namespace NeuralNet
 		/* train size and batch size */
 		m_train_size = setting["train_num"].asUInt();
 		m_batch_size = setting["batch_size"].asUInt();
+		m_epoch_num = setting["epoch_num"].asUInt();
 		
 		/* input file description */
 		auto input_val = setting["input"];
@@ -69,7 +72,16 @@ namespace NeuralNet
 		}
 		
 		/* input layer data construction */
-		inputData = std::make_unique<LayerData>(m_batch_size, m_unit_size);
+		m_input_data = std::make_unique<LayerData>(m_batch_size, m_unit_size);
+		
+		/* finding leaf nodes */
+		for (auto& node_pair: node_map)
+		{
+			if (node_pair.second->next_id.empty())
+			{
+				m_leaf_idx.push_back(node_pair.first);
+			}
+		}
 	}
 	
 	void Network::addLayer(const Json::Value& jsonLayer,
@@ -173,28 +185,106 @@ namespace NeuralNet
 	{
 	}
 
-	std::vector<int> Network::evaluate(const std::vector<double>& data) const
+	/* used for evaluation of a single set of data */
+	std::vector<int> Network::evaluate(const std::vector<double>& data)
 	{
-		return evaluate(data, 0);
+		auto eval_vec_array = evaluate(data, std::vector<size_t>(1, 0));
+		std::vector<int> retval;
+		for (auto& eval_vec: eval_vec_array)
+			retval.push_back(eval_vec[0]);
+		return retval;
 	}
 	
-	std::vector<int> Network::evaluate(const std::vector<double>& data, size_t data_idx) const
+	std::vector< std::vector<int> > Network::evaluate(const std::vector<double>& data,
+			const std::vector<size_t>& list_idx)
 	{
+		/* fill the data in the input LayerData */
+		for (size_t i=0; i<list_idx.size(); i++)
+		{
+			auto data_idx = list_idx[i];
+			copy_vec(data.data() + data_idx * m_unit_size * sizeof(double),
+					m_input_data->get(LayerData::DataIndex::ACTIVATION) + i * m_unit_size * sizeof(double),
+					m_unit_size * sizeof(double));
+		}
+
+		/* forward the input */
+		std::queue<NodeID> nodeQueue;
+		nodeQueue.push(root_idx);
+		while (!nodeQueue.empty())
+		{
+			auto cur_id = nodeQueue.front();
+			nodeQueue.pop();
+			
+			auto list_next_id = feedForward(cur_id);
+			for (auto next_id: list_next_id)
+			{
+				nodeQueue.push(next_id);
+			}
+		}
 		
+		/* return value generation */
+		std::vector< std::vector<int> > retval;
+		for (auto& leaf_id: m_leaf_idx)
+		{
+			retval.push_back(getCategory(*(node_map[leaf_id]->data)));
+		}
+		
+		return retval;
+	}
+	
+	std::vector<int> Network::getCategory(const LayerData& data) const
+	{
+		std::vector<int> retval;
+		
+		for (size_t t = 0; t < data.getTrainNum(); t++)
+		{
+			const double* out = data.get(LayerData::DataIndex::ACTIVATION)
+					+ t * data.getDataNum() * sizeof(double);
+			int maxi=0;
+			
+			for (size_t i=1; i<data.getDataNum(); i++)
+			{
+				if (out[i] > out[maxi])
+					maxi = i;
+			}
+			
+			retval.push_back(maxi);
+		}
+		
+		return retval;
 	}
 	
 	void Network::train(const std::vector<double>& data, const std::vector<int>& category_list)
 	{
-		
 	}
 	
-	std::vector<int> Network::feedForward(int in_idx)
+	std::vector<Network::NodeID> Network::feedForward(const Network::NodeID& in_idx)
 	{
+		auto& in_node = *(node_map[in_idx]);
 		
+		if (in_idx == root_idx)
+		{
+			in_node.layer->forward(*(m_input_data), *(in_node.data));
+		}
+		else
+		{
+			auto& prev_node = *(node_map[in_node.prev_id]);
+			in_node.layer->forward(*(prev_node.data), *(in_node.data));
+		}
+		
+		return in_node.next_id;
 	}
 	
-	int Network::backPropagate(int in_idx)
+	const Network::NodeID Network::backPropagate(const Network::NodeID& in_idx)
 	{
+		auto& in_node = *(node_map[in_idx]);
 		
+		if (in_idx != root_idx)
+		{
+			auto& prev_node = *(node_map[in_node.prev_id]);
+			in_node.layer->backward(*(prev_node.data), *(in_node.data));
+		}
+		
+		return in_node.prev_id;
 	}
 }

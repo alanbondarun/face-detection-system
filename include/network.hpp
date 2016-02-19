@@ -3,8 +3,8 @@
 
 #include <memory>
 #include <string>
-#include <cstdlib>
 #include <utility>
+#include <cstdlib>
 #include <unordered_map>
 #include <map>
 #include "json/json.h"
@@ -47,8 +47,9 @@ namespace NeuralNet
 		~Network();
 		
 		// returns classification value for one portion of data
-		std::vector<int> evaluate(const std::vector<double>& data) const;
-		std::vector<int> evaluate(const std::vector<double>& data, size_t data_idx) const;
+		std::vector<int> evaluate(const std::vector<double>& data);
+		std::vector< std::vector<int> > evaluate(const std::vector<double>& data,
+				const std::vector<size_t>& list_idx);
 		
 		// trains with m_train_size number of data
 		void train(const std::vector<double>& data, const std::vector<int>& category_list);
@@ -56,10 +57,13 @@ namespace NeuralNet
 	private:
 		void addLayer(const Json::Value& jsonLayer,
 				std::map< NodeID, LayerFactory::LayerSetting >& prevSetting);
-		std::vector<int> feedForward(int in_idx);
-		int backPropagate(int in_idx);
+				
+		std::vector<NodeID> feedForward(const NodeID& in_idx);
+		const NodeID backPropagate(const NodeID& in_idx);
 		
 		NodeID getParent(const NodeID& id) const;
+		
+		std::vector<int> getCategory(const LayerData& data) const;
 		
 		/* dimensions */
 		InputType m_in_type;
@@ -68,12 +72,13 @@ namespace NeuralNet
 			size_t size;
 			size_t width, height, channel_num;
 		} m_in_dim;
-		size_t m_unit_size, m_train_size, m_batch_size;
+		size_t m_unit_size, m_train_size, m_batch_size, m_epoch_num;
 		
-		std::pair<int, int> root_idx;
+		NodeID root_idx;
+		std::vector<NodeID> m_leaf_idx;
 		std::map< NodeID, NodeUPtr > node_map;
 		
-		std::unique_ptr<LayerData> inputData;
+		std::unique_ptr<LayerData> m_input_data;
 	};
 }
 
