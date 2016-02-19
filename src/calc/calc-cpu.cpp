@@ -89,12 +89,20 @@ namespace NeuralNet
 		double *p_vres = vres;
 		const double *p_vset = vset;
 
+		/* initialize to zero before addition */
 		while (vres - p_vres < dim_v)
 		{
 			*vres = 0;
 			vres++;
 		}
 		vres = p_vres;
+		sum_vec_preserve(vset, vres, dim_v, num_v);
+	}
+	
+	void sum_vec_preserve(const double *vset, double *vres, size_t dim_v, size_t num_v)
+	{
+		double *p_vres = vres;
+		const double *p_vset = vset;
 
 		while (vset - p_vset < dim_v*num_v)
 		{

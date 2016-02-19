@@ -49,21 +49,11 @@ namespace NeuralNet
 			explicit MaxPoolLayerSetting(size_t _t, size_t _w, size_t _h)
 				: LayerSetting(_t), pool_w(_w), pool_h(_h) {}
 		};
-		struct BranchLayerSetting: public LayerSetting
-		{
-			std::vector<size_t> neuron_num_list;
-			explicit BranchLayerSetting(size_t _t, const std::vector<size_t>& _nl)
-				: LayerSetting(_t), neuron_num_list(_nl) {}
-		};
 		
 		/* returns empty unique_ptr for invalid layer type */
 		static std::unique_ptr<Layer> makeLayer(LayerType type,
 				const LayerSetting& prev_setting,
 				const LayerSetting& cur_setting);
-		
-		/* returns empty std::vector for invalid layer type */
-		static std::vector< std::unique_ptr<Layer> > makeBranchLayer(LayerType type,
-				const LayerSetting& prev_setting, const LayerSetting& cur_setting);
 	};
 }
 

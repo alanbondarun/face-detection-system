@@ -18,11 +18,4 @@ namespace NeuralNet
 			return std::unique_ptr<Layer>();
 		}
 	}
-	
-	std::vector< std::unique_ptr<Layer> > LayerFactory::makeBranchLayer(LayerType type,
-			const LayerSetting& prev_setting, const LayerSetting& cur_setting)
-	{
-		std::vector< std::unique_ptr<Layer> > LayerPtrs;
-		return LayerPtrs;
-	}
 }
