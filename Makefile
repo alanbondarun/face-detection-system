@@ -8,13 +8,17 @@ ALGO_SUBDIR := algorithm
 LAYER_SUBDIR := layers
 CALC_SUBDIR := calc
 EXTLIB_SUBDIR := extlib
+UTIL_SUBDIR := utils
+TEST_SUBDIR := test
 
-TARGETS := $(BUILD_DIR)/led-user
+TARGETS := $(BUILD_DIR)/led-user $(BUILD_DIR)/test_load_image
 MIDDLE_OBJS := $(addprefix $(OBJ_DIR)/, $(EXTLIB_SUBDIR)/jsoncpp.o \
 	$(CALC_SUBDIR)/calc-cpu.o $(LAYER_SUBDIR)/layer_data.o \
 	$(LAYER_SUBDIR)/sigmoid_layer.o \
 	$(LAYER_SUBDIR)/max_pool_layer.o \
 	$(LAYER_SUBDIR)/conv_layer.o \
+	$(UTIL_SUBDIR)/load_image.o \
+	$(TEST_SUBDIR)/test_load_image.o \
 	network.o led-user.o )
 
 CXXFLAGS := -std=c++0x -I$(INCLUDE_DIR) -Wall
@@ -39,11 +43,13 @@ all: directory program
 
 directory:
 	mkdir -p $(BUILD_DIR)
-	mkdir -p $(BUILD_DIR)/$(ALGO_SUBDIR)
+	mkdir -p $(BUILD_DIR)/$(TEST_SUBDIR)
 	mkdir -p $(OBJ_DIR)
 	mkdir -p $(OBJ_DIR)/$(EXTLIB_SUBDIR)
 	mkdir -p $(OBJ_DIR)/$(LAYER_SUBDIR)
 	mkdir -p $(OBJ_DIR)/$(CALC_SUBDIR)
+	mkdir -p $(OBJ_DIR)/$(UTIL_SUBDIR)
+	mkdir -p $(OBJ_DIR)/$(TEST_SUBDIR)
     
 program: $(MIDDLE_OBJS) $(TARGETS)
 ifeq ($(TARGET_OS),LINUX)
@@ -68,3 +74,6 @@ $(OBJ_DIR)/led-user.o: $(SRC_DIR)/led-user.c
 	
 $(BUILD_DIR)/led-user: $(OBJ_DIR)/led-user.o
 	$(CXX) $(CXXFLAGS) -o $(BUILD_DIR)/led-user $(OBJ_DIR)/led-user.o
+
+$(BUILD_DIR)/test_load_image: $(OBJ_DIR)/$(UTIL_SUBDIR)/load_image.o $(OBJ_DIR)/$(TEST_SUBDIR)/test_load_image.o
+	$(CXX) $(CXXFLAGS) -o $(BUILD_DIR)/test_load_image $^
