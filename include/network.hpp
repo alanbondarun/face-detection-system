@@ -4,7 +4,9 @@
 #include <memory>
 #include <string>
 #include <cstdlib>
+#include <utility>
 #include <unordered_map>
+#include <map>
 #include "json/json.h"
 #include "layers/layer.hpp"
 #include "layers/layer_data.hpp"
@@ -20,6 +22,13 @@ namespace NeuralNet
 		{
 			VECTOR, IMAGE
 		};
+		
+	private:
+		struct Node;
+		
+	public:
+		using NodeUPtr = std::unique_ptr<Node>;
+		using NodeID = std::pair<int, int>;
 	
 		/* an exception thrown when this class received invalid JSON data */
 		class InvalidJSONException
@@ -38,30 +47,33 @@ namespace NeuralNet
 		~Network();
 		
 		// returns classification value for one portion of data
-		std::vector<int> evaluate(const double *data) const;
+		std::vector<int> evaluate(const std::vector<double>& data) const;
+		std::vector<int> evaluate(const std::vector<double>& data, size_t data_idx) const;
 		
 		// trains with m_train_size number of data
-		void train(const double *data);
+		void train(const std::vector<double>& data, const std::vector<int>& category_list);
 		
 	private:
-		struct Node;
-		using NodeUPtr = std::unique_ptr<Node>;
-		
-		LayerFactory::LayerSetting addLayer(const Json::Value& jsonLayer,
-			const LayerFactory::LayerSetting& prevSetting);
+		void addLayer(const Json::Value& jsonLayer,
+				std::map< NodeID, LayerFactory::LayerSetting >& prevSetting);
 		std::vector<int> feedForward(int in_idx);
 		int backPropagate(int in_idx);
 		
+		NodeID getParent(const NodeID& id) const;
+		
+		/* dimensions */
 		InputType m_in_type;
 		struct InputSize
 		{
 			size_t size;
 			size_t width, height, channel_num;
-		} m_in_size;
-		size_t m_train_size, m_batch_size;
+		} m_in_dim;
+		size_t m_unit_size, m_train_size, m_batch_size;
 		
-		int root_idx;
-		std::unordered_map<int, NodeUPtr> node_map;
+		std::pair<int, int> root_idx;
+		std::map< NodeID, NodeUPtr > node_map;
+		
+		std::unique_ptr<LayerData> inputData;
 	};
 }
 

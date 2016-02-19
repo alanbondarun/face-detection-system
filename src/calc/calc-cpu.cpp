@@ -43,6 +43,16 @@ namespace NeuralNet
 		}
 	}
 
+	void copy_vec(double *v, double *vres, size_t dim)
+	{
+		double *pres = v;
+		while (v - pres < dim)
+		{
+			*vres = *v;
+			v++;
+		}
+	}
+
 	void apply_vec(double *v, double *vres, size_t dim, double(*func)(const double))
 	{
 		double *pres = v;
