@@ -47,19 +47,28 @@ namespace NeuralNet
 		~Network();
 		
 		// returns classification value for one portion of data
-		std::vector<int> evaluate(const std::vector<double>& data);
+		std::vector< std::vector<int> > evaluate(const std::vector<double>& data);
 		std::vector< std::vector<int> > evaluate(const std::vector<double>& data,
 				const std::vector<size_t>& list_idx);
 		
 		// trains with m_train_size number of data
-		void train(const std::vector<double>& data, const std::vector<int>& category_list);
+		// category_list: list of (list of desired output data for each input data)
+		//    for each output layer
+		void train(const std::vector<double>& data,
+			const std::vector< std::vector<int> >& category_list);
 		
 	private:
 		void addLayer(const Json::Value& jsonLayer,
 				std::map< NodeID, LayerFactory::LayerSetting >& prevSetting);
-				
-		std::vector<NodeID> feedForward(const NodeID& in_idx);
-		const NodeID backPropagate(const NodeID& in_idx);
+		
+		/* helper function for propagation */
+		void feedForward(const std::vector<double>& data,
+				const std::vector<size_t>& list_idx);
+		void backPropagate();
+		
+		/* helper function for propagation of one layer */
+		std::vector<NodeID> feedForwardLayer(const NodeID& in_idx);
+		const NodeID backPropagateLayer(const NodeID& in_idx);
 		
 		NodeID getParent(const NodeID& id) const;
 		
@@ -72,7 +81,7 @@ namespace NeuralNet
 			size_t size;
 			size_t width, height, channel_num;
 		} m_in_dim;
-		size_t m_unit_size, m_train_size, m_batch_size, m_epoch_num;
+		size_t m_unit_size, m_train_size, m_batch_size, m_epoch_num, m_output_size;
 		
 		NodeID root_idx;
 		std::vector<NodeID> m_leaf_idx;

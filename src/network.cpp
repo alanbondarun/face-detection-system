@@ -2,8 +2,12 @@
 #include <utility>
 #include <algorithm>
 #include <queue>
+#include <stack>
+#include <cstring>
+#include <random>
 #include "network.hpp"
 #include "calc/calc-cpu.hpp"
+#include "calc/util-functions.hpp"
 #include "layers/layer_factory.hpp"
 #include "utils/make_unique.hpp"
 
@@ -74,12 +78,14 @@ namespace NeuralNet
 		/* input layer data construction */
 		m_input_data = std::make_unique<LayerData>(m_batch_size, m_unit_size);
 		
-		/* finding leaf nodes */
+		/* finding leaf nodes and calculation of number of output nodes */
+		m_output_size = 0;
 		for (auto& node_pair: node_map)
 		{
 			if (node_pair.second->next_id.empty())
 			{
 				m_leaf_idx.push_back(node_pair.first);
+				m_output_size += node_pair.second->data->getDataNum();
 			}
 		}
 	}
@@ -186,16 +192,32 @@ namespace NeuralNet
 	}
 
 	/* used for evaluation of a single set of data */
-	std::vector<int> Network::evaluate(const std::vector<double>& data)
+	std::vector< std::vector<int> > Network::evaluate(const std::vector<double>& data)
 	{
-		auto eval_vec_array = evaluate(data, std::vector<size_t>(1, 0));
-		std::vector<int> retval;
-		for (auto& eval_vec: eval_vec_array)
-			retval.push_back(eval_vec[0]);
-		return retval;
+		std::vector<size_t> lst_idxes;
+		size_t idx_num = data.size() / m_unit_size;
+		for (size_t i=0; i<idx_num; i++)
+			lst_idxes.push_back(i);
+
+		return evaluate(data, lst_idxes);
 	}
 	
 	std::vector< std::vector<int> > Network::evaluate(const std::vector<double>& data,
+			const std::vector<size_t>& list_idx)
+	{
+		feedForward(data, list_idx);
+		
+		/* return value generation */
+		std::vector< std::vector<int> > retval;
+		for (auto& leaf_id: m_leaf_idx)
+		{
+			retval.push_back(getCategory(*(node_map[leaf_id]->data)));
+		}
+		
+		return retval;
+	}
+	
+	void Network::feedForward(const std::vector<double>& data,
 			const std::vector<size_t>& list_idx)
 	{
 		/* fill the data in the input LayerData */
@@ -215,21 +237,12 @@ namespace NeuralNet
 			auto cur_id = nodeQueue.front();
 			nodeQueue.pop();
 			
-			auto list_next_id = feedForward(cur_id);
+			auto list_next_id = feedForwardLayer(cur_id);
 			for (auto next_id: list_next_id)
 			{
 				nodeQueue.push(next_id);
 			}
 		}
-		
-		/* return value generation */
-		std::vector< std::vector<int> > retval;
-		for (auto& leaf_id: m_leaf_idx)
-		{
-			retval.push_back(getCategory(*(node_map[leaf_id]->data)));
-		}
-		
-		return retval;
 	}
 	
 	std::vector<int> Network::getCategory(const LayerData& data) const
@@ -254,11 +267,110 @@ namespace NeuralNet
 		return retval;
 	}
 	
-	void Network::train(const std::vector<double>& data, const std::vector<int>& category_list)
+	void Network::backPropagate()
 	{
+		/* error value initialization of non-output layers at the beginning of the calculation */
+		for (auto& node_pair: node_map)
+		{
+			if (std::find(m_leaf_idx.begin(), m_leaf_idx.end(), node_pair.first)
+					== m_leaf_idx.end())
+			{
+				auto& node_data = *(node_pair.second->data);
+				memset(node_data.get(LayerData::DataIndex::ERROR), 0,
+						sizeof(node_data.getDataNum() * node_data.getTrainNum() * sizeof(double)));
+			}
+		}
+		
+		/* traverse the nodes for back propagation */
+		std::map< NodeID, bool > node_traversed;
+		for (auto& node_pair: node_map)
+			node_traversed[node_pair.first] = false;
+		
+		std::stack<NodeID> node_stack;
+		node_stack.push(root_idx);
+		while (!node_stack.empty())
+		{
+			auto& top_id = node_stack.top();
+			if (node_traversed[top_id])
+			{
+				backPropagateLayer(top_id);
+				node_stack.pop();
+			}
+			else
+			{
+				node_traversed[top_id] = true;
+				for (auto& child_id: node_map[top_id]->next_id)
+				{
+					node_stack.push(child_id);
+				}
+			}
+		}
 	}
 	
-	std::vector<Network::NodeID> Network::feedForward(const Network::NodeID& in_idx)
+	void Network::train(const std::vector<double>& data,
+			const std::vector< std::vector<int> >& category_list)
+	{
+		std::vector<size_t> data_idxes;
+		for (size_t i=0; i<m_train_size; i++)
+			data_idxes.push_back(i);
+		
+		std::vector<size_t> batch_idxes(m_batch_size);
+		
+		std::random_device rd;
+		std::mt19937 rgen(rd());
+		
+		for (size_t epoch = 0; epoch < m_epoch_num; epoch++)
+		{
+			std::shuffle(data_idxes.begin(), data_idxes.end(), rgen);
+			
+			for (size_t batch_num = 0; batch_num * m_batch_size < m_train_size; batch_num++)
+			{
+				for (size_t i = 0; i < m_batch_size; i++)
+				{
+					batch_idxes[i] = data_idxes[i + batch_num * m_batch_size];
+				}
+				
+				feedForward(data, batch_idxes);
+				
+				/* error value for output layers */
+				for (size_t i = 0; i < m_leaf_idx.size(); i++)
+				{
+					auto& leaf_id = m_leaf_idx[i];
+					auto& leaf_node = *(node_map[leaf_id]);
+					auto output_nodes = leaf_node.data->getDataNum();
+
+					std::vector<double> sprime_z(m_batch_size * output_nodes, 0);
+					copy_vec(leaf_node.data->get(LayerData::DataIndex::INTER_VALUE),
+							sprime_z.data(),
+							output_nodes * m_batch_size);
+					apply_vec(sprime_z.data(), sprime_z.data(), output_nodes * m_batch_size,
+							f_sigmoid_prime);
+					
+					std::vector<double> deriv_cost(m_batch_size * output_nodes, 0);
+					for (size_t j = 0; j < m_batch_size; j++)
+					{
+						for (size_t k = 0; k < output_nodes; k++)
+						{
+							deriv_cost[j * output_nodes + k] =
+									-category_list[i][output_nodes * batch_idxes[j] + k];
+						}
+					}
+					add_vec(leaf_node.data->get(LayerData::DataIndex::ACTIVATION),
+							deriv_cost.data(),
+							deriv_cost.data(),
+							output_nodes * m_batch_size);
+
+					pmul_vec(sprime_z.data(), deriv_cost.data(),
+							leaf_node.data->get(LayerData::DataIndex::ERROR),
+							output_nodes * m_batch_size);
+				}
+				
+				backPropagate();
+			}
+		}
+	}
+	
+	std::vector<Network::NodeID> Network::feedForwardLayer(const Network::NodeID& in_idx)
 	{
 		auto& in_node = *(node_map[in_idx]);
 		
@@ -275,7 +387,7 @@ namespace NeuralNet
 		return in_node.next_id;
 	}
 	
-	const Network::NodeID Network::backPropagate(const Network::NodeID& in_idx)
+	const Network::NodeID Network::backPropagateLayer(const Network::NodeID& in_idx)
 	{
 		auto& in_node = *(node_map[in_idx]);
 		
