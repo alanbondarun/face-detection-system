@@ -3,6 +3,7 @@
 
 #include "layers/layer.hpp"
 #include "layers/layer_data.hpp"
+#include "json/json.h"
 #include <cstdlib>
 #include <memory>
 
@@ -36,6 +37,9 @@ namespace NeuralNet
 		virtual void backward_gpu(LayerData& prev, LayerData& current);
 		
 		virtual std::unique_ptr<LayerData> createLayerData();
+
+		virtual void importLayer(const Json::Value& coeffs);
+		virtual Json::Value exportLayer();
 		
 	private:
 		static const double eta;

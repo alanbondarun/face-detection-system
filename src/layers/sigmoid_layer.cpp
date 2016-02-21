@@ -109,4 +109,54 @@ namespace NeuralNet
 			m_current_d
 		);
 	}
+
+	void SigmoidLayer::importLayer(const Json::Value& coeffs)
+	{
+		size_t neurons = coeffs["neurons"].asUInt();
+		if (neurons != m_current_d)
+			throw Json::LogicError("invalid 'neurons' in layer_data");
+		
+		auto weight_lists = coeffs["weight"];
+		if (weight_lists.size() != m_current_d)
+			throw Json::LogicError("invalid number of weight values");
+		for (int i = 0; i < m_current_d; i++)
+		{
+			auto weights = weight_lists[i];
+			if (weights.size() != m_prev_d)
+				throw Json::LogicError("invalid number of weight values");
+
+			for (int j = 0; j < m_prev_d; j++)
+				m_weight[i * m_prev_d + j] = weights[j].asDouble();
+		}
+		
+		auto biases = coeffs["bias"];
+		if (biases.size() != m_current_d)
+			throw Json::LogicError("invalid number of bias values");
+		for (int i = 0; i < m_current_d; i++)
+			m_bias[i] = biases[i].asDouble();
+	}
+	
+	Json::Value SigmoidLayer::exportLayer()
+	{
+		Json::Value coeff_value(Json::objectValue);
+		coeff_value["neurons"] = Json::Value(static_cast<Json::UInt>(m_current_d));
+		
+		Json::Value weight_lists(Json::arrayValue);
+		for (size_t i = 0; i < m_current_d; i++)
+		{
+			Json::Value weights(Json::arrayValue);
+			for (size_t j = 0; j < m_prev_d; j++)
+				weights.append(Json::Value(m_weight[i * m_prev_d + j]));
+			
+			weight_lists.append(weights);
+		}
+		coeff_value["weight"] = weight_lists;
+		
+		Json::Value biases(Json::arrayValue);
+		for (size_t i = 0; i < m_current_d; i++)
+			biases.append(Json::Value(m_bias[i]));
+		coeff_value["bias"] = biases;
+		
+		return coeff_value;
+	}
 }

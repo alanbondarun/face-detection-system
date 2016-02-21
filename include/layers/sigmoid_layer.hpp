@@ -2,6 +2,7 @@
 #define __SIGMOID_LAYER_HPP
 
 #include "layers/layer.hpp"
+#include "json/json.h"
 #include <functional>
 
 namespace NeuralNet
@@ -18,6 +19,9 @@ namespace NeuralNet
 		virtual void backward_gpu(LayerData& prev, LayerData& current);
 		
 		virtual std::unique_ptr<LayerData> createLayerData();
+
+		virtual void importLayer(const Json::Value& coeffs);
+		virtual Json::Value exportLayer();
 		
 		static const std::function<double(double)> f_sigmoid;
 		static const std::function<double(double)> f_sigmoid_prime;

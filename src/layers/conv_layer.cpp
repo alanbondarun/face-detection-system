@@ -50,7 +50,6 @@ namespace NeuralNet
 	void ConvLayer::forward_cpu(const LayerData& prev, LayerData& current)
 	{
 		auto prev_a = prev.get(LayerData::DataIndex::ACTIVATION);
-		auto prev_z = prev.get(LayerData::DataIndex::INTER_VALUE);
 		auto cur_a = current.get(LayerData::DataIndex::ACTIVATION);
 		auto cur_z = current.get(LayerData::DataIndex::INTER_VALUE);
 		
@@ -205,5 +204,60 @@ namespace NeuralNet
 			m_set.train_num,
 			m_set.current_map_num * m_output_width * m_output_height
 		);
+	}
+	
+	void ConvLayer::importLayer(const Json::Value& coeffs)
+	{
+		auto coeff_dim = coeffs["dimension"];
+		size_t cur_maps = coeff_dim["map_num"].asUInt();
+		if (cur_maps != m_set.current_map_num)
+			throw Json::LogicError("invalid map_num");
+		size_t recep_size = coeff_dim["recep_size"].asUInt();
+		if (recep_size != m_set.recep_size)
+			throw Json::LogicError("invalid recep_size");
+		
+		size_t weight_offset = 0;
+		auto weight_lists = coeffs["weight"];
+		if (weight_lists.size() != m_set.current_map_num * m_set.prev_map_num)
+			throw Json::LogicError("invalid number of feature maps");
+		for (int i = 0; i < m_set.current_map_num * m_set.prev_map_num; i++)
+		{
+			auto weights = weight_lists[i];
+			if (weights.size() != m_set.recep_size * m_set.recep_size)
+				throw Json::LogicError("invalid feature map");
+			
+			for (int j = 0; j < m_set.recep_size * m_set.recep_size; j++)
+			{
+				*(m_weight + weight_offset) = weights[j].asDouble();
+				weight_offset++;
+			}
+		}
+	}
+	
+	Json::Value ConvLayer::exportLayer()
+	{
+		Json::Value coeff_value(Json::objectValue);
+
+		Json::Value coeff_dim(Json::objectValue);
+		coeff_dim["map_num"] = Json::Value(static_cast<Json::UInt>(m_set.current_map_num));
+		coeff_dim["recep_size"] = Json::Value(static_cast<Json::UInt>(m_set.recep_size));
+		coeff_value["dimension"] = coeff_dim;
+
+		size_t weight_offset = 0;
+		Json::Value weight_lists(Json::arrayValue);
+		for (size_t i = 0; i < m_set.current_map_num * m_set.prev_map_num; i++)
+		{
+			Json::Value weights(Json::arrayValue);
+			for (size_t j = 0; j < m_set.recep_size * m_set.recep_size; j++)
+			{
+				weights.append(Json::Value(m_weight[weight_offset]));
+				weight_offset++;
+			}
+
+			weight_lists.append(weights);
+		}
+		coeff_value["weight"] = weight_lists;
+
+		return coeff_value;
 	}
 }

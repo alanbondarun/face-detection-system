@@ -4,6 +4,7 @@
 #include <cstdlib>
 #include <memory>
 #include "layers/layer_data.hpp"
+#include "json/json.h"
 
 namespace NeuralNet
 {
@@ -37,6 +38,12 @@ namespace NeuralNet
 		
 		/* creation of appropriate layer data for the layer */
 		virtual std::unique_ptr<LayerData> createLayerData() = 0;
+		
+		/* import/export of layer coefficients.
+		 * importLayer() may emit Json::Exception during execution
+		 */
+		virtual void importLayer(const Json::Value& coeffs) = 0;
+		virtual Json::Value exportLayer() = 0;
 		
 	protected:
 		/**
