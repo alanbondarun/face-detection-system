@@ -10,7 +10,8 @@ namespace NeuralNet
 	class SigmoidLayer: public Layer
 	{
     public:
-		SigmoidLayer(size_t prev_neurons, size_t current_neurons, size_t train_num);
+		SigmoidLayer(size_t prev_neurons, size_t current_neurons, size_t train_num,
+				double learn_rate);
         virtual ~SigmoidLayer();
 
 		virtual void forward_cpu(const LayerData& prev, LayerData& current);
@@ -27,7 +28,7 @@ namespace NeuralNet
 		static const std::function<double(double)> f_sigmoid_prime;
 		
 	private:
-		static const double eta;
+		const double m_learn_rate;
 		
 		size_t m_prev_d, m_current_d, m_train_num;
 		double *m_weight;

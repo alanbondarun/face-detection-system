@@ -82,6 +82,7 @@ namespace NeuralNet
 			size_t width, height, channel_num;
 		} m_in_dim;
 		size_t m_unit_size, m_train_size, m_batch_size, m_epoch_num, m_output_size;
+		double m_learn_rate;
 		
 		NodeID root_idx;
 		std::vector<NodeID> m_leaf_idx;

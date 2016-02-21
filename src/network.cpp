@@ -29,6 +29,8 @@ namespace NeuralNet
 		m_batch_size = setting["batch_size"].asUInt();
 		m_epoch_num = setting["epoch_num"].asUInt();
 		
+		m_learn_rate = setting["learn_rate"].asDouble();
+		
 		/* input file description */
 		auto input_val = setting["input"];
 		auto input_type_str = input_val["type"].asString();
@@ -41,7 +43,7 @@ namespace NeuralNet
 			m_unit_size = m_in_dim.size;
 			
 			first_setting = LayerFactory::SigmoidLayerSetting(m_train_size,
-					m_in_dim.size);
+					m_in_dim.size, m_learn_rate);
 		}
 		else if (!input_type_str.compare("image"))
 		{
@@ -110,7 +112,7 @@ namespace NeuralNet
 			
 			for (int i=0; i<vec_sizes.size(); i++)
 			{
-				auto layer_setting = LayerFactory::SigmoidLayerSetting(m_batch_size, vec_sizes[i]);
+				auto layer_setting = LayerFactory::SigmoidLayerSetting(m_batch_size, vec_sizes[i], m_learn_rate);
 				auto idx = std::make_pair(layer_id, i);
 				auto first_idx = std::make_pair(layer_id, 0);
 				
@@ -136,14 +138,14 @@ namespace NeuralNet
 			if (!layer_type.compare("sigmoid"))
 			{
 				size_t neurons = jsonLayer["size"].asUInt();
-				cur_setting = LayerFactory::SigmoidLayerSetting(m_batch_size, neurons);
+				cur_setting = LayerFactory::SigmoidLayerSetting(m_batch_size, neurons, m_learn_rate);
 			}
 			else if (!layer_type.compare("convolution"))
 			{
 				size_t maps = jsonLayer["map_num"].asUInt();
 				size_t recep = jsonLayer["recep_size"].asUInt();
 				bool zeropad = jsonLayer["enable_zero_pad"].asBool();
-				cur_setting = LayerFactory::ConvLayerSetting(m_batch_size, maps, recep, zeropad);
+				cur_setting = LayerFactory::ConvLayerSetting(m_batch_size, maps, recep, m_learn_rate, zeropad);
 			}
 			else if (!layer_type.compare("maxpool"))
 			{

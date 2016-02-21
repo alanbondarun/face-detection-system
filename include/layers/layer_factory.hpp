@@ -26,8 +26,9 @@ namespace NeuralNet
 		struct SigmoidLayerSetting: public LayerSetting
 		{
 			size_t neuron_num;
-			explicit SigmoidLayerSetting(size_t _t, size_t _n)
-				: LayerSetting(_t), neuron_num(_n) {}
+			double learn_rate;
+			explicit SigmoidLayerSetting(size_t _t, size_t _n, double _l)
+				: LayerSetting(_t), neuron_num(_n), learn_rate(_l) {}
 		};
 		struct ImageLayerSetting: public LayerSetting
 		{
@@ -38,9 +39,10 @@ namespace NeuralNet
 		struct ConvLayerSetting: public LayerSetting
 		{
 			size_t map_num, recep_size;
+			double learn_rate;
 			bool enable_zero_pad;
-			explicit ConvLayerSetting(size_t _t, size_t _m, size_t _r, bool _zeropad)
-				: LayerSetting(_t), map_num(_m), recep_size(_r),
+			explicit ConvLayerSetting(size_t _t, size_t _m, size_t _r, double _l, bool _zeropad)
+				: LayerSetting(_t), map_num(_m), recep_size(_r), learn_rate(_l),
 				enable_zero_pad(_zeropad) {}
 		};
 		struct MaxPoolLayerSetting: public LayerSetting

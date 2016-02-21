@@ -8,10 +8,8 @@
 
 namespace NeuralNet
 {
-	const double ConvLayer::eta = 0.1;
-	
 	ConvLayer::ConvLayer(const LayerSetting& setting, ActivationFunc func)
-		: m_set(setting)
+		: m_set(setting), m_learn_rate(setting.learn_rate)
 	{
 		switch (func)
 		{
@@ -107,6 +105,7 @@ namespace NeuralNet
 	void ConvLayer::backward_cpu(LayerData& prev, LayerData& current)
 	{
 		const auto train_num = m_set.train_num;
+		const auto learn_rate = m_learn_rate;
 		const int i_recep_size = m_set.recep_size;
 		auto prev_a = prev.get(LayerData::DataIndex::ACTIVATION);
 		auto prev_z = prev.get(LayerData::DataIndex::INTER_VALUE);
@@ -188,8 +187,9 @@ namespace NeuralNet
 					cur_offset += (m_set.current_map_num * m_output_width * m_output_height * sizeof(double));
 				}
 				
-				apply_vec(delta_w, delta_w, m_set.recep_size * m_set.recep_size, [train_num](double in) -> double {
-					return -in*eta/train_num;
+				apply_vec(delta_w, delta_w, m_set.recep_size * m_set.recep_size,
+					[train_num, learn_rate](double in) -> double {
+						return -in*learn_rate/train_num;
 				});
 				add_vec(m_weight + dw_offset, delta_w, m_weight + dw_offset,
 						m_set.recep_size * m_set.recep_size);

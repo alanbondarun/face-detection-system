@@ -8,10 +8,10 @@
 
 namespace NeuralNet
 {
-	const double SigmoidLayer::eta = 0.1;
-	
-	SigmoidLayer::SigmoidLayer(size_t prev_neurons, size_t current_neurons, size_t train_num)
-		: m_prev_d(prev_neurons), m_current_d(current_neurons), m_train_num(train_num)
+	SigmoidLayer::SigmoidLayer(size_t prev_neurons, size_t current_neurons, size_t train_num,
+			double learn_rate)
+		: m_prev_d(prev_neurons), m_current_d(current_neurons), m_train_num(train_num),
+		m_learn_rate(learn_rate)
 	{
 		m_weight = new double[current_neurons * prev_neurons];
 		m_bias = new double[current_neurons];
@@ -61,6 +61,7 @@ namespace NeuralNet
 	{
 		/* TODO: data correctness check? */
 		const auto train_num = m_train_num;
+		const auto learn_rate = m_learn_rate;
 		auto prev_e = prev.get(LayerData::DataIndex::ERROR);
 		auto prev_z = prev.get(LayerData::DataIndex::INTER_VALUE);
 		auto prev_a = prev.get(LayerData::DataIndex::ACTIVATION);
@@ -83,8 +84,8 @@ namespace NeuralNet
 		double *delta_b = new double[m_current_d];
 		
 		sum_vec_preserve(cur_e, delta_b, m_current_d, m_train_num);
-		apply_vec(delta_b, delta_b, m_current_d, [train_num](double in) -> double {
-			return -in*eta/train_num;
+		apply_vec(delta_b, delta_b, m_current_d, [train_num, learn_rate](double in) -> double {
+			return -in*learn_rate/train_num;
 		});
 		add_vec(m_bias, delta_b, m_bias, m_current_d);
 		
@@ -97,8 +98,8 @@ namespace NeuralNet
 			vec_outer_prod(cur_e, prev_a, temp_w, m_current_d, m_prev_d);
 			add_vec(delta_w, temp_w, delta_w, m_prev_d * m_current_d);
 		}
-		apply_vec(delta_w, delta_w, m_prev_d * m_current_d, [train_num](double in) -> double {
-			return -in*eta/train_num;
+		apply_vec(delta_w, delta_w, m_prev_d * m_current_d, [train_num, learn_rate](double in) -> double {
+			return -in*learn_rate/train_num;
 		});
 		add_vec(m_weight, delta_w, m_weight, m_prev_d * m_current_d);
 		

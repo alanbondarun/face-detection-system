@@ -20,6 +20,7 @@ namespace NeuralNet
 			size_t image_width;
 			size_t image_height;
 			size_t recep_size;
+			double learn_rate;
 			bool enable_zero_pad;
 		};
 		
@@ -42,9 +43,8 @@ namespace NeuralNet
 		virtual Json::Value exportLayer();
 		
 	private:
-		static const double eta;
-		
 		LayerSetting m_set;
+		const double m_learn_rate;
 		size_t m_output_width, m_output_height;
 		
 		std::function<double(double)> f_activation;
