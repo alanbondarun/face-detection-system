@@ -2,7 +2,9 @@
 #include "calc/calc-cpu.hpp"
 #include "calc/util-functions.hpp"
 #include "utils/make_unique.hpp"
+#include <random>
 #include <cstring>
+#include <cmath>
 
 namespace NeuralNet
 {
@@ -37,9 +39,18 @@ namespace NeuralNet
 			m_output_width = m_set.image_width - (m_set.recep_size - 1);
 			m_output_height = m_set.image_height - (m_set.recep_size - 1);
 		}
-		
-		m_weight = new double[m_set.current_map_num * m_set.prev_map_num
-				* m_set.recep_size * m_set.recep_size];
+
+		const size_t num_weights = m_set.current_map_num * m_set.prev_map_num
+				* m_set.recep_size * m_set.recep_size;
+		m_weight = new double[num_weights];
+
+		/* weight initialization */
+		std::random_device rd;
+		std::mt19937 rgen(rd());
+		std::normal_distribution<double> dist_w(0.0, std::sqrt(1.0 / m_output_width * m_output_height));
+
+		for (size_t i = 0; i < num_weights; i++)
+			m_weight[i] = dist_w(rgen);
 	}
 	
 	ConvLayer::~ConvLayer()

@@ -3,6 +3,8 @@
 #include "calc/util-functions.hpp"
 #include "utils/make_unique.hpp"
 #include <cstring>
+#include <random>
+#include <cmath>
 
 namespace NeuralNet
 {
@@ -14,7 +16,16 @@ namespace NeuralNet
 		m_weight = new double[current_neurons * prev_neurons];
 		m_bias = new double[current_neurons];
 		
-		/* TODO: value init? */
+		/* weight and bias initializaion */
+		std::random_device rd;
+		std::mt19937 rgen(rd());
+		std::normal_distribution<double> dist_w(0.0, std::sqrt(1.0 / current_neurons));
+		std::normal_distribution<double> dist_b(0.0, 1.0);
+
+		for (size_t i = 0; i < current_neurons * prev_neurons; i++)
+			m_weight[i] = dist_w(rgen);
+		for (size_t i = 0; i < current_neurons; i++)
+			m_bias[i] = dist_b(rgen);
 	}
 	
 	SigmoidLayer::~SigmoidLayer()
