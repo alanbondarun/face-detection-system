@@ -27,8 +27,10 @@ namespace NeuralNet
 		struct Node;
 		
 	public:
+		/* type aliases */
 		using NodeUPtr = std::unique_ptr<Node>;
 		using NodeID = std::pair<int, int>;
+		using SettingMapType = std::map< NodeID, std::pair<LayerFactory::LayerType, LayerFactory::LayerSetting> >;
 	
 		/* an exception thrown when this class received invalid JSON data */
 		class InvalidJSONException
@@ -58,8 +60,7 @@ namespace NeuralNet
 			const std::vector< std::vector<int> >& category_list);
 		
 	private:
-		void addLayer(const Json::Value& jsonLayer,
-				std::map< NodeID, LayerFactory::LayerSetting >& prevSetting);
+		void addLayer(const Json::Value& jsonLayer, SettingMapType& prevSetting);
 		
 		/* helper function for propagation */
 		void feedForward(const std::vector<double>& data,
