@@ -49,7 +49,7 @@ namespace NeuralNet
 			add_vec(cur_z + (i*m_current_d), m_bias + (i*m_current_d),
 					cur_a + (i*m_current_d), m_current_d);
 		}
-		apply_vec(cur_a, cur_a, m_current_d * m_train_num, f_sigmoid);
+		apply_vec(cur_a, cur_a, m_current_d * m_train_num, ActivationFuncs::f_sigmoid);
 	}
 	
 	void SigmoidLayer::forward_gpu(const LayerData& prev, LayerData& current)
@@ -69,7 +69,7 @@ namespace NeuralNet
 		
 		/* calculate error value for previous layer */
 		double *sprime_z = new double[m_prev_d * m_train_num];
-		apply_vec(prev_z, sprime_z, m_prev_d * m_train_num, f_sigmoid_prime);
+		apply_vec(prev_z, sprime_z, m_prev_d * m_train_num, ActivationFuncs::f_sigmoid_prime);
 		
 		double *temp_w = new double[m_prev_d * m_current_d];
 		transpose_mat(m_weight, temp_w, m_current_d, m_prev_d);

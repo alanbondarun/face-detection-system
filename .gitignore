@@ -7,8 +7,12 @@
 *.cmd
 *.mod.c
 build/
+obj/
 
 # related to builded modules
 .tmp_versions/
 Module.symvers
 modules.order
+
+# runtime error logs
+*.stackdump

@@ -482,7 +482,7 @@ namespace NeuralNet
 							sprime_z.data(),
 							output_nodes * m_batch_size);
 					apply_vec(sprime_z.data(), sprime_z.data(), output_nodes * m_batch_size,
-							f_sigmoid_prime);
+							ActivationFuncs::f_sigmoid_prime);
 					
 					std::vector<double> deriv_cost(m_batch_size * output_nodes, 0);
 					for (size_t j = 0; j < m_batch_size; j++)

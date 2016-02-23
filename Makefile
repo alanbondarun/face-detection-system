@@ -4,21 +4,26 @@ MODULE_DIR := modules
 INCLUDE_DIR := include
 OBJ_DIR := obj
 
-ALGO_SUBDIR := algorithm
 LAYER_SUBDIR := layers
 CALC_SUBDIR := calc
 EXTLIB_SUBDIR := extlib
+UTIL_SUBDIR := utils
+TEST_SUBDIR := test
 
-TARGETS := $(BUILD_DIR)/led-user
-MIDDLE_OBJS := $(addprefix $(OBJ_DIR)/, $(EXTLIB_SUBDIR)/jsoncpp.o \
-	$(CALC_SUBDIR)/calc-cpu.o $(LAYER_SUBDIR)/layer_data.o \
+TARGETS := $(BUILD_DIR)/led-user $(BUILD_DIR)/test_nn
+EXTLIB_OBJS := $(addprefix $(OBJ_DIR)/, $(EXTLIB_SUBDIR)/jsoncpp.o)
+NEURAL_NET_OBJS := $(addprefix $(OBJ_DIR)/, $(CALC_SUBDIR)/calc-cpu.o \
+	$(CALC_SUBDIR)/util-functions.o \
+	$(LAYER_SUBDIR)/layer_data.o \
 	$(LAYER_SUBDIR)/sigmoid_layer.o \
 	$(LAYER_SUBDIR)/max_pool_layer.o \
 	$(LAYER_SUBDIR)/conv_layer.o \
 	$(LAYER_SUBDIR)/layer_factory.o \
-	network.o led-user.o )
+	network.o) $(EXTLIB_OBJS)
+MIDDLE_OBJS := $(addprefix $(OBJ_DIR)/, led-user.o $(TEST_SUBDIR)/test_nn.o) \
+	$(NEURAL_NET_OBJS)
 
-CXXFLAGS := -std=c++0x -I$(INCLUDE_DIR) -Wall
+CXXFLAGS := -std=c++0x -I$(INCLUDE_DIR) -Wall -mcmodel=large -g
 
 .PHONY: all clean directory program
 
@@ -40,11 +45,12 @@ all: directory program
 
 directory:
 	mkdir -p $(BUILD_DIR)
-	mkdir -p $(BUILD_DIR)/$(ALGO_SUBDIR)
 	mkdir -p $(OBJ_DIR)
 	mkdir -p $(OBJ_DIR)/$(EXTLIB_SUBDIR)
 	mkdir -p $(OBJ_DIR)/$(LAYER_SUBDIR)
 	mkdir -p $(OBJ_DIR)/$(CALC_SUBDIR)
+	mkdir -p $(OBJ_DIR)/$(UTIL_SUBDIR)
+	mkdir -p $(OBJ_DIR)/$(TEST_SUBDIR)
     
 program: $(MIDDLE_OBJS) $(TARGETS)
 ifeq ($(TARGET_OS),LINUX)
@@ -69,3 +75,6 @@ $(OBJ_DIR)/led-user.o: $(SRC_DIR)/led-user.c
 	
 $(BUILD_DIR)/led-user: $(OBJ_DIR)/led-user.o
 	$(CXX) $(CXXFLAGS) -o $(BUILD_DIR)/led-user $(OBJ_DIR)/led-user.o
+
+$(BUILD_DIR)/test_nn: $(OBJ_DIR)/$(TEST_SUBDIR)/test_nn.o $(NEURAL_NET_OBJS)
+	$(CXX) $(CXXFLAGS) -o $@ $^

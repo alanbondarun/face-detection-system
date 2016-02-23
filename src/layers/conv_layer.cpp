@@ -14,12 +14,12 @@ namespace NeuralNet
 		switch (func)
 		{
 		case ActivationFunc::SIGMOID:
-			f_activation = f_sigmoid;
-			f_activation_prime = f_sigmoid_prime;
+			f_activation = ActivationFuncs::f_sigmoid;
+			f_activation_prime = ActivationFuncs::f_sigmoid_prime;
 			break;
 		case ActivationFunc::RELU:
-			f_activation = f_relu;
-			f_activation_prime = f_relu_prime;
+			f_activation = ActivationFuncs::f_relu;
+			f_activation_prime = ActivationFuncs::f_relu_prime;
 			break;
 		}
 		
