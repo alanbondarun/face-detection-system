@@ -3,6 +3,7 @@
 
 #include <cstdlib>
 #include <memory>
+#include <string>
 #include "layers/layer_data.hpp"
 #include "json/json.h"
 
@@ -44,6 +45,9 @@ namespace NeuralNet
 		 */
 		virtual void importLayer(const Json::Value& coeffs) = 0;
 		virtual Json::Value exportLayer() = 0;
+		
+		/* description of the layer */
+		virtual std::string what() = 0;
 		
 	protected:
 		/**

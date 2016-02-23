@@ -42,6 +42,8 @@ namespace NeuralNet
 		virtual void importLayer(const Json::Value& coeffs);
 		virtual Json::Value exportLayer();
 		
+		virtual std::string what() { return "convolution"; }
+		
 	private:
 		LayerSetting m_set;
 		const double m_learn_rate;

@@ -34,6 +34,8 @@ namespace NeuralNet
 		virtual void importLayer(const Json::Value& coeffs);
 		virtual Json::Value exportLayer();
 		
+		virtual std::string what() { return "maxpool"; }
+		
 	private:
 		const Dimension m_dim;
 		const size_t m_output_width, m_output_height;

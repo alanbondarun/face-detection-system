@@ -7,6 +7,7 @@
 #include <cstdlib>
 #include <unordered_map>
 #include <map>
+#include <unordered_set>
 #include "json/json.h"
 #include "layers/layer.hpp"
 #include "layers/layer_data.hpp"
@@ -48,6 +49,10 @@ namespace NeuralNet
 		Network(const Json::Value& setting);
 		~Network();
 		
+		/* load/store neuron coefficients from files */
+		void loadFromFiles();
+		void storeIntoFiles();
+		
 		// returns classification value for one portion of data
 		std::vector< std::vector<int> > evaluate(const std::vector<double>& data);
 		std::vector< std::vector<int> > evaluate(const std::vector<double>& data,
@@ -72,6 +77,7 @@ namespace NeuralNet
 		const NodeID backPropagateLayer(const NodeID& in_idx);
 		
 		NodeID getParent(const NodeID& id) const;
+		std::unordered_set<int> collectMajorIDs();
 		
 		std::vector<int> getCategory(const LayerData& data) const;
 		

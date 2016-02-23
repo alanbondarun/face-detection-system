@@ -1,6 +1,8 @@
 #include <string>
 #include <utility>
 #include <algorithm>
+#include <iostream>
+#include <fstream>
 #include <queue>
 #include <stack>
 #include <cstring>
@@ -17,6 +19,7 @@ namespace NeuralNet
 	{
 		std::unique_ptr<Layer> layer;
 		std::unique_ptr<LayerData> data;
+		std::string file_path;
 		std::vector<NodeID> next_id;
 		NodeID prev_id;
 	};
@@ -111,6 +114,7 @@ namespace NeuralNet
 		auto layer_id = jsonLayer["id"].asInt();
 		auto layer_type = jsonLayer["type"].asString();
 		auto layer_children = jsonLayer["children"];
+		auto layer_data_path = jsonLayer["data_location"].asString();
 		
 		std::vector<NodeID> vec_child;
 		for (const auto& child_val: layer_children)
@@ -136,6 +140,7 @@ namespace NeuralNet
 				node_map[idx] = std::make_unique<Node>();
 				node_map[idx]->data = std::move(layer->createLayerData());
 				node_map[idx]->layer = std::move(layer);
+				node_map[idx]->file_path = std::move(layer_data_path);
 				node_map[idx]->next_id.push_back(vec_child[i]);
 				
 				auto parent_idx = getParent(first_idx);
@@ -198,6 +203,7 @@ namespace NeuralNet
 			node_map[idx] = std::make_unique<Node>();
 			node_map[idx]->data = std::move(layer->createLayerData());
 			node_map[idx]->layer = std::move(layer);
+			node_map[idx]->file_path = std::move(layer_data_path);
 			node_map[idx]->next_id = std::move(vec_child);
 			
 			auto parent_idx = getParent(idx);
@@ -232,6 +238,95 @@ namespace NeuralNet
 	
 	Network::~Network()
 	{
+	}
+
+	void Network::loadFromFiles()
+	{
+		auto major_id_set = collectMajorIDs();
+		for (auto& major_id: major_id_set)
+		{
+			auto first_node_id = std::make_pair(major_id, 0);
+			auto& node = *(node_map[first_node_id]);
+			if (node.file_path.empty())
+				continue;
+
+			Json::CharReaderBuilder builder;
+			builder["collectComments"] = false;
+			
+			Json::Value dataValue;
+			std::string errors;
+			std::fstream dataStream(node.file_path, std::ios_base::in);
+			bool ok = Json::parseFromStream(builder, dataStream, &dataValue, &errors);
+			if (ok)
+			{
+				auto data_id = dataValue["id"].asInt();
+				auto data_type = dataValue["type"].asString();
+				/* TODO: data type check? */
+
+				if (data_id == major_id)
+				{
+					if (!data_type.compare("branch"))
+					{
+						for (auto& sib_id: node_map[node.prev_id]->next_id)
+						{
+							node_map[sib_id]->layer->importLayer(dataValue["data"][sib_id.second]);
+						}
+					}
+					else /* non-branch layer */
+					{
+						node.layer->importLayer(dataValue["data"]);
+					}
+				}
+			}
+			else
+				std::cerr << "Error at Network::storeIntoFiles(): " << errors << std::endl;
+		}
+	}
+	
+	void Network::storeIntoFiles()
+	{
+		auto major_id_set = collectMajorIDs();
+
+		for (auto& major_id: major_id_set)
+		{
+			auto first_node_id = std::make_pair(major_id, 0);
+			auto& node = *(node_map[first_node_id]);
+			if (node.file_path.empty())
+				continue;
+
+			Json::Value dataValue(Json::objectValue);
+			dataValue["id"] = Json::Value(major_id);
+
+			/* branch check */
+			if (node_map[node.prev_id]->next_id.size() > 1)
+			{
+				dataValue["type"] = Json::Value("branch");
+				
+				Json::Value dataCollection(Json::arrayValue);
+				for (auto& sib_id: node_map[node.prev_id]->next_id)
+				{
+					dataCollection[sib_id.second] = node_map[sib_id]->layer->exportLayer();
+				}
+				dataValue["data"] = dataCollection;
+			}
+			else
+			{
+				dataValue["type"] = Json::Value(node.layer->what());
+				dataValue["data"] = node.layer->exportLayer();
+			}
+
+			Json::StyledStreamWriter writer("    ");
+			std::fstream dataStream(node.file_path, std::ios_base::out);
+			writer.write(dataStream, dataValue);
+		}
+	}
+
+	std::unordered_set<int> Network::collectMajorIDs()
+	{
+		std::unordered_set<int> major_ids;
+		for (auto& node_pair: node_map)
+			major_ids.insert(node_pair.first.first);
+		return major_ids;
 	}
 
 	/* used for evaluation of a single set of data */

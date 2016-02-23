@@ -23,6 +23,8 @@ namespace NeuralNet
 
 		virtual void importLayer(const Json::Value& coeffs);
 		virtual Json::Value exportLayer();
+
+		virtual std::string what() { return "sigmoid"; }
 		
 		static const std::function<double(double)> f_sigmoid;
 		static const std::function<double(double)> f_sigmoid_prime;
