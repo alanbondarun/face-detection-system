@@ -23,7 +23,7 @@ NEURAL_NET_OBJS := $(addprefix $(OBJ_DIR)/, $(CALC_SUBDIR)/calc-cpu.o \
 MIDDLE_OBJS := $(addprefix $(OBJ_DIR)/, led-user.o $(TEST_SUBDIR)/test_nn.o) \
 	$(NEURAL_NET_OBJS)
 
-CXXFLAGS := -std=c++0x -I$(INCLUDE_DIR) -Wall -mcmodel=large -g
+CXXFLAGS := -std=c++0x -I$(INCLUDE_DIR) -Wall -g
 
 .PHONY: all clean directory program
 
@@ -63,8 +63,7 @@ ifeq ($(TARGET_OS),LINUX)
 	# we clean kernel modules only in Linux environment
 	$(MAKE) -C $(MODULE_DIR) clean
 endif
-	rm -rf $(BUILD_DIR)
-	rm -rf $(OBJ_DIR)
+	rm -rf $(TARGETS) $(MIDDLE_OBJS)
 
 # default rule for object files
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp
