@@ -13,7 +13,7 @@ namespace NeuralNet
 		size_t width, height;
 		double* value;
 	};
-	
+
 	/**
 	 * Loads a image into a built-in array of vectors.
 	 * input: a string indicating the file path of the image

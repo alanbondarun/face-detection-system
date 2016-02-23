@@ -21,7 +21,7 @@ MIDDLE_OBJS := $(addprefix $(OBJ_DIR)/, $(EXTLIB_SUBDIR)/jsoncpp.o \
 	$(TEST_SUBDIR)/test_load_image.o \
 	network.o led-user.o )
 
-CXXFLAGS := -std=c++0x -I$(INCLUDE_DIR) -Wall
+CXXFLAGS := -std=c++0x -I$(INCLUDE_DIR) -Wall -g
 
 .PHONY: all clean directory program
 
@@ -50,7 +50,7 @@ directory:
 	mkdir -p $(OBJ_DIR)/$(CALC_SUBDIR)
 	mkdir -p $(OBJ_DIR)/$(UTIL_SUBDIR)
 	mkdir -p $(OBJ_DIR)/$(TEST_SUBDIR)
-    
+
 program: $(MIDDLE_OBJS) $(TARGETS)
 ifeq ($(TARGET_OS),LINUX)
 	# we build kernel modules only in Linux environment
@@ -68,10 +68,10 @@ endif
 # default rule for object files
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp
 	$(CXX) $(CXXFLAGS) -c -o $@ $<
-	
+
 $(OBJ_DIR)/led-user.o: $(SRC_DIR)/led-user.c
 	$(CXX) $(CXXFLAGS) -c -o $@ $<
-	
+
 $(BUILD_DIR)/led-user: $(OBJ_DIR)/led-user.o
 	$(CXX) $(CXXFLAGS) -o $(BUILD_DIR)/led-user $(OBJ_DIR)/led-user.o
 
