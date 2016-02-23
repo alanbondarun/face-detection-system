@@ -10,7 +10,7 @@ EXTLIB_SUBDIR := extlib
 UTIL_SUBDIR := utils
 TEST_SUBDIR := test
 
-TARGETS := $(BUILD_DIR)/led-user $(BUILD_DIR)/test_nn
+TARGETS := $(BUILD_DIR)/led-user $(BUILD_DIR)/test_nn $(BUILD_DIR)/test_load_image
 EXTLIB_OBJS := $(addprefix $(OBJ_DIR)/, $(EXTLIB_SUBDIR)/jsoncpp.o)
 NEURAL_NET_OBJS := $(addprefix $(OBJ_DIR)/, $(CALC_SUBDIR)/calc-cpu.o \
 	$(CALC_SUBDIR)/util-functions.o \
@@ -19,8 +19,10 @@ NEURAL_NET_OBJS := $(addprefix $(OBJ_DIR)/, $(CALC_SUBDIR)/calc-cpu.o \
 	$(LAYER_SUBDIR)/max_pool_layer.o \
 	$(LAYER_SUBDIR)/conv_layer.o \
 	$(LAYER_SUBDIR)/layer_factory.o \
+	$(UTIL_SUBDIR)/load_image.o \
 	network.o) $(EXTLIB_OBJS)
-MIDDLE_OBJS := $(addprefix $(OBJ_DIR)/, led-user.o $(TEST_SUBDIR)/test_nn.o) \
+MIDDLE_OBJS := $(addprefix $(OBJ_DIR)/, led-user.o \
+	$(TEST_SUBDIR)/test_load_image.o $(TEST_SUBDIR)/test_nn.o) \
 	$(NEURAL_NET_OBJS)
 
 CXXFLAGS := -std=c++0x -I$(INCLUDE_DIR) -Wall -g
@@ -51,7 +53,7 @@ directory:
 	mkdir -p $(OBJ_DIR)/$(CALC_SUBDIR)
 	mkdir -p $(OBJ_DIR)/$(UTIL_SUBDIR)
 	mkdir -p $(OBJ_DIR)/$(TEST_SUBDIR)
-    
+
 program: $(MIDDLE_OBJS) $(TARGETS)
 ifeq ($(TARGET_OS),LINUX)
 	# we build kernel modules only in Linux environment
@@ -68,12 +70,16 @@ endif
 # default rule for object files
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp
 	$(CXX) $(CXXFLAGS) -c -o $@ $<
-	
+
 $(OBJ_DIR)/led-user.o: $(SRC_DIR)/led-user.c
 	$(CXX) $(CXXFLAGS) -c -o $@ $<
-	
+
 $(BUILD_DIR)/led-user: $(OBJ_DIR)/led-user.o
 	$(CXX) $(CXXFLAGS) -o $(BUILD_DIR)/led-user $(OBJ_DIR)/led-user.o
 
 $(BUILD_DIR)/test_nn: $(OBJ_DIR)/$(TEST_SUBDIR)/test_nn.o $(NEURAL_NET_OBJS)
 	$(CXX) $(CXXFLAGS) -o $@ $^
+
+$(BUILD_DIR)/test_load_image: $(OBJ_DIR)/$(UTIL_SUBDIR)/load_image.o $(OBJ_DIR)/$(TEST_SUBDIR)/test_load_image.o
+	$(CXX) $(CXXFLAGS) -o $@ $^
+
