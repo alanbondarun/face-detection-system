@@ -2,16 +2,27 @@
 #define __LOAD_IMAGE_HPP
 
 #include <cstdlib>
+#include <string>
+#include <utility>
+#include <memory>
 
 namespace NeuralNet
 {
 	/**
 	 * a struct descripting an image.
 	 */
-	struct Image
+	class Image
 	{
-		size_t width, height;
-		double* value;
+	public:
+		explicit Image(size_t _width, size_t _height, size_t _channels);
+		~Image();
+		size_t getWidth() { return width; }
+		size_t getHeight() { return height; }
+		size_t getChannelNum() { return channel_num; }
+		double* getValues(size_t channel) { return value[channel]; }
+	private:
+		size_t width, height, channel_num;
+		double** value;
 	};
 
 	/**
@@ -22,7 +33,8 @@ namespace NeuralNet
 	 *     0 and 1 (inclusive).
 	 *     the pixels are sorted in raster scan order.
 	 */
-	Image loadImage(const char* filepath);
+	std::unique_ptr<Image> loadImage(const char* filepath);
+	std::unique_ptr<Image> loadImage(const std::string& filepath);
 }
 
 #endif // __LOAD_IMAGE_HPP
