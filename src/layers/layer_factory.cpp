@@ -64,7 +64,7 @@ namespace NeuralNet
 		auto& cast_prev_set = static_cast<const LayerFactory::ConvLayerSetting&>(prev_set);
 		auto& cast_cur_set = static_cast<const LayerFactory::SigmoidLayerSetting&>(cur_set);
 		return std::make_unique<SigmoidLayer>(
-				cast_prev_set.output_w * cast_prev_set.output_h,
+				cast_prev_set.map_num * cast_prev_set.output_w * cast_prev_set.output_h,
 				cast_cur_set.neuron_num,
 				cast_cur_set.train_num,
 				cast_cur_set.learn_rate
@@ -80,7 +80,7 @@ namespace NeuralNet
 		auto& cast_prev_set = static_cast<const LayerFactory::MaxPoolLayerSetting&>(prev_set);
 		auto& cast_cur_set = static_cast<const LayerFactory::SigmoidLayerSetting&>(cur_set);
 		return std::make_unique<SigmoidLayer>(
-				cast_prev_set.output_w * cast_prev_set.output_h,
+				cast_prev_set.map_num * cast_prev_set.output_w * cast_prev_set.output_h,
 				cast_cur_set.neuron_num,
 				cast_cur_set.train_num,
 				cast_cur_set.learn_rate

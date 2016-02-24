@@ -21,9 +21,9 @@ namespace NeuralNet
 		{
 			for (size_t j=0; j<m_dim.map_num; j++)
 			{
-				size_t back_offset = sizeof(double) * (i * m_dim.map_num + j)
+				size_t back_offset = (i * m_dim.map_num + j)
 						* (m_dim.image_width * m_dim.image_height);
-				size_t front_offset = sizeof(double) * (i * m_dim.map_num + j)
+				size_t front_offset = (i * m_dim.map_num + j)
 						* (m_output_width * m_output_height);
 				downsample_max(prev_z + back_offset, cur_z + front_offset,
 						m_dim.image_width, m_dim.image_height,
@@ -50,9 +50,9 @@ namespace NeuralNet
 		{
 			for (size_t j=0; j<m_dim.map_num; j++)
 			{
-				size_t back_offset = sizeof(double) * (i * m_dim.map_num + j)
+				size_t back_offset = (i * m_dim.map_num + j)
 						* (m_dim.image_width * m_dim.image_height);
-				size_t front_offset = sizeof(double) * (i * m_dim.map_num + j)
+				size_t front_offset = (i * m_dim.map_num + j)
 						* (m_output_width * m_output_height);
 						
 				upsample_max(cur_e + front_offset, prev_a + back_offset,

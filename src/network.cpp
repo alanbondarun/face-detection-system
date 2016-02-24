@@ -112,6 +112,7 @@ namespace NeuralNet
 		auto layer_type = jsonLayer["type"].asString();
 		auto layer_children = jsonLayer["children"];
 		auto layer_data_path = jsonLayer["data_location"].asString();
+		auto layer_dim = jsonLayer["dimensions"];
 		
 		std::vector<NodeID> vec_child;
 		for (const auto& child_val: layer_children)
@@ -119,7 +120,7 @@ namespace NeuralNet
 		
 		if (!layer_type.compare("branch"))
 		{
-			auto layer_sizes = jsonLayer["sizes"];
+			auto layer_sizes = layer_dim["sizes"];
 			std::vector<int> vec_sizes;
 			for (const auto& size_val: layer_sizes)
 				vec_sizes.push_back(size_val.asInt());
@@ -159,7 +160,7 @@ namespace NeuralNet
 
 			if (!layer_type.compare("sigmoid"))
 			{
-				size_t neurons = jsonLayer["size"].asUInt();
+				size_t neurons = layer_dim["size"].asUInt();
 				cur_setting = std::make_pair(
 					LayerFactory::LayerType::SIGMOID,
 					std::make_unique<LayerFactory::SigmoidLayerSetting>(m_batch_size,
@@ -168,9 +169,9 @@ namespace NeuralNet
 			}
 			else if (!layer_type.compare("convolution"))
 			{
-				size_t maps = jsonLayer["map_num"].asUInt();
-				size_t recep = jsonLayer["recep_size"].asUInt();
-				bool zeropad = jsonLayer["enable_zero_pad"].asBool();
+				size_t maps = layer_dim["map_num"].asUInt();
+				size_t recep = layer_dim["recep_size"].asUInt();
+				bool zeropad = layer_dim["enable_zero_pad"].asBool();
 				size_t input_w = 0, input_h = 0;
 
 				LayerFactory::getInstance().getOutputDimension(prevSetting[idx], input_w, input_h);
@@ -183,8 +184,8 @@ namespace NeuralNet
 			}
 			else if (!layer_type.compare("maxpool"))
 			{
-				size_t pw = jsonLayer["pool_width"].asUInt();
-				size_t ph = jsonLayer["pool_height"].asUInt();
+				size_t pw = layer_dim["pool_width"].asUInt();
+				size_t ph = layer_dim["pool_height"].asUInt();
 				size_t input_w = 0, input_h = 0;
 				size_t map_num = LayerFactory::getInstance().getMapNum(prevSetting[idx]);
 				
@@ -361,9 +362,9 @@ namespace NeuralNet
 		for (size_t i=0; i<list_idx.size(); i++)
 		{
 			auto data_idx = list_idx[i];
-			copy_vec(data.data() + data_idx * m_unit_size * sizeof(double),
-					m_input_data->get(LayerData::DataIndex::ACTIVATION) + i * m_unit_size * sizeof(double),
-					m_unit_size * sizeof(double));
+			copy_vec(data.data() + (data_idx * m_unit_size),
+					m_input_data->get(LayerData::DataIndex::ACTIVATION) + i * m_unit_size,
+					m_unit_size);
 		}
 
 		/* forward the input */

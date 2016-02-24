@@ -5,6 +5,7 @@
 #include <random>
 #include <cstring>
 #include <cmath>
+#include <array>
 
 namespace NeuralNet
 {
@@ -70,11 +71,11 @@ namespace NeuralNet
 		{		
 			size_t w_offset = 0;
 			size_t prev_offset = 0;
-			size_t cur_offset = i * m_set.current_map_num * m_output_width * m_output_height * sizeof(double);
+			size_t cur_offset = i * m_set.current_map_num * m_output_width * m_output_height;
 			
 			for (size_t ncur = 0; ncur < m_set.current_map_num; ncur++)
 			{
-				prev_offset = i * m_set.prev_map_num * m_set.image_width * m_set.image_height * sizeof(double);
+				prev_offset = i * m_set.prev_map_num * m_set.image_width * m_set.image_height;
 				for (size_t nprev = 0; nprev < m_set.prev_map_num; nprev++)
 				{
 					f_convolution(
@@ -83,13 +84,13 @@ namespace NeuralNet
 					);
 					add_vec(cur_z + cur_offset, temp_z, cur_z + cur_offset, m_output_width * m_output_height);
 					
-					w_offset += (m_set.recep_size * m_set.recep_size * sizeof(double));
-					prev_offset += (m_set.image_width * m_set.image_height * sizeof(double));
+					w_offset += (m_set.recep_size * m_set.recep_size);
+					prev_offset += (m_set.image_width * m_set.image_height);
 				}
 				
 				apply_vec(cur_z + cur_offset, cur_a + cur_offset, m_output_width * m_output_height,
 						f_activation);
-				cur_offset += (m_output_width * m_output_height * sizeof(double));
+				cur_offset += (m_output_width * m_output_height);
 			}
 			
 		}
@@ -114,7 +115,7 @@ namespace NeuralNet
 		
 		memset(prev_e, 0, sizeof(double) * m_set.train_num
 				* m_set.prev_map_num * m_set.image_width * m_set.image_height);	
-				
+
 		double *sprime_z = new double[m_set.train_num * m_set.prev_map_num
 				* m_set.image_width * m_set.image_height];
 		apply_vec(prev_z, sprime_z, m_set.train_num * m_set.prev_map_num
@@ -128,10 +129,10 @@ namespace NeuralNet
 		{
 			size_t w_offset = 0;
 			size_t cur_offset = 0;
-			size_t prev_offset = i * m_set.prev_map_num * m_set.image_width * m_set.image_height * sizeof(double);;
+			size_t prev_offset = i * m_set.prev_map_num * m_set.image_width * m_set.image_height;
 			for (size_t nprev = 0; nprev < m_set.prev_map_num; nprev++)
 			{
-				cur_offset = i * m_set.current_map_num * m_output_width * m_output_height * sizeof(double);
+				cur_offset = i * m_set.current_map_num * m_output_width * m_output_height;
 				w_offset = nprev * m_set.recep_size * m_set.recep_size;
 				
 				for (size_t ncur = 0; ncur < m_set.current_map_num; ncur++)
@@ -144,27 +145,26 @@ namespace NeuralNet
 					add_vec(prev_e + prev_offset, temp_pe, prev_e + prev_offset,
 							m_set.image_width * m_set.image_height);
 					
-					w_offset += (m_set.prev_map_num * m_set.recep_size * m_set.recep_size * sizeof(double));
-					cur_offset += (m_output_width * m_output_height * sizeof(double));
+					w_offset += (m_set.prev_map_num * m_set.recep_size * m_set.recep_size);
+					cur_offset += (m_output_width * m_output_height);
 				}
 				
 				pmul_vec(prev_e + prev_offset, sprime_z + prev_offset, prev_e + prev_offset,
 						m_set.image_width * m_set.image_height);
 				
-				prev_offset += (m_set.image_width * m_set.image_height * sizeof(double));
+				prev_offset += (m_set.image_width * m_set.image_height);
 			}
 		}
 		
 		/* calculate delta_w and update current weight */
 		double *delta_w = new double[m_set.recep_size * m_set.recep_size];
-		memset(delta_w, 0, sizeof(double) * m_set.recep_size * m_set.recep_size);
 		size_t dw_offset = 0;
 		for (size_t ncur = 0; ncur < m_set.current_map_num; ncur++)
 		{
 			for (size_t nprev = 0; nprev < m_set.prev_map_num; nprev++)
 			{
-				size_t cur_offset = ncur * m_output_width * m_output_height * sizeof(double);
-				size_t prev_offset = (nprev * m_set.image_width * m_set.image_height * sizeof(double));
+				size_t cur_offset = ncur * m_output_width * m_output_height;
+				size_t prev_offset = (nprev * m_set.image_width * m_set.image_height);
 				
 				memset(delta_w, 0, sizeof(double) * m_set.recep_size * m_set.recep_size);
 				
@@ -172,19 +172,19 @@ namespace NeuralNet
 				{
 					if (m_set.enable_zero_pad)
 					{
-						convolution_mat_no_zeros(prev_a + prev_offset, cur_e + cur_offset, temp_w,
-							m_set.image_width, m_set.image_height, m_output_width, m_output_height);
-					}
-					else
-					{
 						convolution_mat(prev_a + prev_offset, cur_e + cur_offset, temp_w,
 							m_set.image_width, m_set.image_height, m_output_width, m_output_height,
 							MatrixRange(-(i_recep_size/2), -(i_recep_size/2), i_recep_size, i_recep_size));
 					}
+					else
+					{
+						convolution_mat_no_zeros(prev_a + prev_offset, cur_e + cur_offset, temp_w,
+							m_set.image_width, m_set.image_height, m_output_width, m_output_height);
+					}
 					add_vec(delta_w, temp_w, delta_w, m_set.recep_size * m_set.recep_size);
 					
-					prev_offset += (m_set.prev_map_num * m_set.image_width * m_set.image_height * sizeof(double));
-					cur_offset += (m_set.current_map_num * m_output_width * m_output_height * sizeof(double));
+					prev_offset += (m_set.prev_map_num * m_set.image_width * m_set.image_height);
+					cur_offset += (m_set.current_map_num * m_output_width * m_output_height);
 				}
 				
 				apply_vec(delta_w, delta_w, m_set.recep_size * m_set.recep_size,

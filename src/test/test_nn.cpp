@@ -1,5 +1,6 @@
 #include "network.hpp"
 #include "utils/load_image.hpp"
+#include "calc/calc-cpu.hpp"
 #include <utility>
 #include <iostream>
 #include <fstream>
@@ -59,4 +60,5 @@ int main()
 	
 	NeuralNet::Network network(networkValue);
 	network.train(trainData, categoryData);
+	network.storeIntoFiles();
 }
