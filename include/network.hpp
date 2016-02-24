@@ -31,7 +31,13 @@ namespace NeuralNet
 		/* type aliases */
 		using NodeUPtr = std::unique_ptr<Node>;
 		using NodeID = std::pair<int, int>;
-		using SettingMapType = std::map< NodeID, std::pair<LayerFactory::LayerType, LayerFactory::LayerSetting> >;
+		using SettingMapType = std::map<
+				NodeID,
+				std::pair<
+					LayerFactory::LayerType,
+					std::unique_ptr<LayerFactory::LayerSetting>
+				>
+		>;
 	
 		/* an exception thrown when this class received invalid JSON data */
 		class InvalidJSONException

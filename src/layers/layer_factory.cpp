@@ -34,7 +34,7 @@ namespace NeuralNet
 		auto creator = m_creators.find(std::make_pair(prev_setting.first, cur_setting.first));
 		if (creator != m_creators.end())
 		{
-			return creator->second->create(prev_setting.second, cur_setting.second);
+			return creator->second->create(*(prev_setting.second), *(cur_setting.second));
 		}
 		return std::unique_ptr<Layer>();
 	}
@@ -180,19 +180,19 @@ namespace NeuralNet
 	{
 		if (set_pair.first == LayerType::IMAGE)
 		{
-			auto ils = static_cast<const ImageLayerSetting&>(set_pair.second);
+			auto ils = static_cast<const ImageLayerSetting&>(*(set_pair.second));
 			width = ils.image_w;
 			height = ils.image_h;
 		}
 		else if (set_pair.first == LayerType::CONVOLUTION)
 		{
-			auto cs = static_cast<const ConvLayerSetting&>(set_pair.second);
+			auto cs = static_cast<const ConvLayerSetting&>(*(set_pair.second));
 			width = cs.output_w;
 			height = cs.output_h;
 		}
 		else if (set_pair.first == LayerType::MAXPOOL)
 		{
-			auto mps = static_cast<const MaxPoolLayerSetting&>(set_pair.second);
+			auto mps = static_cast<const MaxPoolLayerSetting&>(*(set_pair.second));
 			width = mps.output_w;
 			height = mps.output_h;
 		}
@@ -203,17 +203,17 @@ namespace NeuralNet
 		size_t num = 0;
 		if (set_pair.first == LayerType::IMAGE)
 		{
-			auto ils = static_cast<const ImageLayerSetting&>(set_pair.second);
+			auto ils = static_cast<const ImageLayerSetting&>(*(set_pair.second));
 			num = ils.channel_num;
 		}
 		else if (set_pair.first == LayerType::CONVOLUTION)
 		{
-			auto cs = static_cast<const ConvLayerSetting&>(set_pair.second);
+			auto cs = static_cast<const ConvLayerSetting&>(*(set_pair.second));
 			num = cs.map_num;
 		}
 		else if (set_pair.first == LayerType::MAXPOOL)
 		{
-			auto mps = static_cast<const MaxPoolLayerSetting&>(set_pair.second);
+			auto mps = static_cast<const MaxPoolLayerSetting&>(*(set_pair.second));
 			num = mps.map_num;
 		}
 		return num;

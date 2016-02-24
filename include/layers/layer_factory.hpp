@@ -26,6 +26,7 @@ namespace NeuralNet
 			size_t train_num;
 			explicit LayerSetting() : train_num(0) {}
 			explicit LayerSetting(size_t _t) : train_num(_t) {}
+			virtual ~LayerSetting() {}
 		};
 		struct SigmoidLayerSetting: public LayerSetting
 		{
@@ -33,6 +34,7 @@ namespace NeuralNet
 			double learn_rate;
 			explicit SigmoidLayerSetting(size_t _t, size_t _n, double _l)
 				: LayerSetting(_t), neuron_num(_n), learn_rate(_l) {}
+			virtual ~SigmoidLayerSetting() {}
 		};
 		struct ImageLayerSetting: public LayerSetting
 		{
@@ -41,6 +43,7 @@ namespace NeuralNet
 			explicit ImageLayerSetting(size_t _t, size_t _w, size_t _h, size_t _c, double _lr)
 				: LayerSetting(_t), image_w(_w), image_h(_h),
 				channel_num(_c), learn_rate(_lr) {}
+			virtual ~ImageLayerSetting() {}
 		};
 		struct ConvLayerSetting: public LayerSetting
 		{
@@ -52,6 +55,7 @@ namespace NeuralNet
 				output_w((enable_zero_pad)?(_iw):(_iw - (_r - 1))),
 				output_h((enable_zero_pad)?(_ih):(_ih - (_r - 1))),
 				learn_rate(_l), enable_zero_pad(_zeropad) {}
+			virtual ~ConvLayerSetting() {}
 		};
 		struct MaxPoolLayerSetting: public LayerSetting
 		{
@@ -59,9 +63,10 @@ namespace NeuralNet
 			explicit MaxPoolLayerSetting(size_t _t, size_t _m, size_t _w, size_t _h, size_t _iw, size_t _ih)
 				: LayerSetting(_t), map_num(_m), pool_w(_w), pool_h(_h), input_w(_iw), input_h(_ih),
 				output_w(_iw / _w), output_h(_ih / _h) {}
+			virtual ~MaxPoolLayerSetting() {}
 		};
 
-		using SettingPair = std::pair< LayerType, LayerSetting >;
+		using SettingPair = std::pair< LayerType, std::unique_ptr<LayerSetting> >;
 
 		/* allow the usage of ctor only within this class */
 	private:
