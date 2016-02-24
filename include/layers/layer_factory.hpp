@@ -36,10 +36,11 @@ namespace NeuralNet
 		};
 		struct ImageLayerSetting: public LayerSetting
 		{
-			size_t image_w, image_h, channel_num, map_num;
-			explicit ImageLayerSetting(size_t _t, size_t _w, size_t _h, size_t _c, size_t _m)
+			size_t image_w, image_h, channel_num;
+			double learn_rate;
+			explicit ImageLayerSetting(size_t _t, size_t _w, size_t _h, size_t _c, double _lr)
 				: LayerSetting(_t), image_w(_w), image_h(_h),
-				channel_num(_c), map_num(_m) {}
+				channel_num(_c), learn_rate(_lr) {}
 		};
 		struct ConvLayerSetting: public LayerSetting
 		{
@@ -115,8 +116,6 @@ namespace NeuralNet
 			return std::unique_ptr<Layer>();
 		}
 	};
-	
-	/* LayerCreator::create() specialization declarations (TODO, if needed) */
 }
 
 #endif // __LAYER_FACTORY_HPP

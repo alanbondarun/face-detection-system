@@ -13,19 +13,19 @@ namespace NeuralNet
 	{
 		/* initialization of creator classes */
 		m_creators[std::make_pair(LayerType::SIGMOID, LayerType::SIGMOID)]
-				= std::move(std::unique_ptr< LayerCreator<SigmoidLayerSetting, SigmoidLayerSetting> >());
+				= std::move(std::make_unique< LayerCreator<SigmoidLayerSetting, SigmoidLayerSetting> >());
 		m_creators[std::make_pair(LayerType::CONVOLUTION, LayerType::SIGMOID)]
-				= std::move(std::unique_ptr< LayerCreator<ConvLayerSetting, SigmoidLayerSetting> >());
+				= std::move(std::make_unique< LayerCreator<ConvLayerSetting, SigmoidLayerSetting> >());
 		m_creators[std::make_pair(LayerType::MAXPOOL, LayerType::SIGMOID)]
-				= std::move(std::unique_ptr< LayerCreator<MaxPoolLayerSetting, SigmoidLayerSetting> >());
+				= std::move(std::make_unique< LayerCreator<MaxPoolLayerSetting, SigmoidLayerSetting> >());
 		m_creators[std::make_pair(LayerType::IMAGE, LayerType::CONVOLUTION)]
-				= std::move(std::unique_ptr< LayerCreator<ImageLayerSetting, ConvLayerSetting> >());
+				= std::move(std::make_unique< LayerCreator<ImageLayerSetting, ConvLayerSetting> >());
 		m_creators[std::make_pair(LayerType::CONVOLUTION, LayerType::CONVOLUTION)]
-				= std::move(std::unique_ptr< LayerCreator<ConvLayerSetting, ConvLayerSetting> >());
+				= std::move(std::make_unique< LayerCreator<ConvLayerSetting, ConvLayerSetting> >());
 		m_creators[std::make_pair(LayerType::MAXPOOL, LayerType::CONVOLUTION)]
-				= std::move(std::unique_ptr< LayerCreator<MaxPoolLayerSetting, ConvLayerSetting> >());
+				= std::move(std::make_unique< LayerCreator<MaxPoolLayerSetting, ConvLayerSetting> >());
 		m_creators[std::make_pair(LayerType::CONVOLUTION, LayerType::MAXPOOL)]
-				= std::move(std::unique_ptr< LayerCreator<ConvLayerSetting, MaxPoolLayerSetting> >());
+				= std::move(std::make_unique< LayerCreator<ConvLayerSetting, MaxPoolLayerSetting> >());
 	}
 
 	std::unique_ptr<Layer> LayerFactory::makeLayer(const SettingPair& prev_setting,
