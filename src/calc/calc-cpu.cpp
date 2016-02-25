@@ -50,16 +50,7 @@ namespace NeuralNet
 		{
 			*vres = *v;
 			v++;
-		}
-	}
-
-	void apply_vec(const double *v, double *vres, size_t dim, double(*func)(const double))
-	{
-		const double *pres = v;
-		while (v - pres < dim)
-		{
-			*vres = func(*v);
-			v++;
+			vres++;
 		}
 	}
 
@@ -70,6 +61,7 @@ namespace NeuralNet
 		{
 			*vres = func(*v);
 			v++;
+			vres++;
 		}
 	}
 
@@ -203,7 +195,7 @@ namespace NeuralNet
 			{
 				*mres = *m;
 				m++;
-				mres--;
+				pmres--;
 			}
 		}
 

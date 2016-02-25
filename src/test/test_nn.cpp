@@ -5,6 +5,7 @@
 #include <iostream>
 #include <fstream>
 #include <sstream>
+#include <random>
 
 bool load_test(Json::Value& value)
 {
@@ -53,9 +54,9 @@ int main()
 			);
 		}
 		if (k < 16)
-			categoryData.push_back(std::move(std::vector<int>(1, 1)));
+			categoryData.push_back(std::move(std::vector<int>{1, 0}));
 		else
-			categoryData.push_back(std::move(std::vector<int>(1, 0)));
+			categoryData.push_back(std::move(std::vector<int>{0, 1}));
 	}
 	
 	NeuralNet::Network network(networkValue);

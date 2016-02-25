@@ -6,6 +6,7 @@
 #include <cstring>
 #include <cmath>
 #include <array>
+#include <iostream>
 
 namespace NeuralNet
 {
@@ -115,14 +116,9 @@ namespace NeuralNet
 		
 		memset(prev_e, 0, sizeof(double) * m_set.train_num
 				* m_set.prev_map_num * m_set.image_width * m_set.image_height);	
-
-		double *sprime_z = new double[m_set.train_num * m_set.prev_map_num
-				* m_set.image_width * m_set.image_height];
-		apply_vec(prev_z, sprime_z, m_set.train_num * m_set.prev_map_num
-				* m_set.image_width * m_set.image_height,
-				f_activation_prime);
 		
 		/* calculate error value for previous layer */
+		double *sprime_z = new double[m_set.image_width * m_set.image_height];
 		double *temp_w = new double[m_set.recep_size * m_set.recep_size];
 		double *temp_pe = new double[m_set.image_width * m_set.image_height];
 		for (size_t i=0; i<train_num; i++)
@@ -144,12 +140,14 @@ namespace NeuralNet
 					);
 					add_vec(prev_e + prev_offset, temp_pe, prev_e + prev_offset,
 							m_set.image_width * m_set.image_height);
-					
+
 					w_offset += (m_set.prev_map_num * m_set.recep_size * m_set.recep_size);
 					cur_offset += (m_output_width * m_output_height);
 				}
 				
-				pmul_vec(prev_e + prev_offset, sprime_z + prev_offset, prev_e + prev_offset,
+				apply_vec(prev_z + prev_offset, sprime_z, m_set.image_width * m_set.image_height,
+						f_activation_prime);
+				pmul_vec(prev_e + prev_offset, sprime_z, prev_e + prev_offset,
 						m_set.image_width * m_set.image_height);
 				
 				prev_offset += (m_set.image_width * m_set.image_height);
