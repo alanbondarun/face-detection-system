@@ -42,6 +42,9 @@ namespace NeuralNet
 	std::unique_ptr<Image> loadBitmapImage(const char* filepath);
 	std::unique_ptr<Image> loadBitmapImage(const std::string& filepath);
 	
+	/* use this functions like: convertToImageStruct(loadBitmapImage("a.bmp")); */
+	ImageStruct convertToImageStruct(std::unique_ptr<Image> image_ptr);
+	
 	/**
 	 * Shrinks the given image.
 	 * this function does not do anything if the new image is bigger than the original one.

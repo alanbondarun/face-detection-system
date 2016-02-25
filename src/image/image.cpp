@@ -78,6 +78,25 @@ namespace NeuralNet
 		return loadBitmapImage(filepath.c_str());
 	}
 	
+	ImageStruct convertToImageStruct(std::unique_ptr<Image> image_ptr)
+	{
+		ImageStruct img;
+		img.width = image_ptr->getWidth();
+		img.height = image_ptr->getHeight();
+		img.channel_num = image_ptr->getChannelNum();
+		
+		img.value = new double*[img.channel_num];
+		for (int i=0; i<img.channel_num; i++)
+		{
+			img.value[i] = new double[img.width * img.height];
+			for (int j=0; j<img.width * img.height; j++)
+			{
+				img.value[i][j] = (image_ptr->getValues(i))[j];
+			}
+		}
+		return img;
+	}
+	
 	ImageStruct shrinkImage(ImageStruct& image, int w, int h)
 	{
 		/* TODO */
