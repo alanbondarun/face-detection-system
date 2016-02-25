@@ -1,10 +1,10 @@
-#include "utils/load_image.hpp"
+#include "image/image.hpp"
 #include <iostream>
 #include <utility>
 
 int main()
 {
-	auto img_ptr = std::move(NeuralNet::loadImage("test.bmp"));
+	auto img_ptr = std::move(NeuralNet::loadBitmapImage("test.bmp"));
 	
 	if (!img_ptr)
 	{

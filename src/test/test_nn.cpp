@@ -1,5 +1,5 @@
 #include "network.hpp"
-#include "utils/load_image.hpp"
+#include "image/image.hpp"
 #include "calc/calc-cpu.hpp"
 #include <utility>
 #include <iostream>
@@ -37,7 +37,7 @@ int main()
 	{
 		std::ostringstream oss;
 		oss << "images/" << i << ".bmp";
-		imageList.push_back(std::move(NeuralNet::loadImage(oss.str().c_str())));
+		imageList.push_back(std::move(NeuralNet::loadBitmapImage(oss.str().c_str())));
 	}
 	
 	std::vector<double> trainData;

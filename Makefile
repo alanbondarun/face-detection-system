@@ -9,6 +9,7 @@ CALC_SUBDIR := calc
 EXTLIB_SUBDIR := extlib
 UTIL_SUBDIR := utils
 TEST_SUBDIR := test
+IMAGE_SUBDIR := image
 
 TARGETS := $(BUILD_DIR)/led-user $(BUILD_DIR)/test_nn $(BUILD_DIR)/test_load_image
 EXTLIB_OBJS := $(addprefix $(OBJ_DIR)/, $(EXTLIB_SUBDIR)/jsoncpp.o)
@@ -19,7 +20,7 @@ NEURAL_NET_OBJS := $(addprefix $(OBJ_DIR)/, $(CALC_SUBDIR)/calc-cpu.o \
 	$(LAYER_SUBDIR)/max_pool_layer.o \
 	$(LAYER_SUBDIR)/conv_layer.o \
 	$(LAYER_SUBDIR)/layer_factory.o \
-	$(UTIL_SUBDIR)/load_image.o \
+	$(IMAGE_SUBDIR)/image.o \
 	network.o) $(EXTLIB_OBJS)
 MIDDLE_OBJS := $(addprefix $(OBJ_DIR)/, led-user.o \
 	$(TEST_SUBDIR)/test_load_image.o $(TEST_SUBDIR)/test_nn.o) \
@@ -53,6 +54,7 @@ directory:
 	mkdir -p $(OBJ_DIR)/$(CALC_SUBDIR)
 	mkdir -p $(OBJ_DIR)/$(UTIL_SUBDIR)
 	mkdir -p $(OBJ_DIR)/$(TEST_SUBDIR)
+	mkdir -p $(OBJ_DIR)/$(IMAGE_SUBDIR)
 
 program: $(MIDDLE_OBJS) $(TARGETS)
 ifeq ($(TARGET_OS),LINUX)
@@ -80,6 +82,6 @@ $(BUILD_DIR)/led-user: $(OBJ_DIR)/led-user.o
 $(BUILD_DIR)/test_nn: $(OBJ_DIR)/$(TEST_SUBDIR)/test_nn.o $(NEURAL_NET_OBJS)
 	$(CXX) $(CXXFLAGS) -o $@ $^
 
-$(BUILD_DIR)/test_load_image: $(OBJ_DIR)/$(UTIL_SUBDIR)/load_image.o $(OBJ_DIR)/$(TEST_SUBDIR)/test_load_image.o
+$(BUILD_DIR)/test_load_image: $(OBJ_DIR)/$(IMAGE_SUBDIR)/image.o $(OBJ_DIR)/$(TEST_SUBDIR)/test_load_image.o
 	$(CXX) $(CXXFLAGS) -o $@ $^
 

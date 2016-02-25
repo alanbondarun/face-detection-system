@@ -1,4 +1,4 @@
-#include "utils/load_image.hpp"
+#include "image/image.hpp"
 #include "utils/make_unique.hpp"
 #include <stdio.h>
 #include <cstdint>
@@ -26,19 +26,19 @@ namespace NeuralNet
 		delete [] value;
 	}
 	
-	std::unique_ptr<Image> loadImage(const char* filepath)
+	std::unique_ptr<Image> loadBitmapImage(const char* filepath)
 	{
 	    FILE* fp = fopen(filepath, "r");
 		if (!fp)
 		{
-			printf("error loading file %s at loadImage()\n", filepath);
+			printf("error loading file %s at loadBitmapImage()\n", filepath);
 			return std::unique_ptr<Image>();
 		}
 		
 	    unsigned char info[54];
 	    if (fread(info, sizeof(unsigned char), 54, fp) < 54)
 		{
-			printf("error reading file %s at loadImage()\n", filepath);
+			printf("error reading file %s at loadBitmapImage()\n", filepath);
 			fclose(fp);
 			return std::unique_ptr<Image>();
 		}
@@ -54,7 +54,7 @@ namespace NeuralNet
 		{
 			if (fread(raw_data.data(), sizeof(unsigned char), row_padded, fp) < row_padded)
 			{
-				printf("error reading file %s at loadImage()\n", filepath);
+				printf("error reading file %s at loadBitmapImage()\n", filepath);
 				fclose(fp);
 				return std::unique_ptr<Image>();
 			}
@@ -73,8 +73,23 @@ namespace NeuralNet
 		return img_ptr;
 	}
 	
-	std::unique_ptr<Image> loadImage(const std::string& filepath)
+	std::unique_ptr<Image> loadBitmapImage(const std::string& filepath)
 	{
-		return loadImage(filepath.c_str());
+		return loadBitmapImage(filepath.c_str());
+	}
+	
+	ImageStruct shrinkImage(ImageStruct& image, int w, int h)
+	{
+		/* TODO */
+	}
+	
+	ImageStruct cropImage(ImageStruct& image, int x, int y, int w, int h)
+	{
+		/* TODO */
+	}
+	
+	ImageStruct loadJPEGImage(const char* filepath)
+	{
+		/* TODO */
 	}
 }
