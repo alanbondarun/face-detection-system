@@ -46,11 +46,9 @@ namespace NeuralNet
 	ImageStruct convertToImageStruct(std::unique_ptr<Image> image_ptr);
 	
 	/**
-	 * Shrinks the given image.
-	 * this function does not do anything if the new image is bigger than the original one.
-	 * this function does NOT change the ratio of the image; it crops the image if necessary
+	 * Shrinks the given image into the given ratio
 	 */
-	ImageStruct shrinkImage(ImageStruct& image, int w, int h);
+	ImageStruct shrinkImage(ImageStruct& image, double ratio);
 	
 	/**
 	 * Crops the given image.

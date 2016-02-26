@@ -97,7 +97,7 @@ namespace NeuralNet
 		return img;
 	}
 	
-	ImageStruct shrinkImage(ImageStruct& image, int w, int h)
+	ImageStruct shrinkImage(ImageStruct& image, double ratio)
 	{
 		/* TODO */
 	}
