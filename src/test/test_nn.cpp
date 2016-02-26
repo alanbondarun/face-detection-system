@@ -13,7 +13,7 @@ bool load_test(Json::Value& value)
 	builder["collectComments"] = false;
 	
 	std::string errors;
-	std::fstream dataStream("test.json", std::ios_base::in);
+	std::fstream dataStream("../net_set/test.json", std::ios_base::in);
 	bool ok = Json::parseFromStream(builder, dataStream, &value, &errors);
 	
 	if (!ok)
@@ -54,9 +54,15 @@ int main()
 			);
 		}
 		if (k < 16)
+		{
 			categoryData.push_back(std::move(std::vector<int>{1, 0}));
+			categoryData.push_back(std::move(std::vector<int>{1, 0, 0, 0, 0}));
+		}
 		else
+		{
 			categoryData.push_back(std::move(std::vector<int>{0, 1}));
+			categoryData.push_back(std::move(std::vector<int>{0, 0, 1, 0, 0}));
+		}
 	}
 	
 	NeuralNet::Network network(networkValue);

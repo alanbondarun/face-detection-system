@@ -10,8 +10,16 @@ namespace NeuralNet
 	class SigmoidLayer: public Layer
 	{
     public:
-		SigmoidLayer(size_t prev_neurons, size_t current_neurons, size_t train_num,
-				double learn_rate);
+		struct Setting
+		{
+			size_t prev_neurons;
+			size_t current_neurons;
+			size_t train_num;
+			double learn_rate;
+			double dropout_rate;
+			bool dropout_enable;
+		};
+		SigmoidLayer(const Setting& set);
         virtual ~SigmoidLayer();
 
 		virtual void forward_cpu(const LayerData& prev, LayerData& current);
@@ -25,16 +33,23 @@ namespace NeuralNet
 		virtual Json::Value exportLayer();
 
 		virtual std::string what() { return "sigmoid"; }
-		
+
+		void setDropout(bool enable) { m_dropout_enabled = enable; }
+
 		static const std::function<double(double)> f_sigmoid;
 		static const std::function<double(double)> f_sigmoid_prime;
 		
 	private:
+		const size_t m_prev_d, m_current_d, m_train_num;
 		const double m_learn_rate;
-		
-		size_t m_prev_d, m_current_d, m_train_num;
+
+		const bool m_uses_dropout;
+		bool m_dropout_enabled;
+		const double m_dropout_rate;
+
 		double *m_weight;
 		double *m_bias;
+		double *m_dropout_coeff;
 	};
 }
 

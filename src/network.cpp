@@ -11,6 +11,7 @@
 #include "calc/calc-cpu.hpp"
 #include "calc/util-functions.hpp"
 #include "layers/layer_factory.hpp"
+#include "layers/sigmoid_layer.hpp"
 #include "utils/make_unique.hpp"
 
 namespace NeuralNet
@@ -71,7 +72,7 @@ namespace NeuralNet
 			auto node_pair = std::make_pair(root_idx,
 				std::make_pair(LayerFactory::LayerType::SIGMOID,
 					std::make_unique<LayerFactory::SigmoidLayerSetting>(m_batch_size,
-						m_in_dim.size, m_learn_rate)));
+						m_in_dim.size, m_learn_rate, 1.0, false)));
 			setting_map.insert(std::move(node_pair));
 		}
 		else if (m_in_type == InputType::IMAGE)
@@ -120,6 +121,12 @@ namespace NeuralNet
 		
 		if (!layer_type.compare("branch"))
 		{
+			auto layer_enable_do = jsonLayer["enable_dropout"].asBool();
+
+			double layer_do_rate = 1.0;
+			if (layer_enable_do)
+				layer_do_rate = jsonLayer["dropout_rate"].asDouble();
+
 			auto layer_sizes = layer_dim["sizes"];
 			std::vector<int> vec_sizes;
 			for (const auto& size_val: layer_sizes)
@@ -129,7 +136,7 @@ namespace NeuralNet
 			{
 				auto layer_setting = static_cast<std::unique_ptr<LayerFactory::LayerSetting>>(
 						std::make_unique<LayerFactory::SigmoidLayerSetting>(m_batch_size,
-							vec_sizes[i], m_learn_rate));
+							vec_sizes[i], m_learn_rate, layer_do_rate, layer_enable_do));
 				auto setting_pair = std::make_pair(LayerFactory::LayerType::SIGMOID,
 						std::move(layer_setting));
 				auto idx = std::make_pair(layer_id, i);
@@ -160,11 +167,17 @@ namespace NeuralNet
 
 			if (!layer_type.compare("sigmoid"))
 			{
+				auto layer_enable_do = jsonLayer["enable_dropout"].asBool();
+
+				double layer_do_rate = 1.0;
+				if (layer_enable_do)
+					layer_do_rate = jsonLayer["dropout_rate"].asDouble();
+
 				size_t neurons = layer_dim["size"].asUInt();
 				cur_setting = std::make_pair(
 					LayerFactory::LayerType::SIGMOID,
 					std::make_unique<LayerFactory::SigmoidLayerSetting>(m_batch_size,
-							neurons, m_learn_rate)
+							neurons, m_learn_rate, layer_do_rate, layer_enable_do)
 				);
 			}
 			else if (!layer_type.compare("convolution"))
@@ -343,6 +356,17 @@ namespace NeuralNet
 	std::vector< std::vector<int> > Network::evaluate(const std::vector<double>& data,
 			const std::vector<size_t>& list_idx)
 	{
+		// disable dropout of sigmoid layers for evaluation
+		for (auto& node_pair: node_map)
+		{
+			auto* layer_ptr = node_pair.second->layer.get();
+			auto* sigmoid_ptr = dynamic_cast<SigmoidLayer *>(layer_ptr);
+			if (sigmoid_ptr)
+			{
+				sigmoid_ptr->setDropout(false);
+			}
+		}
+
 		feedForward(data, list_idx);
 		
 		/* return value generation */
@@ -456,7 +480,18 @@ namespace NeuralNet
 		
 		std::random_device rd;
 		std::mt19937 rgen(rd());
-		
+
+		// enable dropout of sigmoid layers for training
+		for (auto& node_pair: node_map)
+		{
+			auto* layer_ptr = node_pair.second->layer.get();
+			auto* sigmoid_ptr = dynamic_cast<SigmoidLayer *>(layer_ptr);
+			if (sigmoid_ptr)
+			{
+				sigmoid_ptr->setDropout(true);
+			}
+		}
+
 		for (size_t epoch = 0; epoch < m_epoch_num; epoch++)
 		{
 			std::shuffle(data_idxes.begin(), data_idxes.end(), rgen);

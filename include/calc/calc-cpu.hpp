@@ -18,6 +18,12 @@ namespace NeuralNet
 	/* copy a vector */
 	void copy_vec(const double *v, double *vres, size_t dim);
 	
+	// set each element of the vector to the given value
+	void set_vec(double *v, double val, size_t dim);
+	
+	// multiply each element of the vector to the given value
+	void const_mul_vec(double *v, double val, size_t dim);
+	
 	/* apply function to a vector */
 	void apply_vec(const double *v, double *vres, size_t dim, std::function<double(double)> func);
 	

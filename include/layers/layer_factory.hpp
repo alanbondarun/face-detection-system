@@ -32,8 +32,11 @@ namespace NeuralNet
 		{
 			size_t neuron_num;
 			double learn_rate;
-			explicit SigmoidLayerSetting(size_t _t, size_t _n, double _l)
-				: LayerSetting(_t), neuron_num(_n), learn_rate(_l) {}
+			double dropout_rate;
+			bool enable_dropout;
+			explicit SigmoidLayerSetting(size_t _t, size_t _n, double _l, double _droprate, bool _dr)
+				: LayerSetting(_t), neuron_num(_n), learn_rate(_l), dropout_rate(_droprate),
+				enable_dropout(_dr) {}
 			virtual ~SigmoidLayerSetting() {}
 		};
 		struct ImageLayerSetting: public LayerSetting

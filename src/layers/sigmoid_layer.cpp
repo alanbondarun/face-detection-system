@@ -8,28 +8,35 @@
 
 namespace NeuralNet
 {
-	SigmoidLayer::SigmoidLayer(size_t prev_neurons, size_t current_neurons, size_t train_num,
-			double learn_rate)
-		: m_prev_d(prev_neurons), m_current_d(current_neurons), m_train_num(train_num),
-		m_learn_rate(learn_rate)
+	SigmoidLayer::SigmoidLayer(const Setting& set)
+		: m_prev_d(set.prev_neurons), m_current_d(set.current_neurons),
+		m_train_num(set.train_num), m_learn_rate(set.learn_rate),
+		m_uses_dropout(set.dropout_enable), m_dropout_enabled(false),
+		m_dropout_rate(set.dropout_rate)
 	{
-		m_weight = new double[current_neurons * prev_neurons];
-		m_bias = new double[current_neurons];
+		m_weight = new double[m_current_d * m_prev_d];
+		m_bias = new double[m_current_d];
+		
+		if (m_uses_dropout)
+			m_dropout_coeff = new double[m_train_num * m_current_d];
 		
 		/* weight and bias initializaion */
 		std::random_device rd;
 		std::mt19937 rgen(rd());
-		std::normal_distribution<double> dist_w(0.0, std::sqrt(1.0 / current_neurons));
+		std::normal_distribution<double> dist_w(0.0, std::sqrt(1.0 / m_current_d));
 		std::normal_distribution<double> dist_b(0.0, 1.0);
 
-		for (size_t i = 0; i < current_neurons * prev_neurons; i++)
+		for (size_t i = 0; i < m_current_d * m_prev_d; i++)
 			m_weight[i] = dist_w(rgen);
-		for (size_t i = 0; i < current_neurons; i++)
+		for (size_t i = 0; i < m_current_d; i++)
 			m_bias[i] = dist_b(rgen);
 	}
 	
 	SigmoidLayer::~SigmoidLayer()
 	{
+		if (m_uses_dropout)
+			delete [] m_dropout_coeff;
+
 		delete [] m_bias;
 		delete [] m_weight;
 	}
@@ -50,6 +57,32 @@ namespace NeuralNet
 					cur_a + (i*m_current_d), m_current_d);
 		}
 		apply_vec(cur_a, cur_a, m_current_d * m_train_num, ActivationFuncs::f_sigmoid);
+
+		if (m_uses_dropout)
+		{
+			// dropout is applied only to the activation value of the dropout-enabled layer
+			// in the forwarding phase
+			if (m_dropout_enabled)
+			{
+				// if this layer uses dropout, select neurons which does not participate in training
+				// by setting their activation value to zero.
+				std::random_device rd;
+				std::mt19937 rgen(rd());
+				std::uniform_real_distribution<> dis(0, 1);
+				const double dropout_rate = m_dropout_rate;
+
+				apply_vec(m_dropout_coeff, m_dropout_coeff, m_train_num * m_current_d,
+						[dropout_rate, &rgen, &dis](double in) -> double {
+							return (dis(rgen) <= dropout_rate) ? 1:0;
+						});
+				pmul_vec(cur_a, m_dropout_coeff, cur_a, m_train_num * m_current_d);
+			}
+			else
+			{
+				// otherwise, just multiply the dropout rate to every activation value
+				const_mul_vec(cur_a, m_dropout_rate, m_train_num * m_current_d);
+			}
+		}
 	}
 	
 	void SigmoidLayer::forward_gpu(const LayerData& prev, LayerData& current)
@@ -66,6 +99,20 @@ namespace NeuralNet
 		auto prev_z = prev.get(LayerData::DataIndex::INTER_VALUE);
 		auto prev_a = prev.get(LayerData::DataIndex::ACTIVATION);
 		auto cur_e = current.get(LayerData::DataIndex::ERROR);
+		
+		if (m_uses_dropout)
+		{
+			// dropout is applied only to the error value of the dropout-enabled layer
+			// in the backpropagation phase
+			if (m_dropout_enabled)
+			{
+				pmul_vec(cur_e, m_dropout_coeff, cur_e, m_train_num * m_current_d);
+			}
+			else
+			{
+				const_mul_vec(cur_e, m_dropout_rate, m_train_num * m_current_d);
+			}
+		}
 		
 		/* calculate error value for previous layer */
 		double *sprime_z = new double[m_prev_d * m_train_num];

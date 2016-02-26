@@ -53,6 +53,26 @@ namespace NeuralNet
 			vres++;
 		}
 	}
+	
+	void set_vec(double *v, double val, size_t dim)
+	{
+		double *pv = v;
+		while (v - pv < dim)
+		{
+			*v = val;
+			v++;
+		}
+	}
+	
+	void const_mul_vec(double *v, double val, size_t dim)
+	{
+		double *pv = v;
+		while (v - pv < dim)
+		{
+			*v *= val;
+			v++;
+		}
+	}
 
 	void apply_vec(const double *v, double *vres, size_t dim, std::function<double(double)> func)
 	{

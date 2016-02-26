@@ -48,10 +48,14 @@ namespace NeuralNet
 		auto& cast_prev_set = static_cast<const LayerFactory::SigmoidLayerSetting&>(prev_set);
 		auto& cast_cur_set = static_cast<const LayerFactory::SigmoidLayerSetting&>(cur_set);
 		return std::make_unique<SigmoidLayer>(
+			SigmoidLayer::Setting({
 				cast_prev_set.neuron_num,
 				cast_cur_set.neuron_num,
 				cast_cur_set.train_num,
-				cast_cur_set.learn_rate
+				cast_cur_set.learn_rate,
+				cast_cur_set.dropout_rate,
+				cast_cur_set.enable_dropout
+			})
 		);
 	}
 
@@ -64,10 +68,14 @@ namespace NeuralNet
 		auto& cast_prev_set = static_cast<const LayerFactory::ConvLayerSetting&>(prev_set);
 		auto& cast_cur_set = static_cast<const LayerFactory::SigmoidLayerSetting&>(cur_set);
 		return std::make_unique<SigmoidLayer>(
+			SigmoidLayer::Setting({
 				cast_prev_set.map_num * cast_prev_set.output_w * cast_prev_set.output_h,
 				cast_cur_set.neuron_num,
 				cast_cur_set.train_num,
-				cast_cur_set.learn_rate
+				cast_cur_set.learn_rate,
+				cast_cur_set.dropout_rate,
+				cast_cur_set.enable_dropout
+			})
 		);
 	}
 
@@ -80,10 +88,14 @@ namespace NeuralNet
 		auto& cast_prev_set = static_cast<const LayerFactory::MaxPoolLayerSetting&>(prev_set);
 		auto& cast_cur_set = static_cast<const LayerFactory::SigmoidLayerSetting&>(cur_set);
 		return std::make_unique<SigmoidLayer>(
+			SigmoidLayer::Setting({
 				cast_prev_set.map_num * cast_prev_set.output_w * cast_prev_set.output_h,
 				cast_cur_set.neuron_num,
 				cast_cur_set.train_num,
-				cast_cur_set.learn_rate
+				cast_cur_set.learn_rate,
+				cast_cur_set.dropout_rate,
+				cast_cur_set.enable_dropout
+			})
 		);
 	}
 
