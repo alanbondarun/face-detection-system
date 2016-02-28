@@ -3,6 +3,7 @@ BUILD_DIR := build
 MODULE_DIR := modules
 INCLUDE_DIR := include
 OBJ_DIR := obj
+LIBRARY_DIR := lib
 
 LAYER_SUBDIR := layers
 CALC_SUBDIR := calc
@@ -26,7 +27,7 @@ MIDDLE_OBJS := $(addprefix $(OBJ_DIR)/, led-user.o \
 	$(TEST_SUBDIR)/test_load_image.o $(TEST_SUBDIR)/test_nn.o) \
 	$(NEURAL_NET_OBJS)
 
-CXXFLAGS := -std=c++0x -I$(INCLUDE_DIR) -Wall -g
+CXXFLAGS := -std=c++0x -I$(INCLUDE_DIR) -L$(LIBRARY_DIR) -lnetpbm -Wall -g
 
 .PHONY: all clean directory program
 
@@ -58,14 +59,18 @@ directory:
 
 program: $(MIDDLE_OBJS) $(TARGETS)
 ifeq ($(TARGET_OS),LINUX)
+ifneq ($(INCLUDE_MODULE),)
 	# we build kernel modules only in Linux environment
 	$(MAKE) -C $(MODULE_DIR) all
+endif
 endif
 
 clean:
 ifeq ($(TARGET_OS),LINUX)
+ifneq ($(INCLUDE_MODULE),)
 	# we clean kernel modules only in Linux environment
 	$(MAKE) -C $(MODULE_DIR) clean
+endif
 endif
 	rm -rf $(TARGETS) $(MIDDLE_OBJS)
 
