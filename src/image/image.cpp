@@ -80,18 +80,101 @@ namespace NeuralNet
 		return loadBitmapImage(filepath.c_str());
 	}
 	
-	std::unique_ptr<Image> shrinkImage(const std::unique_ptr<Image>& image, double ratio)
+	std::unique_ptr<Image> shrinkImage(const std::unique_ptr<Image>& image, int w)
 	{
-		/* TODO */
+        int orig_w = image->getWidth();
+        int orig_h = image->getHeight();
+        int h = (w * image->getHeight()) / image->getWidth();
+        auto img_ptr = std::make_unique<Image>(w, h, image->getChannelNum());
+        double* buffer = new double[(image->getWidth()+1) * (image->getHeight()+1)];
+
+        for (size_t ch = 0; ch < image->getChannelNum(); ch++)
+        {
+            auto orig_data_ptr = image->getValues(ch);
+            auto res_data_ptr = img_ptr->getValues(ch);
+
+            // TODO: additional prefilter?
+
+            // make a summed area table
+            buffer[0] = 0;
+            for (int i = 1; i <= orig_w; i++)
+            {
+                buffer[i] = 0;
+            }
+            for (int j = 1; j <= orig_h; j++)
+            {
+                buffer[j * orig_w] = 0;
+            }
+            for (int j = 1; j <= orig_h; j++)
+            {
+                for (int i = 1; i <= orig_w; i++)
+                {
+                    buffer[j*orig_w + i] = orig_data_ptr[(j-1)*orig_w + (i-1)]
+                            + buffer[(j-1)*orig_w + i] + buffer[j*orig_w + (i-1)]
+                            - buffer[(j-1)*orig_w + (i-1)];
+                }
+            }
+
+            // average out the surrounding values
+            int di = orig_w / w;
+            int dj = orig_h / h;
+            for (int j = 0; j < h; j++)
+            {
+                for (int i = 0; i < w; i++)
+                {
+                    res_data_ptr[j*w + i] = buffer[(j+1)*dj*orig_w + (i+1)*di]
+                            - buffer[j*dj*orig_w + (i+1)*di]
+                            - buffer[(j+1)*dj*orig_w + i*di]
+                            + buffer[j*dj*orig_w + i*di];
+                    res_data_ptr[j*w + i] /= static_cast<double>(di*dj);
+                }
+            }
+        }
+
+        delete [] buffer;
+        return img_ptr;
 	}
 	
 	std::unique_ptr<Image> cropImage(const std::unique_ptr<Image>& image, int x, int y, int w, int h)
 	{
-		/* TODO */
+        auto img_ptr = std::make_unique<Image>(w, h, image->getChannelNum());
+        for (size_t ch = 0; ch < image->getChannelNum(); ch++)
+        {
+            auto orig_data_ptr = image->getValues(ch);
+            auto res_data_ptr = img_ptr->getValues(ch);
+
+            for (int j = 0; j < h; j++)
+            {
+                for (int i = 0; i < w; i++)
+                {
+                    int ii = i + x;
+                    int jj = j + y;
+                    if (ii < image->getWidth() && jj < image->getHeight())
+                    {
+                        res_data_ptr[j*w + i] = orig_data_ptr[jj*image->getWidth() + ii];
+                    }
+                    else
+                    {
+                        res_data_ptr[j*w + i] = 0;
+                    }
+                }
+            }
+        }
+        return img_ptr;
 	}
 
     std::unique_ptr<Image> fitImageTo(const std::unique_ptr<Image>& image, int w, int h)
     {
+        int pw = (h * image->getWidth()) / image->getHeight();
+        int ph = (w * image->getHeight()) / image->getWidth();
+
+        if (ph <= h)
+        {
+            auto middle_img = std::move(shrinkImage(image, pw));
+            return cropImage(middle_img, pw/2 - w/2, 0, w, h);
+        }
+        auto middle_img = std::move(shrinkImage(image, w));
+        return cropImage(middle_img, 0, ph/2 - h/2, w, h);
     }
 	
 	std::unique_ptr<Image> loadJPEGImage(const char* filepath)
