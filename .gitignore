@@ -16,3 +16,6 @@ modules.order
 
 # runtime error logs
 *.stackdump
+
+# vi swap files
+.*.swp
