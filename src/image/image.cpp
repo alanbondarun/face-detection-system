@@ -1,5 +1,7 @@
 #include "image/image.hpp"
 #include "utils/make_unique.hpp"
+#include "netpbm/ppm.h"
+#include "netpbm/pgm.h"
 #include <stdio.h>
 #include <cstdint>
 #include <utility>
@@ -16,7 +18,7 @@ namespace NeuralNet
 			value[i] = new double[width * height];
 		}
 	}
-	
+
 	Image::~Image()
 	{
 		for (size_t i = 0; i < channel_num; i++)
@@ -78,37 +80,101 @@ namespace NeuralNet
 		return loadBitmapImage(filepath.c_str());
 	}
 	
-	ImageStruct convertToImageStruct(std::unique_ptr<Image> image_ptr)
+	std::unique_ptr<Image> shrinkImage(const std::unique_ptr<Image>& image, double ratio)
 	{
-		ImageStruct img;
-		img.width = image_ptr->getWidth();
-		img.height = image_ptr->getHeight();
-		img.channel_num = image_ptr->getChannelNum();
-		
-		img.value = new double*[img.channel_num];
-		for (int i=0; i<img.channel_num; i++)
+		/* TODO */
+	}
+	
+	std::unique_ptr<Image> cropImage(const std::unique_ptr<Image>& image, int x, int y, int w, int h)
+	{
+		/* TODO */
+	}
+
+    std::unique_ptr<Image> fitImageTo(const std::unique_ptr<Image>& image, int w, int h)
+    {
+    }
+	
+	std::unique_ptr<Image> loadJPEGImage(const char* filepath)
+	{
+		/* TODO */
+        return std::unique_ptr<Image>();
+	}
+
+	std::unique_ptr<Image> loadPPMImage(const char* filepath)
+	{
+		FILE* fp = fopen(filepath, "rb");
+		if (!fp)
 		{
-			img.value[i] = new double[img.width * img.height];
-			for (int j=0; j<img.width * img.height; j++)
-			{
-				img.value[i][j] = (image_ptr->getValues(i))[j];
-			}
+			printf("error loading file %s at loadPPMImage()\n", filepath);
+			return std::unique_ptr<Image>();
 		}
-		return img;
+
+		int img_w, img_h;
+		pixval max_pval;
+		pixel** pixels = ppm_readppm(fp, &img_w, &img_h, &max_pval);
+		if (!pixels)
+		{
+			printf("error reading image from file %s at loadPPMImage()\n", filepath);
+			fclose(fp);
+			return std::unique_ptr<Image>();
+		}
+
+        auto img_ptr = std::make_unique<Image>(img_w, img_h, 3);
+
+        for (size_t y = 0; y < img_h; y++)
+        {
+            for (size_t x = 0; x < img_w; x++)
+            {
+                (img_ptr->getValues(0))[y * img_w + x] = static_cast<double>(pixels[y][x].r)
+                        / max_pval;
+                (img_ptr->getValues(1))[y * img_w + x] = static_cast<double>(pixels[y][x].g)
+                        / max_pval;
+                (img_ptr->getValues(2))[y * img_w + x] = static_cast<double>(pixels[y][x].b)
+                        / max_pval;
+            }
+        }
+
+		ppm_freearray(pixels, img_h);
+		fclose(fp);
+        return img_ptr;
 	}
-	
-	ImageStruct shrinkImage(ImageStruct& image, double ratio)
+
+	std::unique_ptr<Image> loadPGMImage(const char* filepath)
 	{
-		/* TODO */
-	}
-	
-	ImageStruct cropImage(ImageStruct& image, int x, int y, int w, int h)
-	{
-		/* TODO */
-	}
-	
-	ImageStruct loadJPEGImage(const char* filepath)
-	{
-		/* TODO */
+		FILE* fp = fopen(filepath, "rb");
+		if (!fp)
+		{
+			printf("error loading file %s at loadPGMImage()\n", filepath);
+			return std::unique_ptr<Image>();
+		}
+
+		int img_w, img_h;
+		gray max_pval;
+		gray** pixels = pgm_readpgm(fp, &img_w, &img_h, &max_pval);
+		if (!pixels)
+		{
+			printf("error reading image from file %s at loadPGMImage()\n", filepath);
+			fclose(fp);
+			return std::unique_ptr<Image>();
+		}
+
+        auto img_ptr = std::make_unique<Image>(img_w, img_h, 3);
+
+        for (size_t y = 0; y < img_h; y++)
+        {
+            for (size_t x = 0; x < img_w; x++)
+            {
+                (img_ptr->getValues(0))[y * img_w + x] = static_cast<double>(pixels[y][x])
+                        / max_pval;
+                (img_ptr->getValues(1))[y * img_w + x] = static_cast<double>(pixels[y][x])
+                        / max_pval;
+                (img_ptr->getValues(2))[y * img_w + x] = static_cast<double>(pixels[y][x])
+                        / max_pval;
+            }
+        }
+
+		ppm_freearray(pixels, img_h);
+		fclose(fp);
+        return img_ptr;
 	}
 }

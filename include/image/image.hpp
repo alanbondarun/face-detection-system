@@ -24,12 +24,6 @@ namespace NeuralNet
 		size_t width, height, channel_num;
 		double** value;
 	};
-	
-	struct ImageStruct
-	{
-		int width, height, channel_num;
-		double** value;
-	};
 
 	/**
 	 * Loads a image into a built-in array of vectors.
@@ -42,13 +36,10 @@ namespace NeuralNet
 	std::unique_ptr<Image> loadBitmapImage(const char* filepath);
 	std::unique_ptr<Image> loadBitmapImage(const std::string& filepath);
 	
-	/* use this functions like: convertToImageStruct(loadBitmapImage("a.bmp")); */
-	ImageStruct convertToImageStruct(std::unique_ptr<Image> image_ptr);
-	
 	/**
 	 * Shrinks the given image into the given ratio
 	 */
-	ImageStruct shrinkImage(ImageStruct& image, double ratio);
+	std::unique_ptr<Image> shrinkImage(const std::unique_ptr<Image>& image, double ratio);
 	
 	/**
 	 * Crops the given image.
@@ -56,7 +47,9 @@ namespace NeuralNet
 	 *     and width/height of the patch
 	 * output: new cropped image
 	 */
-	ImageStruct cropImage(ImageStruct& image, int x, int y, int w, int h);
+	std::unique_ptr<Image> cropImage(const std::unique_ptr<Image>& image, int x, int y, int w, int h);
+
+    std::unique_ptr<Image> fitImageTo(const std::unique_ptr<Image>& image, int w, int h);
 	
 	/**
 	 * Loads a JPEG image into a built-in array of vectors.
@@ -66,7 +59,17 @@ namespace NeuralNet
 	 *     0 and 1 (inclusive).
 	 *     the pixels are sorted in raster scan order.
 	 */
-	ImageStruct loadJPEGImage(const char* filepath);
+	std::unique_ptr<Image> loadJPEGImage(const char* filepath);
+
+	/**
+	 * Loads a PPM format image file.
+	 */
+	std::unique_ptr<Image> loadPPMImage(const char* filepath);
+
+	/**
+	 * Loads a PGM format image file.
+	 */
+	std::unique_ptr<Image> loadPGMImage(const char* filepath);
 }
 
 #endif // __LOAD_IMAGE_HPP
