@@ -3,7 +3,6 @@ BUILD_DIR := build
 MODULE_DIR := modules
 INCLUDE_DIR := include
 OBJ_DIR := obj
-LIBRARY_DIR := lib
 
 LAYER_SUBDIR := layers
 CALC_SUBDIR := calc
@@ -27,23 +26,42 @@ MIDDLE_OBJS := $(addprefix $(OBJ_DIR)/, led-user.o \
 	$(TEST_SUBDIR)/test_load_image.o $(TEST_SUBDIR)/test_nn.o) \
 	$(NEURAL_NET_OBJS)
 
-CXXFLAGS := -std=c++0x -I$(INCLUDE_DIR) -L$(LIBRARY_DIR) -lnetpbm -Wall -g
-
 .PHONY: all clean directory program
 
 # in what kind of OS are these sources built?
-ifeq "$(OS)" "Windows_NT"
+ifeq ($(OS),Windows_NT)
 TARGET_OS := WIN32
+TARGET_ARCH := x86
+ifeq ($(PROCESSOR_ARCHITECTURE),AMD64)
+TARGET_ARCH := x64
+endif
+ifeq ($(PROCESSOR_ARCHITEW6432),AMD64)
+TARGET_ARCH := x64
+endif
+ifeq ($(TARGET_ARCH),AMD64)
+LIBRARY_DIR := lib/x86_64
+endif
 else
 UNAME_S := $(shell uname -s)
-ifeq "$(UNAME_S)" "Linux"
+UNAME_M := $(shell uname -m)
+ifeq ($(UNAME_S),Linux)
 TARGET_OS := LINUX
 endif
-ifeq "$(UNAME_S)" "Darwin"
+ifeq ($(UNAME_S),Darwin)
 TARGET_OS := OSX
+endif
+ifeq ($(UNAME_M),x86_64)
+TARGET_ARCH := x64
+LIBRARY_DIR := lib/x86_64
+endif
+ifeq ($(UNAME_M),aarch64)
+TARGET_ARCH := aarch64
+LIBRARY_DIR := lib/aarch64
 endif
 endif
 export TARGET_OS
+
+CXXFLAGS := -std=c++0x -I$(INCLUDE_DIR) -L$(LIBRARY_DIR) -lnetpbm -Wl,-rpath=$(shell pwd)/$(LIBRARY_DIR) -Wall -g
 
 all: directory program
 
