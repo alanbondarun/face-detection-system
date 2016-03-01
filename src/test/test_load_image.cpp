@@ -21,7 +21,7 @@ int main(int argc, char* argv[])
         return 0;
     }
 
-    auto img5 = NeuralNet::loadPPMImage("qq.ppm");
+    auto img5 = NeuralNet::loadBitmapImage("37-big.bmp");
     if (!img5)
     {
         printf("img5 error\n");
@@ -30,11 +30,11 @@ int main(int argc, char* argv[])
 
     auto img3 = NeuralNet::fitImageTo(img1, 32, 32);
     auto img4 = NeuralNet::fitImageTo(img2, 32, 32);
-    auto img6 = NeuralNet::fitImageTo(img5, 32, 32);
+    auto img6 = NeuralNet::grayscaleImage(NeuralNet::fitImageTo(img5, 32, 32));
 
     FILE* fp_img3 = fopen("image3.ppm", "wb");
     FILE* fp_img4 = fopen("image4.ppm", "wb");
-    FILE* fp_img6 = fopen("image6.ppm", "wb");
+    FILE* fp_img6 = fopen("37.ppm", "wb");
     pixval maxVal = 255;
 
     pixel** px_img3 = ppm_allocarray(img3->getWidth(), img3->getHeight());
@@ -72,9 +72,9 @@ int main(int argc, char* argv[])
         {
             px_img6[h][w].r = static_cast<pixval>((img6->getValues(0))[h * img6->getWidth() + w]
                     * maxVal);
-            px_img6[h][w].g = static_cast<pixval>((img6->getValues(1))[h * img6->getWidth() + w]
+            px_img6[h][w].g = static_cast<pixval>((img6->getValues(0))[h * img6->getWidth() + w]
                     * maxVal);
-            px_img6[h][w].b = static_cast<pixval>((img6->getValues(2))[h * img6->getWidth() + w]
+            px_img6[h][w].b = static_cast<pixval>((img6->getValues(0))[h * img6->getWidth() + w]
                     * maxVal);
         }
     }

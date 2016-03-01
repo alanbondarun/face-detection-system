@@ -52,6 +52,11 @@ namespace NeuralNet
     std::unique_ptr<Image> fitImageTo(const std::unique_ptr<Image>& image, int w, int h);
 
     /**
+     * Converts the given image into a grayscale one.
+     */
+    std::unique_ptr<Image> grayscaleImage(const std::unique_ptr<Image>& image);
+
+    /**
      * Loads a JPEG image into a built-in array of vectors.
      * input: a string indicating the file path of the image
      * output: an Image struct including a dynamically allocated double array.

@@ -177,6 +177,33 @@ namespace NeuralNet
         return cropImage(middle_img, 0, ph/2 - h/2, w, h);
     }
 
+    std::unique_ptr<Image> grayscaleImage(const std::unique_ptr<Image>& image)
+    {
+        const auto w = image->getWidth();
+        const auto h = image->getHeight();
+        const auto nch = image->getChannelNum();
+
+        if (nch < 3)
+            return std::unique_ptr<Image>();
+
+        auto res_img = std::make_unique<Image>(w, h, 1);
+        auto valptr = res_img->getValues(0);
+
+        double ch_coeff[] = {0.2125, 0.7154, 0.0721};
+        for (size_t y = 0; y < h; y++)
+        {
+            for (size_t x = 0; x < w; x++)
+            {
+                valptr[y*w + x] = 0;
+                for (size_t c = 0; c < 3; c++)
+                {
+                    valptr[y*w + x] += ch_coeff[c] * (image->getValues(c)[y*w + x]);
+                }
+            }
+        }
+        return res_img;
+    }
+
     std::unique_ptr<Image> loadJPEGImage(const char* filepath)
     {
         /* TODO */

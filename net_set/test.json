@@ -4,7 +4,7 @@
         "size": {
             "width": 32,
             "height": 32,
-            "channel_num": 3
+            "channel_num": 1
         }
     },
     "train_num": 2000,

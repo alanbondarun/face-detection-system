@@ -45,12 +45,13 @@ bool load_faces(std::vector<double>& data, std::vector< std::vector<int> >& cate
         }
 
         auto resized_ptr = NeuralNet::fitImageTo(img_ptr, 32, 32);
-        for (size_t ch = 0; ch < resized_ptr->getChannelNum(); ch++)
+        auto gray_ptr = NeuralNet::grayscaleImage(resized_ptr);
+        for (size_t ch = 0; ch < gray_ptr->getChannelNum(); ch++)
         {
             data.insert(data.end(),
-                    resized_ptr->getValues(ch),
-                    resized_ptr->getValues(ch) +
-                            (resized_ptr->getWidth() * resized_ptr->getHeight()));
+                    gray_ptr->getValues(ch),
+                    gray_ptr->getValues(ch) +
+                            (gray_ptr->getWidth() * gray_ptr->getHeight()));
         }
         category[0].push_back(1);
         category[0].push_back(0);
@@ -76,12 +77,13 @@ bool load_non_faces(std::vector<double>& data, std::vector< std::vector<int> >& 
         }
 
         auto resized_ptr = NeuralNet::fitImageTo(img_ptr, 32, 32);
-        for (size_t ch = 0; ch < resized_ptr->getChannelNum(); ch++)
+        auto gray_ptr = NeuralNet::grayscaleImage(resized_ptr);
+        for (size_t ch = 0; ch < gray_ptr->getChannelNum(); ch++)
         {
             data.insert(data.end(),
-                    resized_ptr->getValues(ch),
-                    resized_ptr->getValues(ch) +
-                            (resized_ptr->getWidth() * resized_ptr->getHeight()));
+                    gray_ptr->getValues(ch),
+                    gray_ptr->getValues(ch) +
+                            (gray_ptr->getWidth() * gray_ptr->getHeight()));
         }
         category[0].push_back(0);
         category[0].push_back(1);
@@ -93,6 +95,7 @@ bool load_non_faces(std::vector<double>& data, std::vector< std::vector<int> >& 
 int main(int argc, char* argv[])
 {
     const size_t imageCount = 35;
+    const size_t n_eval_ch = 1;
 
     std::cout << "initiating network..." << std::endl;
 
@@ -119,7 +122,9 @@ int main(int argc, char* argv[])
     {
         std::ostringstream oss;
         oss << "eval-image/" << i << ".bmp";
-        imageList.push_back(std::move(NeuralNet::loadBitmapImage(oss.str().c_str())));
+        imageList.push_back(std::move(
+            NeuralNet::grayscaleImage(NeuralNet::loadBitmapImage(oss.str().c_str()))
+        ));
     }
     std::cout << "loading evaluation images finished" << std::endl;
 
@@ -160,7 +165,7 @@ int main(int argc, char* argv[])
             for (size_t i = 0; i < imageCount; i++)
             {
                 std::vector<double> eval_data;
-                for (size_t j = 0; j < 3; j++)
+                for (size_t j = 0; j < n_eval_ch; j++)
                 {
                     eval_data.insert(eval_data.end(),
                             imageList[i]->getValues(j),
@@ -184,7 +189,7 @@ int main(int argc, char* argv[])
         for (size_t i = 0; i < imageCount; i++)
         {
             std::vector<double> eval_data;
-            for (size_t j = 0; j < 3; j++)
+            for (size_t j = 0; j < n_eval_ch; j++)
             {
                 eval_data.insert(eval_data.end(),
                         imageList[i]->getValues(j),
