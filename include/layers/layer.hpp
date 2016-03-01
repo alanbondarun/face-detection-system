@@ -38,7 +38,7 @@ namespace NeuralNet
         }
 
         /* creation of appropriate layer data for the layer */
-        virtual std::unique_ptr<LayerData> createLayerData() = 0;
+        virtual std::unique_ptr<LayerData> createLayerData(size_t train_num) = 0;
 
         /* import/export of layer coefficients.
          * importLayer() may emit Json::Exception during execution

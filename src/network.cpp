@@ -71,7 +71,7 @@ namespace NeuralNet
         {
             auto node_pair = std::make_pair(root_idx,
                 std::make_pair(LayerFactory::LayerType::SIGMOID,
-                    std::make_unique<LayerFactory::SigmoidLayerSetting>(m_batch_size,
+                    std::make_unique<LayerFactory::SigmoidLayerSetting>(
                         m_in_dim.size, m_learn_rate, 1.0, false)));
             setting_map.insert(std::move(node_pair));
         }
@@ -79,7 +79,7 @@ namespace NeuralNet
         {
             auto node_pair = std::make_pair(root_idx,
                 std::make_pair(LayerFactory::LayerType::IMAGE,
-                    std::make_unique<LayerFactory::ImageLayerSetting>(m_batch_size,
+                    std::make_unique<LayerFactory::ImageLayerSetting>(
                         m_in_dim.width, m_in_dim.height, m_in_dim.channel_num,
                         m_learn_rate)));
             setting_map.insert(std::move(node_pair));
@@ -135,7 +135,7 @@ namespace NeuralNet
             for (int i=0; i<vec_sizes.size(); i++)
             {
                 auto layer_setting = static_cast<std::unique_ptr<LayerFactory::LayerSetting>>(
-                        std::make_unique<LayerFactory::SigmoidLayerSetting>(m_batch_size,
+                        std::make_unique<LayerFactory::SigmoidLayerSetting>(
                             vec_sizes[i], m_learn_rate, layer_do_rate, layer_enable_do));
                 auto setting_pair = std::make_pair(LayerFactory::LayerType::SIGMOID,
                         std::move(layer_setting));
@@ -146,7 +146,7 @@ namespace NeuralNet
                         prevSetting[first_idx], setting_pair);
 
                 node_map[idx] = std::make_unique<Node>();
-                node_map[idx]->data = std::move(layer->createLayerData());
+                node_map[idx]->data = std::move(layer->createLayerData(m_batch_size));
                 node_map[idx]->layer = std::move(layer);
                 node_map[idx]->file_path = std::move(layer_data_path);
                 node_map[idx]->next_id.push_back(vec_child[i]);
@@ -176,7 +176,7 @@ namespace NeuralNet
                 size_t neurons = layer_dim["size"].asUInt();
                 cur_setting = std::make_pair(
                     LayerFactory::LayerType::SIGMOID,
-                    std::make_unique<LayerFactory::SigmoidLayerSetting>(m_batch_size,
+                    std::make_unique<LayerFactory::SigmoidLayerSetting>(
                             neurons, m_learn_rate, layer_do_rate, layer_enable_do)
                 );
             }
@@ -191,7 +191,7 @@ namespace NeuralNet
 
                 cur_setting = std::make_pair(
                     LayerFactory::LayerType::CONVOLUTION,
-                    std::make_unique<LayerFactory::ConvLayerSetting>(m_batch_size, maps, recep,
+                    std::make_unique<LayerFactory::ConvLayerSetting>(maps, recep,
                             input_w, input_h, m_learn_rate, zeropad)
                 );
             }
@@ -206,7 +206,7 @@ namespace NeuralNet
 
                 cur_setting = std::make_pair(
                     LayerFactory::LayerType::MAXPOOL,
-                    std::make_unique<LayerFactory::MaxPoolLayerSetting>(m_batch_size, map_num,
+                    std::make_unique<LayerFactory::MaxPoolLayerSetting>(map_num,
                             pw, ph, input_w, input_h)
                 );
             }
@@ -216,7 +216,7 @@ namespace NeuralNet
             std::unique_ptr<Layer> layer = LayerFactory::getInstance().makeLayer(prevSetting[idx],
                     cur_setting);
             node_map[idx] = std::make_unique<Node>();
-            node_map[idx]->data = std::move(layer->createLayerData());
+            node_map[idx]->data = std::move(layer->createLayerData(m_batch_size));
             node_map[idx]->layer = std::move(layer);
             node_map[idx]->file_path = std::move(layer_data_path);
             node_map[idx]->next_id = std::move(vec_child);

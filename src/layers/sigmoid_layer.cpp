@@ -10,7 +10,7 @@ namespace NeuralNet
 {
     SigmoidLayer::SigmoidLayer(const Setting& set)
         : m_prev_d(set.prev_neurons), m_current_d(set.current_neurons),
-        m_train_num(set.train_num), m_learn_rate(set.learn_rate),
+        m_learn_rate(set.learn_rate),
         m_uses_dropout(set.dropout_enable), m_dropout_enabled(false),
         m_dropout_rate(set.dropout_rate)
     {
@@ -18,7 +18,7 @@ namespace NeuralNet
         m_bias = new double[m_current_d];
 
         if (m_uses_dropout)
-            m_dropout_coeff = new double[m_train_num * m_current_d];
+            m_dropout_coeff = new double[m_current_d];
 
         /* weight and bias initializaion */
         std::random_device rd;
@@ -45,6 +45,7 @@ namespace NeuralNet
     {
         /* TODO: data correctness check? */
 
+        auto m_train_num = current.getTrainNum();
         auto prev_a = prev.get(LayerData::DataIndex::ACTIVATION);
         auto cur_z = current.get(LayerData::DataIndex::INTER_VALUE);
         auto cur_a = current.get(LayerData::DataIndex::ACTIVATION);
@@ -71,11 +72,15 @@ namespace NeuralNet
                 std::uniform_real_distribution<> dis(0, 1);
                 const double dropout_rate = m_dropout_rate;
 
-                apply_vec(m_dropout_coeff, m_dropout_coeff, m_train_num * m_current_d,
+                apply_vec(m_dropout_coeff, m_dropout_coeff, m_current_d,
                         [dropout_rate, &rgen, &dis](double in) -> double {
                             return (dis(rgen) <= dropout_rate) ? 1:0;
                         });
-                pmul_vec(cur_a, m_dropout_coeff, cur_a, m_train_num * m_current_d);
+                for (size_t m = 0; m < m_train_num; m++)
+                {
+                    pmul_vec(cur_a + (m_current_d*m), m_dropout_coeff,
+                            cur_a + (m_current_d*m), m_current_d);
+                }
             }
             else
             {
@@ -93,6 +98,7 @@ namespace NeuralNet
     void SigmoidLayer::backward_cpu(LayerData& prev, LayerData& current)
     {
         /* TODO: data correctness check? */
+        const auto m_train_num = current.getTrainNum();
         const auto train_num = m_train_num;
         const auto learn_rate = m_learn_rate;
         auto prev_e = prev.get(LayerData::DataIndex::ERROR);
@@ -106,7 +112,11 @@ namespace NeuralNet
             // in the backpropagation phase
             if (m_dropout_enabled)
             {
-                pmul_vec(cur_e, m_dropout_coeff, cur_e, m_train_num * m_current_d);
+                for (size_t m = 0; m < train_num; m++)
+                {
+                    pmul_vec(cur_e + (m_current_d*m), m_dropout_coeff,
+                            cur_e + (m_current_d*m), m_current_d);
+                }
             }
             else
             {
@@ -161,10 +171,10 @@ namespace NeuralNet
         /* TODO */
     }
 
-    std::unique_ptr<LayerData> SigmoidLayer::createLayerData()
+    std::unique_ptr<LayerData> SigmoidLayer::createLayerData(size_t train_num)
     {
         return std::make_unique<LayerData>(
-            m_train_num,
+            train_num,
             m_current_d
         );
     }

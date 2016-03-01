@@ -7,9 +7,9 @@
             "channel_num": 3
         }
     },
-    "train_num": 2000,
+    "train_num": 3000,
     "batch_size": 20,
-    "epoch_num": 5,
+    "epoch_num": 1,
     "learn_rate": 0.01,
     "layers": [
         {

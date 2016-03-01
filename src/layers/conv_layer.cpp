@@ -60,15 +60,16 @@ namespace NeuralNet
 
     void ConvLayer::forward_cpu(const LayerData& prev, LayerData& current)
     {
+        auto train_num = current.getTrainNum();
         auto prev_a = prev.get(LayerData::DataIndex::ACTIVATION);
         auto cur_a = current.get(LayerData::DataIndex::ACTIVATION);
         auto cur_z = current.get(LayerData::DataIndex::INTER_VALUE);
 
-        memset(cur_z, 0, sizeof(double) * m_set.train_num
+        memset(cur_z, 0, sizeof(double) * train_num
                 * m_set.current_map_num * m_output_width * m_output_height);
         double *temp_z = new double[m_output_width * m_output_height];
 
-        for (size_t i=0; i<m_set.train_num; i++)
+        for (size_t i=0; i<train_num; i++)
         {
             size_t w_offset = 0;
             size_t prev_offset = 0;
@@ -106,7 +107,7 @@ namespace NeuralNet
 
     void ConvLayer::backward_cpu(LayerData& prev, LayerData& current)
     {
-        const auto train_num = m_set.train_num;
+        const auto train_num = current.getTrainNum();
         const auto learn_rate = m_learn_rate;
         const int i_recep_size = m_set.recep_size;
         auto prev_a = prev.get(LayerData::DataIndex::ACTIVATION);
@@ -114,7 +115,7 @@ namespace NeuralNet
         auto prev_e = prev.get(LayerData::DataIndex::ERROR);
         auto cur_e = current.get(LayerData::DataIndex::ERROR);
 
-        memset(prev_e, 0, sizeof(double) * m_set.train_num
+        memset(prev_e, 0, sizeof(double) * train_num
                 * m_set.prev_map_num * m_set.image_width * m_set.image_height);
 
         /* calculate error value for previous layer */
@@ -166,7 +167,7 @@ namespace NeuralNet
 
                 memset(delta_w, 0, sizeof(double) * m_set.recep_size * m_set.recep_size);
 
-                for (size_t i = 0; i < m_set.train_num; i++)
+                for (size_t i = 0; i < train_num; i++)
                 {
                     if (m_set.enable_zero_pad)
                     {
@@ -207,10 +208,10 @@ namespace NeuralNet
         /* TODO: OpenCL intergration */
     }
 
-    std::unique_ptr<LayerData> ConvLayer::createLayerData()
+    std::unique_ptr<LayerData> ConvLayer::createLayerData(size_t train_num)
     {
         return std::make_unique<LayerData>(
-            m_set.train_num,
+            train_num,
             m_set.current_map_num * m_output_width * m_output_height
         );
     }

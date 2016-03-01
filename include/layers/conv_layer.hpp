@@ -14,7 +14,6 @@ namespace NeuralNet
     public:
         struct LayerSetting
         {
-            size_t train_num;
             size_t prev_map_num;
             size_t current_map_num;
             size_t image_width;
@@ -37,7 +36,7 @@ namespace NeuralNet
         virtual void backward_cpu(LayerData& prev, LayerData& current);
         virtual void backward_gpu(LayerData& prev, LayerData& current);
 
-        virtual std::unique_ptr<LayerData> createLayerData();
+        virtual std::unique_ptr<LayerData> createLayerData(size_t train_num);
 
         virtual void importLayer(const Json::Value& coeffs);
         virtual Json::Value exportLayer();

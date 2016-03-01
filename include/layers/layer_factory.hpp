@@ -23,9 +23,6 @@ namespace NeuralNet
         /* layer setting structs */
         struct LayerSetting
         {
-            size_t train_num;
-            explicit LayerSetting() : train_num(0) {}
-            explicit LayerSetting(size_t _t) : train_num(_t) {}
             virtual ~LayerSetting() {}
         };
         struct SigmoidLayerSetting: public LayerSetting
@@ -34,8 +31,8 @@ namespace NeuralNet
             double learn_rate;
             double dropout_rate;
             bool enable_dropout;
-            explicit SigmoidLayerSetting(size_t _t, size_t _n, double _l, double _droprate, bool _dr)
-                : LayerSetting(_t), neuron_num(_n), learn_rate(_l), dropout_rate(_droprate),
+            explicit SigmoidLayerSetting(size_t _n, double _l, double _droprate, bool _dr)
+                : LayerSetting(), neuron_num(_n), learn_rate(_l), dropout_rate(_droprate),
                 enable_dropout(_dr) {}
             virtual ~SigmoidLayerSetting() {}
         };
@@ -43,8 +40,8 @@ namespace NeuralNet
         {
             size_t image_w, image_h, channel_num;
             double learn_rate;
-            explicit ImageLayerSetting(size_t _t, size_t _w, size_t _h, size_t _c, double _lr)
-                : LayerSetting(_t), image_w(_w), image_h(_h),
+            explicit ImageLayerSetting(size_t _w, size_t _h, size_t _c, double _lr)
+                : LayerSetting(), image_w(_w), image_h(_h),
                 channel_num(_c), learn_rate(_lr) {}
             virtual ~ImageLayerSetting() {}
         };
@@ -54,8 +51,8 @@ namespace NeuralNet
             double learn_rate;
             bool enable_zero_pad;
             size_t output_w, output_h;
-            explicit ConvLayerSetting(size_t _t, size_t _m, size_t _r, size_t _iw, size_t _ih, double _l, bool _zeropad)
-                : LayerSetting(_t), map_num(_m), recep_size(_r), input_w(_iw), input_h(_ih),
+            explicit ConvLayerSetting(size_t _m, size_t _r, size_t _iw, size_t _ih, double _l, bool _zeropad)
+                : LayerSetting(), map_num(_m), recep_size(_r), input_w(_iw), input_h(_ih),
                 learn_rate(_l), enable_zero_pad(_zeropad),
                 output_w((enable_zero_pad)?(_iw):(_iw - (_r - 1))),
                 output_h((enable_zero_pad)?(_ih):(_ih - (_r - 1))) {}
@@ -64,8 +61,8 @@ namespace NeuralNet
         struct MaxPoolLayerSetting: public LayerSetting
         {
             size_t map_num, pool_w, pool_h, input_w, input_h, output_w, output_h;
-            explicit MaxPoolLayerSetting(size_t _t, size_t _m, size_t _w, size_t _h, size_t _iw, size_t _ih)
-                : LayerSetting(_t), map_num(_m), pool_w(_w), pool_h(_h), input_w(_iw), input_h(_ih),
+            explicit MaxPoolLayerSetting(size_t _m, size_t _w, size_t _h, size_t _iw, size_t _ih)
+                : LayerSetting(), map_num(_m), pool_w(_w), pool_h(_h), input_w(_iw), input_h(_ih),
                 output_w(_iw / _w), output_h(_ih / _h) {}
             virtual ~MaxPoolLayerSetting() {}
         };

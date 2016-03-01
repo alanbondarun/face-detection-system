@@ -14,7 +14,6 @@ namespace NeuralNet
         {
             size_t prev_neurons;
             size_t current_neurons;
-            size_t train_num;
             double learn_rate;
             double dropout_rate;
             bool dropout_enable;
@@ -27,7 +26,7 @@ namespace NeuralNet
         virtual void backward_cpu(LayerData& prev, LayerData& current);
         virtual void backward_gpu(LayerData& prev, LayerData& current);
 
-        virtual std::unique_ptr<LayerData> createLayerData();
+        virtual std::unique_ptr<LayerData> createLayerData(size_t train_num);
 
         virtual void importLayer(const Json::Value& coeffs);
         virtual Json::Value exportLayer();
@@ -40,7 +39,7 @@ namespace NeuralNet
         static const std::function<double(double)> f_sigmoid_prime;
 
     private:
-        const size_t m_prev_d, m_current_d, m_train_num;
+        const size_t m_prev_d, m_current_d;
         const double m_learn_rate;
 
         const bool m_uses_dropout;

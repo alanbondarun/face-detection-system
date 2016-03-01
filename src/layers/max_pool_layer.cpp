@@ -12,12 +12,13 @@ namespace NeuralNet
 
     void MaxPoolLayer::forward_cpu(const LayerData& prev, LayerData& current)
     {
+        auto train_num = current.getTrainNum();
         auto prev_a = prev.get(LayerData::DataIndex::ACTIVATION);
         auto prev_z = prev.get(LayerData::DataIndex::INTER_VALUE);
         auto cur_a = current.get(LayerData::DataIndex::ACTIVATION);
         auto cur_z = current.get(LayerData::DataIndex::INTER_VALUE);
 
-        for (size_t i=0; i<m_dim.train_num; i++)
+        for (size_t i=0; i<train_num; i++)
         {
             for (size_t j=0; j<m_dim.map_num; j++)
             {
@@ -42,11 +43,12 @@ namespace NeuralNet
 
     void MaxPoolLayer::backward_cpu(LayerData& prev, LayerData& current)
     {
+        auto train_num = current.getTrainNum();
         auto prev_e = prev.get(LayerData::DataIndex::ERROR);
         auto prev_a = prev.get(LayerData::DataIndex::ACTIVATION);
         auto cur_e = current.get(LayerData::DataIndex::ERROR);
 
-        for (size_t i=0; i<m_dim.train_num; i++)
+        for (size_t i=0; i<train_num; i++)
         {
             for (size_t j=0; j<m_dim.map_num; j++)
             {
@@ -68,10 +70,10 @@ namespace NeuralNet
         /* TODO: OpenCL intergration */
     }
 
-    std::unique_ptr<LayerData> MaxPoolLayer::createLayerData()
+    std::unique_ptr<LayerData> MaxPoolLayer::createLayerData(size_t train_num)
     {
         return std::make_unique<LayerData>(
-            m_dim.train_num,
+            train_num,
             m_dim.map_num * m_output_width * m_output_height
         );
     }

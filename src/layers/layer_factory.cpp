@@ -51,7 +51,6 @@ namespace NeuralNet
             SigmoidLayer::Setting({
                 cast_prev_set.neuron_num,
                 cast_cur_set.neuron_num,
-                cast_cur_set.train_num,
                 cast_cur_set.learn_rate,
                 cast_cur_set.dropout_rate,
                 cast_cur_set.enable_dropout
@@ -71,7 +70,6 @@ namespace NeuralNet
             SigmoidLayer::Setting({
                 cast_prev_set.map_num * cast_prev_set.output_w * cast_prev_set.output_h,
                 cast_cur_set.neuron_num,
-                cast_cur_set.train_num,
                 cast_cur_set.learn_rate,
                 cast_cur_set.dropout_rate,
                 cast_cur_set.enable_dropout
@@ -91,7 +89,6 @@ namespace NeuralNet
             SigmoidLayer::Setting({
                 cast_prev_set.map_num * cast_prev_set.output_w * cast_prev_set.output_h,
                 cast_cur_set.neuron_num,
-                cast_cur_set.train_num,
                 cast_cur_set.learn_rate,
                 cast_cur_set.dropout_rate,
                 cast_cur_set.enable_dropout
@@ -109,7 +106,6 @@ namespace NeuralNet
         auto& cast_cur_set = static_cast<const LayerFactory::ConvLayerSetting&>(cur_set);
         return std::make_unique<ConvLayer>(
                 ConvLayer::LayerSetting({
-                    cast_cur_set.train_num,
                     cast_prev_set.channel_num,
                     cast_cur_set.map_num,
                     cast_prev_set.image_w,
@@ -132,7 +128,6 @@ namespace NeuralNet
         auto& cast_cur_set = static_cast<const LayerFactory::ConvLayerSetting&>(cur_set);
         return std::make_unique<ConvLayer>(
                 ConvLayer::LayerSetting({
-                    cast_cur_set.train_num,
                     cast_prev_set.map_num,
                     cast_cur_set.map_num,
                     cast_prev_set.output_w,
@@ -155,7 +150,6 @@ namespace NeuralNet
         auto& cast_cur_set = static_cast<const LayerFactory::ConvLayerSetting&>(cur_set);
         return std::make_unique<ConvLayer>(
                 ConvLayer::LayerSetting({
-                    cast_cur_set.train_num,
                     cast_prev_set.map_num,
                     cast_cur_set.map_num,
                     cast_prev_set.output_w,
@@ -177,7 +171,6 @@ namespace NeuralNet
         auto& cast_cur_set = static_cast<const LayerFactory::MaxPoolLayerSetting&>(cur_set);
         return std::make_unique<MaxPoolLayer>(
                 MaxPoolLayer::Dimension({
-                    cast_cur_set.train_num,
                     cast_cur_set.map_num,
                     cast_cur_set.input_w,
                     cast_cur_set.input_h,
