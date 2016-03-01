@@ -6,6 +6,7 @@
 #include <fstream>
 #include <sstream>
 #include <random>
+#include <cstring>
 
 bool load_test(Json::Value& value)
 {
@@ -21,51 +22,145 @@ bool load_test(Json::Value& value)
 	return ok;
 }
 
-int main()
+bool load_faces(std::vector<double>& data, std::vector< std::vector<int> >& category)
+{
+    const size_t num_image = 1000;
+    std::ifstream file_name_file("feret-files.out");
+
+    for (size_t i = 1; i <= num_image; i++)
+    {
+        std::string file_name;
+        if (!std::getline(file_name_file, file_name))
+        {
+            std::cout << "end-of-file of feret-files.out" << std::endl;
+            return false;
+        }
+        file_name.insert(0, "image-feret/");
+
+        auto img_ptr = NeuralNet::loadPPMImage(file_name.c_str());
+        if (!img_ptr)
+        {
+            std::cout << "missing file " << file_name << std::endl;
+            return false;
+        }
+
+        auto resized_ptr = NeuralNet::fitImageTo(img_ptr, 32, 32);
+        for (size_t ch = 0; ch < resized_ptr->getChannelNum(); ch++)
+        {
+            data.insert(data.end(),
+                    resized_ptr->getValues(ch),
+                    resized_ptr->getValues(ch) +
+                            (resized_ptr->getWidth() * resized_ptr->getHeight()));
+        }
+        category.push_back(std::move(std::vector<int>({1})));
+    }
+
+    return true;
+}
+
+bool load_non_faces(std::vector<double>& data, std::vector< std::vector<int> >& category)
+{
+    const size_t num_image = 1000;
+
+    for (size_t i = 1; i <= num_image; i++)
+    {
+        std::ostringstream oss;
+        oss << "image-nonface/img_" << i << ".bmp";
+
+        auto img_ptr = NeuralNet::loadBitmapImage(oss.str().c_str());
+        if (!img_ptr)
+        {
+            std::cout << "missing file " << oss.str() << std::endl;
+            return false;
+        }
+
+        auto resized_ptr = NeuralNet::fitImageTo(img_ptr, 32, 32);
+        for (size_t ch = 0; ch < resized_ptr->getChannelNum(); ch++)
+        {
+            data.insert(data.end(),
+                    resized_ptr->getValues(ch),
+                    resized_ptr->getValues(ch) +
+                            (resized_ptr->getWidth() * resized_ptr->getHeight()));
+        }
+        category.push_back(std::move(std::vector<int>({0})));
+    }
+
+    return true;
+}
+
+int main(int argc, char* argv[])
 {
 	const size_t imageCount = 22;
 	
 	Json::Value networkValue;
 	
+    // load neural net setting
 	if (!load_test(networkValue))
 	{
 		return 0;
 	}
 	
-	std::vector< std::unique_ptr<NeuralNet::Image> > imageList;
-	for (size_t i = 1; i <= imageCount; i++)
-	{
-		std::ostringstream oss;
-		oss << "images/" << i << ".bmp";
-		imageList.push_back(std::move(NeuralNet::loadBitmapImage(oss.str().c_str())));
-	}
-	
-	std::vector<double> trainData;
-	std::vector< std::vector<int> > categoryData;
-	for (size_t k = 0; k < imageCount; k++)
-	{
-		for (size_t i = 0; i < 3; i++)
-		{		
-			trainData.insert(
-					trainData.end(),
-					imageList[i]->getValues(i),
-					imageList[i]->getValues(i) +
-						(imageList[i]->getWidth() * imageList[i]->getHeight())
-			);
-		}
-		if (k < 16)
-		{
-			categoryData.push_back(std::move(std::vector<int>{1, 0}));
-			categoryData.push_back(std::move(std::vector<int>{1, 0, 0, 0, 0}));
-		}
-		else
-		{
-			categoryData.push_back(std::move(std::vector<int>{0, 1}));
-			categoryData.push_back(std::move(std::vector<int>{0, 0, 1, 0, 0}));
-		}
-	}
-	
+    // train only if the argument is given to this program
+    bool do_train = false;
+    if (argc >= 2 && !strncmp(argv[1], "train", 5))
+    {
+        do_train = true;
+    }
+
+    std::vector<double> data;
+    std::vector< std::vector<int> > category;
+    if (do_train)
+    {
+        // load face images
+        if (!load_faces(data, category))
+        {
+            return 0;
+        }
+
+        // load non-face images
+        if (!load_non_faces(data, category))
+        {
+            return 0;
+        }
+    }
+
+    // actual training goes here
 	NeuralNet::Network network(networkValue);
-	network.train(trainData, categoryData);
-	network.storeIntoFiles();
+    if (do_train)
+    {
+        network.train(data, category);
+        network.storeIntoFiles();
+    }
+    else
+    {
+        network.loadFromFiles();
+    }
+
+    // evaluation with other images
+    std::vector< std::unique_ptr<NeuralNet::Image> > imageList;
+    for (size_t i = 1; i <= imageCount; i++)
+    {
+        std::ostringstream oss;
+        oss << "eval-image/" << i << ".bmp";
+        imageList.push_back(std::move(NeuralNet::loadBitmapImage(oss.str().c_str())));
+    }
+
+    for (size_t i = 0; i < imageCount; i++)
+    {
+        std::vector<double> eval_data;
+        for (size_t j = 0; j < 3; j++)
+        {
+            eval_data.insert(eval_data.end(),
+                    imageList[i]->getValues(j),
+                    imageList[i]->getValues(j) + 
+                        (imageList[i]->getWidth() * imageList[i]->getHeight())
+            );
+        }
+
+        auto res = network.evaluate(eval_data);
+        for (auto& category_vec: res)
+        {
+            std::cout << "image #" << (i+1) << ": " << category_vec[0] << std::endl;
+        }
+    }
 }

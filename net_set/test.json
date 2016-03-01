@@ -7,9 +7,9 @@
 			"channel_num": 3
 		}
 	},
-	"train_num": 20,
-	"batch_size": 4,
-	"epoch_num": 4,
+	"train_num": 2000,
+	"batch_size": 20,
+	"epoch_num": 5,
 	"learn_rate": 0.01,
 	"layers": [
 		{
@@ -80,11 +80,11 @@
 		},
 		{
 			"id": 7,
-			"type": "branch",
+			"type": "sigmoid",
 			"data_location": "7.json",
-			"children": [8, 9],
+			"children": [8],
 			"dimensions": {
-				"sizes": [128, 128]
+				"size": 128
 			},
 			"enable_dropout": true,
 			"dropout_rate": 0.5
@@ -96,16 +96,6 @@
 			"children": [],
 			"dimensions": {
 				"size": 2
-			},
-			"enable_dropout": false
-		},
-		{
-			"id": 9,
-			"type": "sigmoid",
-			"data_location": "9.json",
-			"children": [],
-			"dimensions": {
-				"size": 5
 			},
 			"enable_dropout": false
 		}

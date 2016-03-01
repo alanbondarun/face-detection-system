@@ -50,14 +50,15 @@ namespace NeuralNet
 		};
 		struct ConvLayerSetting: public LayerSetting
 		{
-			size_t map_num, recep_size, input_w, input_h, output_w, output_h;
+			size_t map_num, recep_size, input_w, input_h;
 			double learn_rate;
 			bool enable_zero_pad;
+            size_t output_w, output_h;
 			explicit ConvLayerSetting(size_t _t, size_t _m, size_t _r, size_t _iw, size_t _ih, double _l, bool _zeropad)
 				: LayerSetting(_t), map_num(_m), recep_size(_r), input_w(_iw), input_h(_ih),
+				learn_rate(_l), enable_zero_pad(_zeropad),
 				output_w((enable_zero_pad)?(_iw):(_iw - (_r - 1))),
-				output_h((enable_zero_pad)?(_ih):(_ih - (_r - 1))),
-				learn_rate(_l), enable_zero_pad(_zeropad) {}
+				output_h((enable_zero_pad)?(_ih):(_ih - (_r - 1))) {}
 			virtual ~ConvLayerSetting() {}
 		};
 		struct MaxPoolLayerSetting: public LayerSetting
