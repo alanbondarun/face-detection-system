@@ -24,7 +24,7 @@ bool load_test(Json::Value& value)
 
 bool load_faces(std::vector<double>& data, std::vector< std::vector<int> >& category)
 {
-    const size_t num_image = 1500;
+    const size_t num_image = 1000;
     std::ifstream file_name_file("feret-files.out");
 
     for (size_t i = 1; i <= num_image; i++)
@@ -60,7 +60,7 @@ bool load_faces(std::vector<double>& data, std::vector< std::vector<int> >& cate
 
 bool load_non_faces(std::vector<double>& data, std::vector< std::vector<int> >& category)
 {
-    const size_t num_image = 1500;
+    const size_t num_image = 1000;
 
     for (size_t i = 1; i <= num_image; i++)
     {
@@ -165,9 +165,9 @@ int main(int argc, char* argv[])
                 }
 
                 auto res = network.evaluate(eval_data);
-                for (auto& category_vec: res)
+                for (auto& category_val: res)
                 {
-                    std::cout << "image #" << (i+1) << ": " << category_vec[0] << std::endl;
+                    std::cout << "image #" << (i+1) << ": " << category_val << std::endl;
                 }
             }
         }
@@ -198,9 +198,9 @@ int main(int argc, char* argv[])
             }
 
             auto res = network.evaluate(eval_data);
-            for (auto& category_vec: res)
+            for (auto& category_val: res)
             {
-                std::cout << "image #" << (i+1) << ": " << category_vec[0] << std::endl;
+                std::cout << "image #" << (i+1) << ": " << category_val << std::endl;
             }
         }
     }

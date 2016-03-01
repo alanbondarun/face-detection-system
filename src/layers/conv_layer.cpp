@@ -47,7 +47,7 @@ namespace NeuralNet
         /* weight initialization */
         std::random_device rd;
         std::mt19937 rgen(rd());
-        std::normal_distribution<double> dist_w(0.0, std::sqrt(1.0 / m_output_width * m_output_height));
+        std::normal_distribution<double> dist_w(0.0, std::sqrt(1.0 / (m_output_width * m_output_height)));
 
         for (size_t i = 0; i < num_weights; i++)
             m_weight[i] = dist_w(rgen);

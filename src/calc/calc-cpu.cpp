@@ -213,7 +213,7 @@ namespace NeuralNet
         {
             while (m - pm < dim_w * dim_h)
             {
-                *mres = *m;
+                *pmres = *m;
                 m++;
                 pmres--;
             }
