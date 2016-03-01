@@ -60,9 +60,7 @@ namespace NeuralNet
         void storeIntoFiles();
 
         // returns classification value for one portion of data
-        std::vector< std::vector<int> > evaluate(const std::vector<double>& data);
-        std::vector< std::vector<int> > evaluate(const std::vector<double>& data,
-                const std::vector<size_t>& list_idx);
+        std::vector< int > evaluate(const std::vector<double>& data);
 
         // trains with m_train_size number of data
         // category_list: list of (list of desired output data for each input data)
@@ -94,7 +92,7 @@ namespace NeuralNet
             size_t size;
             size_t width, height, channel_num;
         } m_in_dim;
-        size_t m_unit_size, m_train_size, m_batch_size, m_epoch_num, m_output_size;
+        size_t m_unit_size, m_train_size, m_batch_size, m_epoch_num;
         double m_learn_rate;
 
         NodeID root_idx;

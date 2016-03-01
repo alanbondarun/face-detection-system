@@ -7,6 +7,7 @@
 #include <stack>
 #include <cstring>
 #include <random>
+#include <algorithm>
 #include "network.hpp"
 #include "calc/calc-cpu.hpp"
 #include "calc/util-functions.hpp"
@@ -92,19 +93,21 @@ namespace NeuralNet
             addLayer(layers[idx], setting_map);
         }
 
-        /* input layer data construction */
-        m_input_data = std::make_unique<LayerData>(m_batch_size, m_unit_size);
-
         /* finding leaf nodes and calculation of number of output nodes */
-        m_output_size = 0;
         for (auto& node_pair: node_map)
         {
             if (node_pair.second->next_id.empty())
             {
                 m_leaf_idx.push_back(node_pair.first);
-                m_output_size += node_pair.second->data->getDataNum();
             }
         }
+        std::sort(m_leaf_idx.begin(), m_leaf_idx.end(),
+            [](const NodeID& id1, const NodeID& id2) -> bool {
+                if (id1.first == id2.first)
+                    return (id1.second < id2.second);
+                return (id1.first < id2.first);
+            }
+        );
     }
 
     void Network::addLayer(const Json::Value& jsonLayer, SettingMapType& prevSetting)
@@ -146,7 +149,6 @@ namespace NeuralNet
                         prevSetting[first_idx], setting_pair);
 
                 node_map[idx] = std::make_unique<Node>();
-                node_map[idx]->data = std::move(layer->createLayerData(m_batch_size));
                 node_map[idx]->layer = std::move(layer);
                 node_map[idx]->file_path = std::move(layer_data_path);
                 node_map[idx]->next_id.push_back(vec_child[i]);
@@ -216,7 +218,6 @@ namespace NeuralNet
             std::unique_ptr<Layer> layer = LayerFactory::getInstance().makeLayer(prevSetting[idx],
                     cur_setting);
             node_map[idx] = std::make_unique<Node>();
-            node_map[idx]->data = std::move(layer->createLayerData(m_batch_size));
             node_map[idx]->layer = std::move(layer);
             node_map[idx]->file_path = std::move(layer_data_path);
             node_map[idx]->next_id = std::move(vec_child);
@@ -343,19 +344,10 @@ namespace NeuralNet
     }
 
     /* used for evaluation of a single set of data */
-    std::vector< std::vector<int> > Network::evaluate(const std::vector<double>& data)
+    std::vector< int > Network::evaluate(const std::vector<double>& data)
     {
-        std::vector<size_t> lst_idxes;
-        size_t idx_num = data.size() / m_unit_size;
-        for (size_t i=0; i<idx_num; i++)
-            lst_idxes.push_back(i);
+        std::vector<size_t> lst_idxes{0};
 
-        return evaluate(data, lst_idxes);
-    }
-
-    std::vector< std::vector<int> > Network::evaluate(const std::vector<double>& data,
-            const std::vector<size_t>& list_idx)
-    {
         // disable dropout of sigmoid layers for evaluation
         for (auto& node_pair: node_map)
         {
@@ -367,13 +359,21 @@ namespace NeuralNet
             }
         }
 
-        feedForward(data, list_idx);
+        // layer data construction: TODO
+        m_input_data = std::make_unique<LayerData>(1, m_unit_size);
+        for (auto& node_pair: node_map)
+        {
+            node_pair.second->data =
+                    std::move(node_pair.second->layer->createLayerData(1));
+        }
+
+        feedForward(data, lst_idxes);
 
         /* return value generation */
-        std::vector< std::vector<int> > retval;
+        std::vector< int > retval;
         for (auto& leaf_id: m_leaf_idx)
         {
-            retval.push_back(getCategory(*(node_map[leaf_id]->data)));
+            retval.push_back(getCategory(*(node_map[leaf_id]->data))[0]);
         }
 
         return retval;
@@ -477,6 +477,14 @@ namespace NeuralNet
             data_idxes.push_back(i);
 
         std::vector<size_t> batch_idxes(m_batch_size);
+
+        // layer data construction
+        m_input_data = std::make_unique<LayerData>(m_batch_size, m_unit_size);
+        for (auto& node_pair: node_map)
+        {
+            node_pair.second->data =
+                    std::move(node_pair.second->layer->createLayerData(m_batch_size));
+        }
 
         std::random_device rd;
         std::mt19937 rgen(rd());
