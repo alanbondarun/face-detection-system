@@ -52,7 +52,8 @@ bool load_faces(std::vector<double>& data, std::vector< std::vector<int> >& cate
                     resized_ptr->getValues(ch) +
                             (resized_ptr->getWidth() * resized_ptr->getHeight()));
         }
-        category.push_back(std::move(std::vector<int>({1})));
+        category[0].push_back(1);
+        category[0].push_back(0);
     }
 
     return true;
@@ -82,7 +83,8 @@ bool load_non_faces(std::vector<double>& data, std::vector< std::vector<int> >& 
                     resized_ptr->getValues(ch) +
                             (resized_ptr->getWidth() * resized_ptr->getHeight()));
         }
-        category.push_back(std::move(std::vector<int>({0})));
+        category[0].push_back(0);
+        category[0].push_back(1);
     }
 
     return true;
@@ -92,6 +94,8 @@ int main(int argc, char* argv[])
 {
     const size_t imageCount = 35;
 
+    std::cout << "initiating network..." << std::endl;
+
     Json::Value networkValue;
 
     // load neural net setting
@@ -99,6 +103,7 @@ int main(int argc, char* argv[])
     {
         return 0;
     }
+    NeuralNet::Network network(networkValue);
     std::cout << "loading settings finished" << std::endl;
 
     // train only if the argument is given to this program
@@ -108,10 +113,22 @@ int main(int argc, char* argv[])
         do_train = true;
     }
 
-    std::vector<double> data;
-    std::vector< std::vector<int> > category;
+    // loading images for evaluation
+    std::vector< std::unique_ptr<NeuralNet::Image> > imageList;
+    for (size_t i = 1; i <= imageCount; i++)
+    {
+        std::ostringstream oss;
+        oss << "eval-image/" << i << ".bmp";
+        imageList.push_back(std::move(NeuralNet::loadBitmapImage(oss.str().c_str())));
+    }
+    std::cout << "loading evaluation images finished" << std::endl;
+
     if (do_train)
     {
+        std::vector<double> data;
+        std::vector< std::vector<int> > category;
+        category.push_back(std::vector<int>());
+
         // load face images
         if (!load_faces(data, category))
         {
@@ -125,24 +142,11 @@ int main(int argc, char* argv[])
             return 0;
         }
         std::cout << "loading non-face images finished" << std::endl;
-    }
-
-    // actual training goes here
-    NeuralNet::Network network(networkValue);
-    if (do_train)
-    {
-        std::vector< std::unique_ptr<NeuralNet::Image> > imageList;
-        for (size_t i = 1; i <= imageCount; i++)
-        {
-            std::ostringstream oss;
-            oss << "eval-image/" << i << ".bmp";
-            imageList.push_back(std::move(NeuralNet::loadBitmapImage(oss.str().c_str())));
-        }
-        std::cout << "loading evaluation images finished" << std::endl;
 
         const size_t n_epoch = 7;
         for (size_t q = 1; q <= n_epoch; q++)
         {
+            // actual training goes here
             network.train(data, category);
             std::cout << "epoch #" << q << " finished, storing infos..."
                     << std::endl;
@@ -150,6 +154,7 @@ int main(int argc, char* argv[])
             network.storeIntoFiles();
 
             std::cout << "result of epoch #" << q << std::endl;
+            std::cout << "(0 = face, 1 = non-face)" << std::endl;
 
             // evaluation with other images
             for (size_t i = 0; i < imageCount; i++)
@@ -175,15 +180,6 @@ int main(int argc, char* argv[])
     else
     {
         network.loadFromFiles();
-
-        // evaluation with other images
-        std::vector< std::unique_ptr<NeuralNet::Image> > imageList;
-        for (size_t i = 1; i <= imageCount; i++)
-        {
-            std::ostringstream oss;
-            oss << "eval-image/" << i << ".bmp";
-            imageList.push_back(std::move(NeuralNet::loadBitmapImage(oss.str().c_str())));
-        }
 
         for (size_t i = 0; i < imageCount; i++)
         {
