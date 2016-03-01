@@ -8,7 +8,7 @@
 int main()
 {
     int volup_fd = open("/dev/pir", O_RDONLY);
-    int led4_fd = open(LED4, O_WRONLY);   
+    int led4_fd = open(LED4, O_WRONLY);
 
     if (volup_fd < 0 || led4_fd < 0)
     {

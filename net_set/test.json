@@ -1,103 +1,103 @@
 {
-	"input": {
-		"type": "image",
-		"size": {
-			"width": 32,
-			"height": 32,
-			"channel_num": 3
-		}
-	},
-	"train_num": 2000,
-	"batch_size": 20,
-	"epoch_num": 5,
-	"learn_rate": 0.01,
-	"layers": [
-		{
-			"id": 1,
-			"type": "convolution",
-			"data_location": "1.json",
-			"children": [2],
-			"dimensions": {
-				"map_num": 32,
-				"recep_size": 5,
-				"enable_zero_pad": true,
-				"activation_func": "relu"
-			}
-		},
-		{
-			"id": 2,
-			"type": "maxpool",
-			"data_location": "2.json",
-			"children": [3],
-			"dimensions": {
-				"pool_width": 2,
-				"pool_height": 2
-			}
-		},
-		{
-			"id": 3,
-			"type": "convolution",
-			"data_location": "3.json",
-			"children": [4],
-			"dimensions": {
-				"map_num": 32,
-				"recep_size": 3,
-				"enable_zero_pad": true,
-				"activation_func": "relu"
-			}
-		},
-		{
-			"id": 4,
-			"type": "convolution",
-			"data_location": "4.json",
-			"children": [5],
-			"dimensions": {
-				"map_num": 24,
-				"recep_size": 3,
-				"enable_zero_pad": true,
-				"activation_func": "relu"
-			}
-		},
-		{
-			"id": 5,
-			"type": "maxpool",
-			"data_location": "5.json",
-			"children": [6],
-			"dimensions": {
-				"pool_width": 2,
-				"pool_height": 2
-			}
-		},
-		{
-			"id": 6,
-			"type": "sigmoid",
-			"data_location": "6.json",
-			"children": [7],
-			"dimensions": {
-				"size": 512
-			},
-			"enable_dropout": false
-		},
-		{
-			"id": 7,
-			"type": "sigmoid",
-			"data_location": "7.json",
-			"children": [8],
-			"dimensions": {
-				"size": 128
-			},
-			"enable_dropout": true,
-			"dropout_rate": 0.5
-		},
-		{
-			"id": 8,
-			"type": "sigmoid",
-			"data_location": "8.json",
-			"children": [],
-			"dimensions": {
-				"size": 2
-			},
-			"enable_dropout": false
-		}
-	]
+    "input": {
+        "type": "image",
+        "size": {
+            "width": 32,
+            "height": 32,
+            "channel_num": 3
+        }
+    },
+    "train_num": 2000,
+    "batch_size": 20,
+    "epoch_num": 5,
+    "learn_rate": 0.01,
+    "layers": [
+        {
+            "id": 1,
+            "type": "convolution",
+            "data_location": "1.json",
+            "children": [2],
+            "dimensions": {
+                "map_num": 32,
+                "recep_size": 5,
+                "enable_zero_pad": true,
+                "activation_func": "relu"
+            }
+        },
+        {
+            "id": 2,
+            "type": "maxpool",
+            "data_location": "2.json",
+            "children": [3],
+            "dimensions": {
+                "pool_width": 2,
+                "pool_height": 2
+            }
+        },
+        {
+            "id": 3,
+            "type": "convolution",
+            "data_location": "3.json",
+            "children": [4],
+            "dimensions": {
+                "map_num": 32,
+                "recep_size": 3,
+                "enable_zero_pad": true,
+                "activation_func": "relu"
+            }
+        },
+        {
+            "id": 4,
+            "type": "convolution",
+            "data_location": "4.json",
+            "children": [5],
+            "dimensions": {
+                "map_num": 24,
+                "recep_size": 3,
+                "enable_zero_pad": true,
+                "activation_func": "relu"
+            }
+        },
+        {
+            "id": 5,
+            "type": "maxpool",
+            "data_location": "5.json",
+            "children": [6],
+            "dimensions": {
+                "pool_width": 2,
+                "pool_height": 2
+            }
+        },
+        {
+            "id": 6,
+            "type": "sigmoid",
+            "data_location": "6.json",
+            "children": [7],
+            "dimensions": {
+                "size": 512
+            },
+            "enable_dropout": false
+        },
+        {
+            "id": 7,
+            "type": "sigmoid",
+            "data_location": "7.json",
+            "children": [8],
+            "dimensions": {
+                "size": 128
+            },
+            "enable_dropout": true,
+            "dropout_rate": 0.5
+        },
+        {
+            "id": 8,
+            "type": "sigmoid",
+            "data_location": "8.json",
+            "children": [],
+            "dimensions": {
+                "size": 2
+            },
+            "enable_dropout": false
+        }
+    ]
 }

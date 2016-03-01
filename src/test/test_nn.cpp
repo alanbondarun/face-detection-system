@@ -10,16 +10,16 @@
 
 bool load_test(Json::Value& value)
 {
-	Json::CharReaderBuilder builder;
-	builder["collectComments"] = false;
-	
-	std::string errors;
-	std::fstream dataStream("../net_set/test.json", std::ios_base::in);
-	bool ok = Json::parseFromStream(builder, dataStream, &value, &errors);
-	
-	if (!ok)
-		std::cout << "error while loading test.json: " << errors << std::endl;
-	return ok;
+    Json::CharReaderBuilder builder;
+    builder["collectComments"] = false;
+
+    std::string errors;
+    std::fstream dataStream("../net_set/test.json", std::ios_base::in);
+    bool ok = Json::parseFromStream(builder, dataStream, &value, &errors);
+
+    if (!ok)
+        std::cout << "error while loading test.json: " << errors << std::endl;
+    return ok;
 }
 
 bool load_faces(std::vector<double>& data, std::vector< std::vector<int> >& category)
@@ -90,16 +90,16 @@ bool load_non_faces(std::vector<double>& data, std::vector< std::vector<int> >& 
 
 int main(int argc, char* argv[])
 {
-	const size_t imageCount = 22;
-	
-	Json::Value networkValue;
-	
+    const size_t imageCount = 22;
+
+    Json::Value networkValue;
+
     // load neural net setting
-	if (!load_test(networkValue))
-	{
-		return 0;
-	}
-	
+    if (!load_test(networkValue))
+    {
+        return 0;
+    }
+
     // train only if the argument is given to this program
     bool do_train = false;
     if (argc >= 2 && !strncmp(argv[1], "train", 5))
@@ -125,7 +125,7 @@ int main(int argc, char* argv[])
     }
 
     // actual training goes here
-	NeuralNet::Network network(networkValue);
+    NeuralNet::Network network(networkValue);
     if (do_train)
     {
         network.train(data, category);
@@ -152,7 +152,7 @@ int main(int argc, char* argv[])
         {
             eval_data.insert(eval_data.end(),
                     imageList[i]->getValues(j),
-                    imageList[i]->getValues(j) + 
+                    imageList[i]->getValues(j) +
                         (imageList[i]->getWidth() * imageList[i]->getHeight())
             );
         }
