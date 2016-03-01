@@ -62,11 +62,11 @@ namespace NeuralNet
 			}
 			for (size_t w = 0; w < img_width; w++)
 			{
-				(img_ptr->getValues(0))[(img_width - 1 - h) * img_width + w]
+				(img_ptr->getValues(0))[(img_height - 1 - h) * img_width + w]
 						= raw_data[3*w + 2] / 255.0;
-				(img_ptr->getValues(1))[(img_width - 1 - h) * img_width + w]
+				(img_ptr->getValues(1))[(img_height - 1 - h) * img_width + w]
 						= raw_data[3*w + 1] / 255.0;
-				(img_ptr->getValues(2))[(img_width - 1 - h) * img_width + w]
+				(img_ptr->getValues(2))[(img_height - 1 - h) * img_width + w]
 						= raw_data[3*w] / 255.0;
 			}
 		}
