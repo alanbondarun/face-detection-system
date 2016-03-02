@@ -7,6 +7,7 @@
 #include <sstream>
 #include <random>
 #include <cstring>
+#include <cstdio>
 
 bool load_test(Json::Value& value)
 {
@@ -25,23 +26,41 @@ bool load_test(Json::Value& value)
 bool load_faces(std::vector<double>& data, std::vector< std::vector<int> >& category)
 {
     const size_t num_image = 1000;
-    std::ifstream file_name_file("feret-files.out");
+    bool uses_feret = false;
 
     for (size_t i = 1; i <= num_image; i++)
     {
-        std::string file_name;
-        if (!std::getline(file_name_file, file_name))
-        {
-            std::cout << "end-of-file of feret-files.out" << std::endl;
-            return false;
-        }
-        file_name.insert(0, "image-feret/");
+        std::unique_ptr<NeuralNet::Image> img_ptr;
 
-        auto img_ptr = NeuralNet::loadPPMImage(file_name.c_str());
-        if (!img_ptr)
+        if (uses_feret)
         {
-            std::cout << "missing file " << file_name << std::endl;
-            return false;
+            std::ifstream file_name_file("feret-files.out");
+
+            std::string file_name;
+            if (!std::getline(file_name_file, file_name))
+            {
+                std::cout << "end-of-file of feret-files.out" << std::endl;
+                return false;
+            }
+            file_name.insert(0, "image-feret/");
+
+            img_ptr = std::move(NeuralNet::loadPPMImage(file_name.c_str()));
+            if (!img_ptr)
+            {
+                std::cout << "missing file " << file_name << std::endl;
+                return false;
+            }
+        }
+        else
+        {
+            char file_cstr[64];
+            sprintf(file_cstr, "image-bioid/BioID_%04d.pgm", i);
+            img_ptr = std::move(NeuralNet::loadPGMImage(file_cstr));
+            if (!img_ptr)
+            {
+                std::cout << "missing file " << file_cstr << std::endl;
+                return false;
+            }
         }
 
         auto resized_ptr = NeuralNet::fitImageTo(img_ptr, 32, 32);

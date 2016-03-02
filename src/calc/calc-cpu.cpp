@@ -32,6 +32,7 @@ namespace NeuralNet
         const double *pv = v;
         while (vres - pres < dim_r)
         {
+            *vres = 0;
             while (v - pv < dim_c)
             {
                 *vres += (*m) * (*v);
