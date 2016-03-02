@@ -287,4 +287,56 @@ namespace NeuralNet
         fclose(fp);
         return img_ptr;
     }
+
+    bool saveAsPPM(const std::unique_ptr<Image>& img_ptr, const char* filepath)
+    {
+        FILE* fp = fopen(filepath, "wb");
+        if (!fp)
+        {
+            printf("error loading file %s at saveAsPPM()\n", filepath);
+            return false;
+        }
+
+        const size_t w = img_ptr->getWidth();
+        const size_t h = img_ptr->getHeight();
+        const pixval maxVal = 255;
+
+        pixel** pxls = ppm_allocarray(w, h);
+        if (!pxls)
+        {
+            printf("error allocating memory space at saveAsPPM()");
+            fclose(fp);
+            return false;
+        }
+
+        for (size_t y = 0; y < h; y++)
+        {
+            for (size_t x = 0; x < w; x++)
+            {
+                if (img_ptr->getChannelNum() >= 3)
+                {
+                    pxls[y][x].r = static_cast<pixval>(
+                            (img_ptr->getValues(0))[y*w + x] * maxVal);
+                    pxls[y][x].g = static_cast<pixval>(
+                            (img_ptr->getValues(1))[y*w + x] * maxVal);
+                    pxls[y][x].b = static_cast<pixval>(
+                            (img_ptr->getValues(2))[y*w + x] * maxVal);
+                }
+                else
+                {
+                    pxls[y][x].r = static_cast<pixval>(
+                            (img_ptr->getValues(0))[y*w + x] * maxVal);
+                    pxls[y][x].g = static_cast<pixval>(
+                            (img_ptr->getValues(0))[y*w + x] * maxVal);
+                    pxls[y][x].b = static_cast<pixval>(
+                            (img_ptr->getValues(0))[y*w + x] * maxVal);
+                }
+            }
+        }
+
+        ppm_writeppm(fp, pxls, w, h, maxVal, 0);
+        ppm_freearray(pxls, h);
+        fclose(fp);
+        return true;
+    }
 }

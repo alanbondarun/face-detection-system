@@ -32,62 +32,18 @@ int main(int argc, char* argv[])
     auto img4 = NeuralNet::fitImageTo(img2, 32, 32);
     auto img6 = NeuralNet::grayscaleImage(NeuralNet::fitImageTo(img5, 32, 32));
 
-    FILE* fp_img3 = fopen("image3.ppm", "wb");
-    FILE* fp_img4 = fopen("image4.ppm", "wb");
-    FILE* fp_img6 = fopen("37.ppm", "wb");
-    pixval maxVal = 255;
-
-    pixel** px_img3 = ppm_allocarray(img3->getWidth(), img3->getHeight());
-    for (size_t h = 0; h < img3->getHeight(); h++)
+    if (!NeuralNet::saveAsPPM(img3, "image3.ppm"))
     {
-        for (size_t w = 0; w < img3->getWidth(); w++)
-        {
-            px_img3[h][w].r = static_cast<pixval>((img3->getValues(0))[h * img3->getWidth() + w]
-                    * maxVal);
-            px_img3[h][w].g = static_cast<pixval>((img3->getValues(1))[h * img3->getWidth() + w]
-                    * maxVal);
-            px_img3[h][w].b = static_cast<pixval>((img3->getValues(2))[h * img3->getWidth() + w]
-                    * maxVal);
-        }
+        printf("error saving image3.ppm\n");
     }
 
-    pixel** px_img4 = ppm_allocarray(img4->getWidth(), img4->getHeight());
-    for (size_t h = 0; h < img4->getHeight(); h++)
+    if (!NeuralNet::saveAsPPM(img4, "image4.ppm"))
     {
-        for (size_t w = 0; w < img4->getWidth(); w++)
-        {
-            px_img4[h][w].r = static_cast<pixval>((img4->getValues(0))[h * img4->getWidth() + w]
-                    * maxVal);
-            px_img4[h][w].g = static_cast<pixval>((img4->getValues(1))[h * img4->getWidth() + w]
-                    * maxVal);
-            px_img4[h][w].b = static_cast<pixval>((img4->getValues(2))[h * img4->getWidth() + w]
-                    * maxVal);
-        }
+        printf("error saving image4.ppm\n");
     }
 
-    pixel** px_img6 = ppm_allocarray(img6->getWidth(), img6->getHeight());
-    for (size_t h = 0; h < img6->getHeight(); h++)
+    if (!NeuralNet::saveAsPPM(img6, "37.ppm"))
     {
-        for (size_t w = 0; w < img6->getWidth(); w++)
-        {
-            px_img6[h][w].r = static_cast<pixval>((img6->getValues(0))[h * img6->getWidth() + w]
-                    * maxVal);
-            px_img6[h][w].g = static_cast<pixval>((img6->getValues(0))[h * img6->getWidth() + w]
-                    * maxVal);
-            px_img6[h][w].b = static_cast<pixval>((img6->getValues(0))[h * img6->getWidth() + w]
-                    * maxVal);
-        }
+        printf("error saving 37.ppm\n");
     }
-
-    ppm_writeppm(fp_img3, px_img3, img3->getWidth(), img3->getHeight(), maxVal, 0);
-    ppm_writeppm(fp_img4, px_img4, img4->getWidth(), img4->getHeight(), maxVal, 0);
-    ppm_writeppm(fp_img6, px_img6, img6->getWidth(), img6->getHeight(), maxVal, 0);
-
-    ppm_freearray(px_img3, img3->getHeight());
-    ppm_freearray(px_img4, img4->getHeight());
-    ppm_freearray(px_img6, img6->getHeight());
-
-    fclose(fp_img3);
-    fclose(fp_img4);
-    fclose(fp_img6);
 }

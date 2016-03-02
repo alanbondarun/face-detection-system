@@ -16,10 +16,10 @@ namespace NeuralNet
     public:
         explicit Image(size_t _width, size_t _height, size_t _channels);
         ~Image();
-        size_t getWidth() { return width; }
-        size_t getHeight() { return height; }
-        size_t getChannelNum() { return channel_num; }
-        double* getValues(size_t channel) { return value[channel]; }
+        size_t getWidth() const { return width; }
+        size_t getHeight() const { return height; }
+        size_t getChannelNum() const { return channel_num; }
+        double* getValues(size_t channel) const { return value[channel]; }
     private:
         size_t width, height, channel_num;
         double** value;
@@ -75,6 +75,11 @@ namespace NeuralNet
      * Loads a PGM format image file.
      */
     std::unique_ptr<Image> loadPGMImage(const char* filepath);
+
+    /**
+     * Exports the given image as a PPM file, and returns whether succeeded
+     */
+    bool saveAsPPM(const std::unique_ptr<Image>& img_ptr, const char* filepath);
 }
 
 #endif // __LOAD_IMAGE_HPP
