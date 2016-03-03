@@ -28,13 +28,15 @@ bool load_faces(std::vector<double>& data, std::vector< std::vector<int> >& cate
     const size_t num_image = 3000;
 
     std::ifstream file_name_file("feret-files.out");
+    std::ifstream lfw_name_file("image-lfw/peopleDevTrain.txt");
 
     for (size_t i = 1; i <= num_image; i++)
     {
         std::unique_ptr<NeuralNet::Image> img_ptr;
 
-        if (i > 1000)
+        if (i < 1000)
         {
+            // loading FERET images
             std::string file_name;
             while (true)
             {
@@ -59,12 +61,28 @@ bool load_faces(std::vector<double>& data, std::vector< std::vector<int> >& cate
         }
         else
         {
-            char file_cstr[64];
-            sprintf(file_cstr, "image-bioid/BioID_%04d.pgm", i);
-            img_ptr = std::move(NeuralNet::loadPGMImage(file_cstr));
+            // loading LFW images
+            std::string person_line;
+            if (!std::getline(lfw_name_file, person_line))
+            {
+                std::cout << "end-of-file of LFW names" << std::endl;
+                return false;
+            }
+
+            std::istringstream iss(person_line);
+            std::string person_name;
+            std::getline(iss, person_name, '\t');
+
+            std::string file_name("image-lfw/");
+            file_name.append(person_name);
+            file_name.append("/");
+            file_name.append(person_name);
+            file_name.append("_0001.ppm");
+
+            img_ptr = std::move(NeuralNet::loadPPMImage(file_name.c_str()));
             if (!img_ptr)
             {
-                std::cout << "missing file " << file_cstr << std::endl;
+                std::cout << "missing file " << file_name << std::endl;
                 return false;
             }
         }
@@ -119,9 +137,36 @@ bool load_non_faces(std::vector<double>& data, std::vector< std::vector<int> >& 
     return true;
 }
 
+int eval_faces(NeuralNet::Network& network,
+        std::vector< std::unique_ptr<NeuralNet::Image> >& test_images)
+{
+    const size_t n_eval_ch = 1;
+    int count = 0;
+    for (int i = 0; i < test_images.size(); i++)
+    {
+        std::vector<double> eval_data;
+        for (size_t j = 0; j < n_eval_ch; j++)
+        {
+            eval_data.insert(eval_data.end(),
+                    test_images[i]->getValues(j),
+                    test_images[i]->getValues(j) +
+                        (test_images[i]->getWidth() * test_images[i]->getHeight())
+            );
+        }
+
+        auto res = network.evaluate(eval_data);
+
+        // counts faces only
+        if (res[0] == 0)
+            count++;
+    }
+    return count;
+}
+
 int main(int argc, char* argv[])
 {
-    const size_t imageCount = 42;
+    const size_t imageCount = 28;
+    const size_t test_lfw = 1000;
     const size_t n_eval_ch = 1;
 
     std::ofstream res_file("result.txt");
@@ -150,9 +195,37 @@ int main(int argc, char* argv[])
     for (size_t i = 1; i <= imageCount; i++)
     {
         std::ostringstream oss;
-        oss << "eval-image/" << i << ".bmp";
+        oss << "eval-image-orig/" << i << ".bmp";
         imageList.push_back(std::move(
             NeuralNet::grayscaleImage(NeuralNet::loadBitmapImage(oss.str().c_str()))
+        ));
+    }
+    std::cout << "loading evaluation images finished" << std::endl;
+
+    // loading LFW images for evaluation
+    std::vector< std::unique_ptr<NeuralNet::Image> > lfwTestImages;
+    std::ifstream lfw_name_file("image-lfw/peopleDevTest.txt");
+    for (size_t i = 1; i <= test_lfw; i++)
+    {
+        std::string person_line;
+        if (!std::getline(lfw_name_file, person_line))
+        {
+            std::cout << "end-of-file of LFW names" << std::endl;
+            return 0;
+        }
+
+        std::istringstream iss(person_line);
+        std::string person_name;
+        std::getline(iss, person_name, '\t');
+
+        std::string file_name("image-lfw/");
+        file_name.append(person_name);
+        file_name.append("/");
+        file_name.append(person_name);
+        file_name.append("_0001.ppm");
+
+        lfwTestImages.push_back(std::move(
+            NeuralNet::grayscaleImage(NeuralNet::loadPPMImage(file_name.c_str()))
         ));
     }
     std::cout << "loading evaluation images finished" << std::endl;
@@ -211,16 +284,19 @@ int main(int argc, char* argv[])
                 {
                     std::cout << "image #" << (i+1) << ": " << category_val << std::endl;
                     res_file << "image #" << (i+1) << ": " << category_val << std::endl;
-                    if (i<16 && category_val==0)
+                    if (i<14 && category_val==0)
                         correct++;
-                    if (16<=i && i<30 && category_val==1)
-                        correct++;
-                    if (30<=i && category_val==0)
+                    if (14<=i && category_val==1)
                         correct++;
                 }
             }
             std::cout << "correct answers: " << correct << std::endl;
             res_file << "correct answers: " << correct << std::endl;
+
+            std::cout << "test with LFW: " << eval_faces(network, lfwTestImages)
+                    << "/" << test_lfw << std::endl;
+            res_file << "test with LFW: " << eval_faces(network, lfwTestImages)
+                    << "/" << test_lfw << std::endl;
         }
     }
     else
@@ -245,5 +321,8 @@ int main(int argc, char* argv[])
                 std::cout << "image #" << (i+1) << ": " << category_val << std::endl;
             }
         }
+
+        std::cout << "test with LFW: " << eval_faces(network, lfwTestImages)
+                << "/" << test_lfw << std::endl;
     }
 }
