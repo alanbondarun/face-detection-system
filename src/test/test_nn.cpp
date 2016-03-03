@@ -25,22 +25,28 @@ bool load_test(Json::Value& value)
 
 bool load_faces(std::vector<double>& data, std::vector< std::vector<int> >& category)
 {
-    const size_t num_image = 1000;
-    bool uses_feret = false;
+    const size_t num_image = 3000;
+
+    std::ifstream file_name_file("feret-files.out");
 
     for (size_t i = 1; i <= num_image; i++)
     {
         std::unique_ptr<NeuralNet::Image> img_ptr;
 
-        if (uses_feret)
+        if (i > 1000)
         {
-            std::ifstream file_name_file("feret-files.out");
-
             std::string file_name;
-            if (!std::getline(file_name_file, file_name))
+            while (true)
             {
-                std::cout << "end-of-file of feret-files.out" << std::endl;
-                return false;
+                if (!std::getline(file_name_file, file_name))
+                {
+                    std::cout << "end-of-file of feret-files.out" << std::endl;
+                    return false;
+                }
+                if (!(file_name.substr(13, 1).compare("f")))
+                {
+                    break;
+                }
             }
             file_name.insert(0, "image-feret/");
 
@@ -63,8 +69,9 @@ bool load_faces(std::vector<double>& data, std::vector< std::vector<int> >& cate
             }
         }
 
-        auto resized_ptr = NeuralNet::fitImageTo(img_ptr, 32, 32);
-        auto gray_ptr = NeuralNet::grayscaleImage(resized_ptr);
+//        auto resized_ptr = NeuralNet::fitImageTo(img_ptr, 32, 32);
+//        auto gray_ptr = NeuralNet::grayscaleImage(resized_ptr);
+        auto gray_ptr = NeuralNet::grayscaleImage(img_ptr);
         for (size_t ch = 0; ch < gray_ptr->getChannelNum(); ch++)
         {
             data.insert(data.end(),
@@ -81,7 +88,7 @@ bool load_faces(std::vector<double>& data, std::vector< std::vector<int> >& cate
 
 bool load_non_faces(std::vector<double>& data, std::vector< std::vector<int> >& category)
 {
-    const size_t num_image = 1000;
+    const size_t num_image = 4000;
 
     for (size_t i = 1; i <= num_image; i++)
     {
@@ -95,8 +102,9 @@ bool load_non_faces(std::vector<double>& data, std::vector< std::vector<int> >& 
             return false;
         }
 
-        auto resized_ptr = NeuralNet::fitImageTo(img_ptr, 32, 32);
-        auto gray_ptr = NeuralNet::grayscaleImage(resized_ptr);
+//        auto resized_ptr = NeuralNet::fitImageTo(img_ptr, 32, 32);
+//        auto gray_ptr = NeuralNet::grayscaleImage(resized_ptr);
+        auto gray_ptr = NeuralNet::grayscaleImage(img_ptr);
         for (size_t ch = 0; ch < gray_ptr->getChannelNum(); ch++)
         {
             data.insert(data.end(),
@@ -113,8 +121,10 @@ bool load_non_faces(std::vector<double>& data, std::vector< std::vector<int> >& 
 
 int main(int argc, char* argv[])
 {
-    const size_t imageCount = 35;
+    const size_t imageCount = 42;
     const size_t n_eval_ch = 1;
+
+    std::ofstream res_file("result.txt");
 
     std::cout << "initiating network..." << std::endl;
 
@@ -167,7 +177,7 @@ int main(int argc, char* argv[])
         }
         std::cout << "loading non-face images finished" << std::endl;
 
-        const size_t n_epoch = 7;
+        const size_t n_epoch = 30;
         for (size_t q = 1; q <= n_epoch; q++)
         {
             // actual training goes here
@@ -179,8 +189,11 @@ int main(int argc, char* argv[])
 
             std::cout << "result of epoch #" << q << std::endl;
             std::cout << "(0 = face, 1 = non-face)" << std::endl;
+            res_file << "result of epoch #" << q << std::endl;
+            res_file << "(0 = face, 1 = non-face)" << std::endl;
 
             // evaluation with other images
+            size_t correct = 0;
             for (size_t i = 0; i < imageCount; i++)
             {
                 std::vector<double> eval_data;
@@ -197,8 +210,17 @@ int main(int argc, char* argv[])
                 for (auto& category_val: res)
                 {
                     std::cout << "image #" << (i+1) << ": " << category_val << std::endl;
+                    res_file << "image #" << (i+1) << ": " << category_val << std::endl;
+                    if (i<16 && category_val==0)
+                        correct++;
+                    if (16<=i && i<30 && category_val==1)
+                        correct++;
+                    if (30<=i && category_val==0)
+                        correct++;
                 }
             }
+            std::cout << "correct answers: " << correct << std::endl;
+            res_file << "correct answers: " << correct << std::endl;
         }
     }
     else

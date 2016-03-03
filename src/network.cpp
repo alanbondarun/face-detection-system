@@ -7,7 +7,7 @@
 #include <stack>
 #include <cstring>
 #include <random>
-#include <algorithm>
+#include <cmath>
 #include "network.hpp"
 #include "calc/calc-cpu.hpp"
 #include "calc/util-functions.hpp"
@@ -536,7 +536,27 @@ namespace NeuralNet
                                     -category_list[i][output_nodes * batch_idxes[j] + k];
                         }
                     }
-                    add_vec(leaf_node.data->get(LayerData::DataIndex::ACTIVATION),
+
+                    std::vector<double> softmax_output(m_batch_size * output_nodes, 0);
+                    apply_vec(leaf_node.data->get(LayerData::DataIndex::ACTIVATION),
+                            softmax_output.data(), output_nodes * m_batch_size,
+                            [](double in) -> double {
+                                return std::exp(in);
+                            });
+                    for (size_t j = 0; j < m_batch_size; j++)
+                    {
+                        double expsum = 0;
+                        for (size_t k = 0; k < output_nodes; k++)
+                        {
+                            expsum += softmax_output[j*output_nodes + k];
+                        }
+                        for (size_t k = 0; k < output_nodes; k++)
+                        {
+                            softmax_output[j*output_nodes + k] /= expsum;
+                        }
+                    }
+
+                    add_vec(softmax_output.data(),
                             deriv_cost.data(),
                             deriv_cost.data(),
                             output_nodes * m_batch_size);
