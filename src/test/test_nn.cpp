@@ -121,7 +121,7 @@ bool load_non_faces(std::vector<double>& data, std::vector< std::vector<int> >& 
 
 int main(int argc, char* argv[])
 {
-    const size_t imageCount = 42;
+    const size_t imageCount = 28;
     const size_t n_eval_ch = 1;
 
     std::ofstream res_file("result.txt");

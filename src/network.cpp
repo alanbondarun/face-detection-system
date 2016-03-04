@@ -114,16 +114,16 @@ namespace NeuralNet
     {
         auto layer_id = jsonLayer["id"].asInt();
         auto layer_type = jsonLayer["type"].asString();
-        auto layer_children = jsonLayer["children"];
+        auto layer_child = jsonLayer["child"];
         auto layer_data_path = jsonLayer["data_location"].asString();
         auto layer_dim = jsonLayer["dimensions"];
 
-        std::vector<NodeID> vec_child;
-        for (const auto& child_val: layer_children)
-            vec_child.push_back(std::make_pair(child_val.asInt(), 0));
-
         if (!layer_type.compare("branch"))
         {
+            std::vector<NodeID> vec_child;
+            for (const auto& child_val: layer_child)
+                vec_child.push_back(std::make_pair(child_val.asInt(), 0));
+
             auto layer_enable_do = jsonLayer["enable_dropout"].asBool();
 
             double layer_do_rate = 1.0;
@@ -162,7 +162,7 @@ namespace NeuralNet
                         std::move(setting_pair)));
             }
         }
-        else /* not branch layer */
+        else // not branch layer
         {
             auto idx = std::make_pair(layer_id, 0);
             std::pair< LayerFactory::LayerType, std::unique_ptr<LayerFactory::LayerSetting> > cur_setting;
@@ -221,14 +221,23 @@ namespace NeuralNet
             node_map[idx] = std::make_unique<Node>();
             node_map[idx]->layer = std::move(layer);
             node_map[idx]->file_path = std::move(layer_data_path);
-            node_map[idx]->next_id = std::move(vec_child);
 
             auto parent_idx = getParent(idx);
             node_map[idx]->prev_id = parent_idx;
 
-            for (auto& child_id: node_map[idx]->next_id)
+            if (!layer_child.isNull())
             {
-                prevSetting.insert(std::make_pair(child_id, std::move(cur_setting))); // TODO?
+                NodeID id_child = std::make_pair(layer_child.asInt(), 0);
+                node_map[idx]->next_id = std::vector<NodeID>{id_child};
+
+                if (node_map.find(id_child) == node_map.end())
+                {
+                    prevSetting.insert(std::make_pair(id_child, std::move(cur_setting)));
+                }
+                else
+                {
+                    std::cout << "noo!!!" << std::endl;
+                }
             }
         }
     }
@@ -360,7 +369,7 @@ namespace NeuralNet
             }
         }
 
-        // layer data construction: TODO
+        // layer data construction
         m_input_data = std::make_unique<LayerData>(1, m_unit_size);
         for (auto& node_pair: node_map)
         {
