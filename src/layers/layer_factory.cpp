@@ -176,6 +176,7 @@ namespace NeuralNet
                     cast_cur_set.input_h,
                     cast_cur_set.pool_w,
                     cast_cur_set.pool_h,
+                    cast_cur_set.stride
                 })
         );
     }

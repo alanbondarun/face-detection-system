@@ -60,10 +60,10 @@ namespace NeuralNet
         };
         struct MaxPoolLayerSetting: public LayerSetting
         {
-            size_t map_num, pool_w, pool_h, input_w, input_h, output_w, output_h;
-            explicit MaxPoolLayerSetting(size_t _m, size_t _w, size_t _h, size_t _iw, size_t _ih)
+            size_t map_num, pool_w, pool_h, input_w, input_h, output_w, output_h, stride;
+            explicit MaxPoolLayerSetting(size_t _m, size_t _w, size_t _h, size_t _iw, size_t _ih, size_t _st)
                 : LayerSetting(), map_num(_m), pool_w(_w), pool_h(_h), input_w(_iw), input_h(_ih),
-                output_w(_iw / _w), output_h(_ih / _h) {}
+                output_w(_iw / _w), output_h(_ih / _h), stride(_st) {}
             virtual ~MaxPoolLayerSetting() {}
         };
 

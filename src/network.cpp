@@ -201,6 +201,7 @@ namespace NeuralNet
             {
                 size_t pw = layer_dim["pool_width"].asUInt();
                 size_t ph = layer_dim["pool_height"].asUInt();
+                size_t st = layer_dim["stride"].asUInt();
                 size_t input_w = 0, input_h = 0;
                 size_t map_num = LayerFactory::getInstance().getMapNum(prevSetting[idx]);
 
@@ -209,7 +210,7 @@ namespace NeuralNet
                 cur_setting = std::make_pair(
                     LayerFactory::LayerType::MAXPOOL,
                     std::make_unique<LayerFactory::MaxPoolLayerSetting>(map_num,
-                            pw, ph, input_w, input_h)
+                            pw, ph, input_w, input_h, st)
                 );
             }
             else

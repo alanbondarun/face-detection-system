@@ -31,7 +31,8 @@
             "children": [3],
             "dimensions": {
                 "pool_width": 2,
-                "pool_height": 2
+                "pool_height": 2,
+                "stride": 1
             }
         },
         {
@@ -65,7 +66,8 @@
             "children": [6],
             "dimensions": {
                 "pool_width": 2,
-                "pool_height": 2
+                "pool_height": 2,
+                "stride": 1
             }
         },
         {
