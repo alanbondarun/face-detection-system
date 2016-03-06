@@ -23,73 +23,91 @@ bool load_test(Json::Value& value)
     return ok;
 }
 
+bool load_fddb(std::vector< std::unique_ptr<NeuralNet::Image> >& images,
+        size_t num_image, bool uses_first)
+{
+    size_t loaded_image = 0;
+
+    std::ifstream ellipse_list;
+    if (uses_first)
+    {
+        ellipse_list.open("data-fddb/ellipse-1to5.txt");
+    }
+    else
+    {
+        ellipse_list.open("data-fddb/ellipse-6to10.txt");
+    }
+
+    while (loaded_image < num_image)
+    {
+        std::string file_line;
+        if (!std::getline(ellipse_list, file_line))
+        {
+            std::cout << "end-of-file of ellipse file" << std::endl;
+            return false;
+        }
+        file_line.insert(file_line.size(), ".ppm");
+        file_line.insert(0, "data-fddb/");
+
+        auto img_ptr = NeuralNet::loadPPMImage(file_line.c_str());
+        if (!img_ptr)
+        {
+            std::cout << "missing file " << file_line << std::endl;
+            return false;
+        }
+
+        std::string line_str;
+        if (!std::getline(ellipse_list, line_str))
+        {
+            std::cout << "end-of-file of ellipse file" << std::endl;
+            return false;
+        }
+        
+        std::istringstream iss(line_str);
+        size_t face_count;
+        iss >> face_count;
+
+        size_t actual_count = 0;
+        for (size_t i = 0; i < face_count && actual_count+loaded_image < num_image; i++)
+        {
+            if (!std::getline(ellipse_list, line_str))
+            {
+                std::cout << "end-of-file of ellipse file" << std::endl;
+                return false;
+            }
+            
+            std::istringstream iss2(line_str);
+            double majsize, minsize, tilt, centx, centy;
+            iss2 >> majsize >> minsize >> tilt >> centx >> centy;
+
+            if (majsize < 32)
+                continue;
+
+            auto crop_ptr = NeuralNet::cropImage(img_ptr,
+                        centx - majsize/2,
+                        centy - minsize/2,
+                        majsize,
+                        majsize);
+            auto fit_ptr = NeuralNet::fitImageTo(crop_ptr, 32, 32);
+            images.push_back(NeuralNet::grayscaleImage(fit_ptr));
+            actual_count++;
+        }
+        loaded_image += actual_count;
+    }
+
+    return true;
+}
+
 bool load_faces(std::vector<double>& data, std::vector< std::vector<int> >& category)
 {
-    const size_t num_image = 3000;
+    const size_t num_image = 1000;
+    std::vector< std::unique_ptr<NeuralNet::Image> > images;
 
-    std::ifstream file_name_file("feret-files.out");
-    std::ifstream lfw_name_file("image-lfw/peopleDevTrain.txt");
+    if (!load_fddb(images, num_image, true))
+        return false;
 
-    for (size_t i = 1; i <= num_image; i++)
+    for (auto& gray_ptr: images)
     {
-        std::unique_ptr<NeuralNet::Image> img_ptr;
-
-        if (i < 1000)
-        {
-            // loading FERET images
-            std::string file_name;
-            while (true)
-            {
-                if (!std::getline(file_name_file, file_name))
-                {
-                    std::cout << "end-of-file of feret-files.out" << std::endl;
-                    return false;
-                }
-                if (!(file_name.substr(13, 1).compare("f")))
-                {
-                    break;
-                }
-            }
-            file_name.insert(0, "image-feret/");
-
-            img_ptr = std::move(NeuralNet::loadPPMImage(file_name.c_str()));
-            if (!img_ptr)
-            {
-                std::cout << "missing file " << file_name << std::endl;
-                return false;
-            }
-        }
-        else
-        {
-            // loading LFW images
-            std::string person_line;
-            if (!std::getline(lfw_name_file, person_line))
-            {
-                std::cout << "end-of-file of LFW names" << std::endl;
-                return false;
-            }
-
-            std::istringstream iss(person_line);
-            std::string person_name;
-            std::getline(iss, person_name, '\t');
-
-            std::string file_name("image-lfw/");
-            file_name.append(person_name);
-            file_name.append("/");
-            file_name.append(person_name);
-            file_name.append("_0001.ppm");
-
-            img_ptr = std::move(NeuralNet::loadPPMImage(file_name.c_str()));
-            if (!img_ptr)
-            {
-                std::cout << "missing file " << file_name << std::endl;
-                return false;
-            }
-        }
-
-//        auto resized_ptr = NeuralNet::fitImageTo(img_ptr, 32, 32);
-//        auto gray_ptr = NeuralNet::grayscaleImage(resized_ptr);
-        auto gray_ptr = NeuralNet::grayscaleImage(img_ptr);
         for (size_t ch = 0; ch < gray_ptr->getChannelNum(); ch++)
         {
             data.insert(data.end(),
@@ -106,7 +124,7 @@ bool load_faces(std::vector<double>& data, std::vector< std::vector<int> >& cate
 
 bool load_non_faces(std::vector<double>& data, std::vector< std::vector<int> >& category)
 {
-    const size_t num_image = 4000;
+    const size_t num_image = 1000;
 
     for (size_t i = 1; i <= num_image; i++)
     {
@@ -138,7 +156,7 @@ bool load_non_faces(std::vector<double>& data, std::vector< std::vector<int> >& 
 }
 
 int eval_faces(NeuralNet::Network& network,
-        std::vector< std::unique_ptr<NeuralNet::Image> >& test_images)
+        std::vector< std::unique_ptr<NeuralNet::Image> >& test_images, int correct)
 {
     const size_t n_eval_ch = 1;
     int count = 0;
@@ -157,7 +175,7 @@ int eval_faces(NeuralNet::Network& network,
         auto res = network.evaluate(eval_data);
 
         // counts faces only
-        if (res[0] == 0)
+        if (res[0] == correct)
             count++;
     }
     return count;
@@ -167,6 +185,8 @@ int main(int argc, char* argv[])
 {
     const size_t imageCount = 28;
     const size_t test_lfw = 1000;
+    const size_t test_fddb = 1000;
+    const size_t test_nonface = 1000;
     const size_t n_eval_ch = 1;
 
     std::ofstream res_file("result.txt");
@@ -195,12 +215,20 @@ int main(int argc, char* argv[])
     for (size_t i = 1; i <= imageCount; i++)
     {
         std::ostringstream oss;
-        oss << "eval-image-orig/" << i << ".bmp";
+        oss << "eval-image/" << i << ".bmp";
         imageList.push_back(std::move(
             NeuralNet::grayscaleImage(NeuralNet::loadBitmapImage(oss.str().c_str()))
         ));
     }
-    std::cout << "loading evaluation images finished" << std::endl;
+    std::cout << "loading evaluation images (original) finished" << std::endl;
+
+    std::vector< std::unique_ptr<NeuralNet::Image> > fddbTestImages;
+    if (!load_fddb(fddbTestImages, test_fddb, false))
+    {
+        std::cout << "error loading FDDB test images" << std::endl;
+        return false;
+    }
+    std::cout << "loading evaluation images (FDDB) finished" << std::endl;
 
     // loading LFW images for evaluation
     std::vector< std::unique_ptr<NeuralNet::Image> > lfwTestImages;
@@ -228,7 +256,19 @@ int main(int argc, char* argv[])
             NeuralNet::grayscaleImage(NeuralNet::loadPPMImage(file_name.c_str()))
         ));
     }
-    std::cout << "loading evaluation images finished" << std::endl;
+    std::cout << "loading evaluation images (LFW) finished" << std::endl;
+
+    std::vector< std::unique_ptr<NeuralNet::Image> > nonFaceImages;
+    for (size_t i = 4001; i <= 4000+test_nonface; i++)
+    {
+        std::ostringstream oss;
+        oss << "image-nonface/img_" << i << ".bmp";
+
+        nonFaceImages.push_back(std::move(
+            NeuralNet::grayscaleImage(NeuralNet::loadBitmapImage(oss.str().c_str()))
+        ));
+    }
+    std::cout << "loading evaluation images (non-face) finished" << std::endl;
 
     if (do_train)
     {
@@ -293,10 +333,15 @@ int main(int argc, char* argv[])
             std::cout << "correct answers: " << correct << std::endl;
             res_file << "correct answers: " << correct << std::endl;
 
-            std::cout << "test with LFW: " << eval_faces(network, lfwTestImages)
-                    << "/" << test_lfw << std::endl;
-            res_file << "test with LFW: " << eval_faces(network, lfwTestImages)
-                    << "/" << test_lfw << std::endl;
+            size_t t1 = eval_faces(network, lfwTestImages, 0);
+            size_t t2 = eval_faces(network, nonFaceImages, 1);
+            size_t t3 = eval_faces(network, fddbTestImages, 0);
+            std::cout << "test with LFW: " << t1 << "/" << test_lfw << std::endl;
+            res_file << "test with LFW: " << t1 << "/" << test_lfw << std::endl;
+            std::cout << "test with non-face: " << t2 << "/" << test_nonface << std::endl;
+            res_file << "test with non-face: " << t2 << "/" << test_nonface << std::endl;
+            std::cout << "test with FDDB: " << t3 << "/" << test_fddb << std::endl;
+            res_file << "test with FDDB: " << t3 << "/" << test_fddb << std::endl;
         }
     }
     else
@@ -322,7 +367,14 @@ int main(int argc, char* argv[])
             }
         }
 
-        std::cout << "test with LFW: " << eval_faces(network, lfwTestImages)
-                << "/" << test_lfw << std::endl;
+        size_t t1 = eval_faces(network, lfwTestImages, 0);
+        size_t t2 = eval_faces(network, nonFaceImages, 1);
+        size_t t3 = eval_faces(network, fddbTestImages, 0);
+        std::cout << "test with LFW: " << t1 << "/" << test_lfw << std::endl;
+        res_file << "test with LFW: " << t1 << "/" << test_lfw << std::endl;
+        std::cout << "test with non-face: " << t2 << "/" << test_nonface << std::endl;
+        res_file << "test with non-face: " << t2 << "/" << test_nonface << std::endl;
+        std::cout << "test with FDDB: " << t3 << "/" << test_fddb << std::endl;
+            res_file << "test with FDDB: " << t3 << "/" << test_fddb << std::endl;
     }
 }
