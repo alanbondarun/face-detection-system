@@ -81,6 +81,11 @@ namespace NeuralNet
         );
     }
 
+    size_t MaxPoolLayer::getNeuronNum() const
+    {
+        return m_dim.map_num * m_output_width * m_output_height;
+    }
+
     void MaxPoolLayer::importLayer(const Json::Value& coeffs)
     {
     }

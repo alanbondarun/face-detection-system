@@ -35,6 +35,7 @@ namespace NeuralNet
         virtual Json::Value exportLayer();
 
         virtual std::string what() { return "maxpool"; }
+        virtual size_t getNeuronNum() const;
 
     private:
         const Dimension m_dim;

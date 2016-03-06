@@ -26,10 +26,10 @@ namespace NeuralNet
 
     private:
         struct Node;
-//        struct MergerNode;
+        struct MergerNode;
 
         using NodeUPtr = std::unique_ptr<Node>;
-//        using MergerNodeUPtr = std::unique_ptr<MergerNode>;
+        using MergerNodeUPtr = std::unique_ptr<MergerNode>;
 
     public:
         /* type aliases */
@@ -71,7 +71,7 @@ namespace NeuralNet
     private:
         void insertLayerSetting(SettingMapType& prevSetting,
                 std::unique_ptr<LayerFactory::LayerSetting>& set,
-                NodeID id);
+                NodeID id, NodeID child_id);
 
         // parse and add layer(s) from one JSON layer block
         // more than one layer may be add if the JSON block is a branch
@@ -103,7 +103,7 @@ namespace NeuralNet
         std::vector<NodeID> m_start_idxes;
         std::vector<NodeID> m_leaf_idx;
         std::map< NodeID, NodeUPtr > node_map;
-//        std::map< NodeID, MergerNodeUPtr> merger_map;
+        std::map< NodeID, MergerNodeUPtr> merger_map;
 
         std::unique_ptr<LayerData> m_input_data;
     };

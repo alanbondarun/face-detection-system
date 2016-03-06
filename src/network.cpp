@@ -13,6 +13,7 @@
 #include "calc/util-functions.hpp"
 #include "layers/layer_factory.hpp"
 #include "layers/sigmoid_layer.hpp"
+#include "layers/layer_merger.hpp"
 #include "utils/make_unique.hpp"
 
 namespace NeuralNet
@@ -24,6 +25,13 @@ namespace NeuralNet
         std::string file_path;
         std::vector<NodeID> next_id;
         NodeID prev_id;
+    };
+
+    struct Network::MergerNode
+    {
+        std::unique_ptr<LayerMerger> merger;
+        std::unique_ptr<LayerData> data;
+        std::vector<NodeID> prev_id;
     };
 
     /* may emit Json::Exception while execution */
@@ -109,17 +117,53 @@ namespace NeuralNet
         );
     }
 
+    // the given setting may be "moved"
     void Network::insertLayerSetting(SettingMapType& prevSetting,
             std::unique_ptr<LayerFactory::LayerSetting>& set,
-            Network::NodeID id)
+            Network::NodeID id, Network::NodeID child_id)
     {
-        auto type_set = LayerFactory::getInstance().whatType(set.get());
-        if (prevSetting.find(id) == prevSetting.end())
+        if (prevSetting.find(child_id) == prevSetting.end())
         {
-            prevSetting[id] = std::move(set);
+            prevSetting[child_id] = std::move(set);
         }
         else
         {
+            if (merger_map.find(child_id) == merger_map.end())
+            {
+                // create merge node for the common child
+                merger_map[child_id] = std::make_unique<MergerNode>();
+                merger_map[child_id]->merger = std::make_unique<LayerMerger>();
+
+                for (auto& node_pair: node_map)
+                {
+                    for (auto& node_child: node_pair.second->next_id)
+                    {
+                        if (child_id == node_child)
+                        {
+                            merger_map[child_id]->prev_id.push_back(node_pair.first);
+                            merger_map[child_id]->merger->add(node_pair.first,
+                                    node_pair.second->layer->getNeuronNum());
+                            break;
+                        }
+                    }
+                }
+
+                // update prevSetting
+                prevSetting[child_id] = std::make_unique<LayerFactory::SigmoidLayerSetting>(
+                        merger_map[child_id]->merger->getNeuronNum(),
+                        0.01, 1, false
+                );
+            }
+            else
+            {
+                // update the merger node
+                merger_map[child_id]->merger->add(id,
+                        node_map[id]->layer->getNeuronNum());
+
+                // update prevSetting
+                auto& prev_set = dynamic_cast<LayerFactory::SigmoidLayerSetting&>(*(prevSetting[child_id]));
+                prev_set.neuron_num += node_map[id]->layer->getNeuronNum();
+            }
         }
     }
 
@@ -190,7 +234,7 @@ namespace NeuralNet
 
         for (auto& id: node_map[layer_id]->next_id)
         {
-            insertLayerSetting(prevSetting, cur_setting, id);
+            insertLayerSetting(prevSetting, cur_setting, layer_id, id);
         }
     }
 
@@ -298,6 +342,11 @@ namespace NeuralNet
             node_pair.second->data =
                     std::move(node_pair.second->layer->createLayerData(1));
         }
+        for (auto& node_pair: merger_map)
+        {
+            node_pair.second->data =
+                    std::move(node_pair.second->merger->createLayerData(1));
+        }
 
         feedForward(data, lst_idxes);
 
@@ -323,21 +372,10 @@ namespace NeuralNet
                     m_unit_size);
         }
 
-        /* forward the input */
-        std::queue<NodeID> nodeQueue;
-        for (auto& id: m_start_idxes)
-            nodeQueue.push(id);
-
-        while (!nodeQueue.empty())
+        // forward the input
+        for (auto& node_pair: node_map)
         {
-            auto cur_id = nodeQueue.front();
-            nodeQueue.pop();
-
-            auto list_next_id = feedForwardLayer(cur_id);
-            for (auto next_id: list_next_id)
-            {
-                nodeQueue.push(next_id);
-            }
+            feedForwardLayer(node_pair.first);
         }
     }
 
@@ -377,31 +415,10 @@ namespace NeuralNet
             }
         }
 
-        /* traverse the nodes for back propagation */
-        std::map< NodeID, bool > node_traversed;
-        for (auto& node_pair: node_map)
-            node_traversed[node_pair.first] = false;
-
-        std::stack<NodeID> node_stack;
-        for (auto& id: m_start_idxes)
-            node_stack.push(id);
-
-        while (!node_stack.empty())
+        // traverse the nodes for back propagation
+        for (auto it_pair = node_map.rbegin(); it_pair != node_map.rend(); it_pair++)
         {
-            auto& top_id = node_stack.top();
-            if (node_traversed[top_id])
-            {
-                backPropagateLayer(top_id);
-                node_stack.pop();
-            }
-            else
-            {
-                node_traversed[top_id] = true;
-                for (auto& child_id: node_map[top_id]->next_id)
-                {
-                    node_stack.push(child_id);
-                }
-            }
+            backPropagateLayer(it_pair->first);
         }
     }
 
@@ -420,6 +437,11 @@ namespace NeuralNet
         {
             node_pair.second->data =
                     std::move(node_pair.second->layer->createLayerData(m_batch_size));
+        }
+        for (auto& node_pair: merger_map)
+        {
+            node_pair.second->data =
+                    std::move(node_pair.second->merger->createLayerData(m_batch_size));
         }
 
         std::random_device rd;
@@ -514,7 +536,19 @@ namespace NeuralNet
         if (std::find(m_start_idxes.begin(), m_start_idxes.end(), in_idx)
                 != m_start_idxes.end())
         {
+            // the node is an input node
             in_node.layer->forward(*(m_input_data), *(in_node.data));
+        }
+        else if (merger_map.find(in_idx) != merger_map.end())
+        {
+            // the node is a merging node
+            auto& merge_node = *(merger_map[in_idx]);
+            for (auto& p_idx: merge_node.prev_id)
+            {
+                merge_node.merger->assign(p_idx, *(node_map[p_idx]->data),
+                        *(merge_node.data));
+            }
+            in_node.layer->forward(*(merge_node.data), *(in_node.data));
         }
         else
         {
@@ -532,8 +566,22 @@ namespace NeuralNet
         if (std::find(m_start_idxes.begin(), m_start_idxes.end(), in_idx)
                 != m_start_idxes.end())
         {
+            // the node is an input node
             auto& prev_node = *(node_map[in_node.prev_id]);
             in_node.layer->backward(*(prev_node.data), *(in_node.data));
+        }
+        else if (merger_map.find(in_idx) != merger_map.end())
+        {
+            // the node is a merging node
+            auto& merge_node = *(merger_map[in_idx]);
+            in_node.layer->backward(*(merge_node.data), *(in_node.data));
+
+            std::map< NodeID, LayerData* > parent_datas;
+            for (auto& p_idx: merge_node.prev_id)
+            {
+                parent_datas[p_idx] = (node_map[p_idx]->data).get();
+            }
+            merge_node.merger->distribute(parent_datas, *(merge_node.data));
         }
         else
         {

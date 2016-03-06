@@ -48,6 +48,7 @@ namespace NeuralNet
 
         /* description of the layer */
         virtual std::string what() = 0;
+        virtual size_t getNeuronNum() const = 0;
 
     protected:
         /**

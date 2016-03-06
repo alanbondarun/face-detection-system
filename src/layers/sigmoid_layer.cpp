@@ -179,6 +179,8 @@ namespace NeuralNet
         );
     }
 
+    size_t SigmoidLayer::getNeuronNum() const { return m_current_d; }
+
     void SigmoidLayer::importLayer(const Json::Value& coeffs)
     {
         size_t neurons = coeffs["neurons"].asUInt();

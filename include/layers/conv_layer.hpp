@@ -42,6 +42,7 @@ namespace NeuralNet
         virtual Json::Value exportLayer();
 
         virtual std::string what() { return "convolution"; }
+        virtual size_t getNeuronNum() const;
 
     private:
         LayerSetting m_set;
