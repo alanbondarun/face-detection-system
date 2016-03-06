@@ -39,7 +39,7 @@ namespace NeuralNet
     /**
      * Shrinks the given image into the given ratio
      */
-    std::unique_ptr<Image> shrinkImage(const std::unique_ptr<Image>& image, double ratio);
+    std::unique_ptr<Image> shrinkImage(const std::unique_ptr<Image>& image, int w);
 
     /**
      * Crops the given image.

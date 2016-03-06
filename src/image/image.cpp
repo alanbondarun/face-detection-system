@@ -86,52 +86,55 @@ namespace NeuralNet
         int orig_h = image->getHeight();
         int h = (w * image->getHeight()) / image->getWidth();
         auto img_ptr = std::make_unique<Image>(w, h, image->getChannelNum());
-        double* buffer = new double[(image->getWidth()+1) * (image->getHeight()+1)];
 
         for (size_t ch = 0; ch < image->getChannelNum(); ch++)
         {
             auto orig_data_ptr = image->getValues(ch);
             auto res_data_ptr = img_ptr->getValues(ch);
 
-            // TODO: additional prefilter?
-
-            // make a summed area table
-            buffer[0] = 0;
-            for (int i = 1; i <= orig_w; i++)
-            {
-                buffer[i] = 0;
-            }
-            for (int j = 1; j <= orig_h; j++)
-            {
-                buffer[j * orig_w] = 0;
-            }
-            for (int j = 1; j <= orig_h; j++)
-            {
-                for (int i = 1; i <= orig_w; i++)
-                {
-                    buffer[j*orig_w + i] = orig_data_ptr[(j-1)*orig_w + (i-1)]
-                            + buffer[(j-1)*orig_w + i] + buffer[j*orig_w + (i-1)]
-                            - buffer[(j-1)*orig_w + (i-1)];
-                }
-            }
-
-            // average out the surrounding values
-            int di = orig_w / w;
-            int dj = orig_h / h;
             for (int j = 0; j < h; j++)
             {
                 for (int i = 0; i < w; i++)
                 {
-                    res_data_ptr[j*w + i] = buffer[(j+1)*dj*orig_w + (i+1)*di]
-                            - buffer[j*dj*orig_w + (i+1)*di]
-                            - buffer[(j+1)*dj*orig_w + i*di]
-                            + buffer[j*dj*orig_w + i*di];
-                    res_data_ptr[j*w + i] /= static_cast<double>(di*dj);
+                    double posx = static_cast<double>(i * orig_w) / w;
+                    double posy = static_cast<double>(j * orig_h) / h;
+
+                    int iposx = static_cast<int>(posx);
+                    int iposy = static_cast<int>(posy);
+
+                    double dposx = posx - static_cast<double>(iposx);
+                    double dposy = posy - static_cast<double>(iposy);
+
+                    double val = 0;
+                    if (iposx + 1 >= orig_w)
+                    {
+                        if (iposy + 1 >= orig_h)
+                        {
+                            val += orig_data_ptr[iposy * orig_w + iposx];
+                        }
+                        else
+                        {
+                            val += (1-dposy) * orig_data_ptr[iposy * orig_w + iposx];
+                            val += (dposy) * orig_data_ptr[(iposy+1) * orig_w + iposx];
+                        }
+                    }
+                    else if (iposy + 1 >= orig_h)
+                    {
+                        val += (1-dposx) * (orig_data_ptr[iposy * orig_w + iposx]);
+                        val += (dposx) * (orig_data_ptr[iposy * orig_w + iposx + 1]);
+                    }
+                    else
+                    {
+                        val += (1-dposx) * (1-dposy) * (orig_data_ptr[iposy * orig_w + iposx]);
+                        val += (dposx) * (1-dposy) * (orig_data_ptr[iposy * orig_w + iposx + 1]);
+                        val += (1-dposx) * (dposy) * (orig_data_ptr[(iposy+1) * orig_w + iposx]);
+                        val += (dposx) * (dposy) * (orig_data_ptr[(iposy+1) * orig_w + iposx + 1]);
+                    }
+                    res_data_ptr[j*w + i] = val;
                 }
             }
         }
 
-        delete [] buffer;
         return img_ptr;
     }
 
@@ -165,16 +168,18 @@ namespace NeuralNet
 
     std::unique_ptr<Image> fitImageTo(const std::unique_ptr<Image>& image, int w, int h)
     {
-        int pw = (h * image->getWidth()) / image->getHeight();
-        int ph = (w * image->getHeight()) / image->getWidth();
+        int tw = image->getWidth();
+        int th = image->getHeight();
+        int pw = (w * image->getHeight()) / h;
+        int ph = (h * image->getWidth()) / w;
 
-        if (ph <= h)
+        if (ph <= th)
         {
-            auto middle_img = std::move(shrinkImage(image, pw));
-            return cropImage(middle_img, pw/2 - w/2, 0, w, h);
+            auto middle_img = cropImage(image, 0, th/2 - ph/2, tw, ph);
+            return shrinkImage(middle_img, w);
         }
-        auto middle_img = std::move(shrinkImage(image, w));
-        return cropImage(middle_img, 0, ph/2 - h/2, w, h);
+        auto middle_img = cropImage(image, tw/2 - pw/2, 0, pw, th);
+        return shrinkImage(middle_img, w);
     }
 
     std::unique_ptr<Image> grayscaleImage(const std::unique_ptr<Image>& image)
