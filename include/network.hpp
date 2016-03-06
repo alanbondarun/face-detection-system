@@ -26,11 +26,14 @@ namespace NeuralNet
 
     private:
         struct Node;
+//        struct MergerNode;
+
+        using NodeUPtr = std::unique_ptr<Node>;
+//        using MergerNodeUPtr = std::unique_ptr<MergerNode>;
 
     public:
         /* type aliases */
-        using NodeUPtr = std::unique_ptr<Node>;
-        using NodeID = std::pair<int, int>;
+        using NodeID = int;
         using SettingMapType = std::map<
                 NodeID,
                 std::pair<
@@ -69,6 +72,8 @@ namespace NeuralNet
             const std::vector< std::vector<int> >& category_list);
 
     private:
+        // parse and add layer(s) from one JSON layer block
+        // more than one layer may be add if the JSON block is a branch
         void addLayer(const Json::Value& jsonLayer, SettingMapType& prevSetting);
 
         /* helper function for propagation */
@@ -81,7 +86,6 @@ namespace NeuralNet
         const NodeID backPropagateLayer(const NodeID& in_idx);
 
         NodeID getParent(const NodeID& id) const;
-        std::unordered_set<int> collectMajorIDs();
 
         std::vector<int> getCategory(const LayerData& data) const;
 
@@ -95,9 +99,10 @@ namespace NeuralNet
         size_t m_unit_size, m_train_size, m_batch_size, m_epoch_num;
         double m_learn_rate;
 
-        NodeID root_idx;
+        std::vector<NodeID> m_start_idxes;
         std::vector<NodeID> m_leaf_idx;
         std::map< NodeID, NodeUPtr > node_map;
+//        std::map< NodeID, MergerNodeUPtr> merger_map;
 
         std::unique_ptr<LayerData> m_input_data;
     };

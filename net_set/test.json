@@ -11,12 +11,13 @@
     "batch_size": 2,
     "epoch_num": 1,
     "learn_rate": 0.01,
+    "start_id": [1],
     "layers": [
         {
             "id": 1,
             "type": "convolution",
             "data_location": "1.json",
-            "child": 2,
+            "child": [2],
             "dimensions": {
                 "map_num": 32,
                 "recep_size": 5,
@@ -28,7 +29,7 @@
             "id": 2,
             "type": "maxpool",
             "data_location": "2.json",
-            "child": 3,
+            "child": [3],
             "dimensions": {
                 "pool_width": 2,
                 "pool_height": 2,
@@ -39,7 +40,7 @@
             "id": 3,
             "type": "convolution",
             "data_location": "3.json",
-            "child": 4,
+            "child": [4],
             "dimensions": {
                 "map_num": 32,
                 "recep_size": 3,
@@ -51,7 +52,7 @@
             "id": 4,
             "type": "convolution",
             "data_location": "4.json",
-            "child": 5,
+            "child": [5],
             "dimensions": {
                 "map_num": 24,
                 "recep_size": 3,
@@ -63,7 +64,7 @@
             "id": 5,
             "type": "maxpool",
             "data_location": "5.json",
-            "child": 6,
+            "child": [6],
             "dimensions": {
                 "pool_width": 2,
                 "pool_height": 2,
@@ -74,7 +75,7 @@
             "id": 6,
             "type": "sigmoid",
             "data_location": "6.json",
-            "child": 7,
+            "child": [7],
             "dimensions": {
                 "size": 512
             },
@@ -84,7 +85,7 @@
             "id": 7,
             "type": "sigmoid",
             "data_location": "7.json",
-            "child": 8,
+            "child": [8],
             "dimensions": {
                 "size": 128
             },
@@ -95,6 +96,7 @@
             "id": 8,
             "type": "sigmoid",
             "data_location": "8.json",
+            "child": [],
             "dimensions": {
                 "size": 2
             },

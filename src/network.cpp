@@ -60,37 +60,40 @@ namespace NeuralNet
         else
             throw Json::LogicError("invalid input.type string");
 
-        /* layer construction */
+        // layer construction 
+        for (auto& start_id: setting["start_id"])
+        {
+            m_start_idxes.push_back(start_id.asInt());
+        }
+
         auto layers = setting["layers"];
         if (layers.size() <= 0)
             throw Json::LogicError("there must be at least one layer");
 
-        auto layer1 = layers[0u];
-        root_idx = std::make_pair(layer1["id"].asInt(), 0);
-
-        if (m_in_type == InputType::VECTOR)
+        for (auto& start_id: m_start_idxes)
         {
-            auto node_pair = std::make_pair(root_idx,
-                std::make_pair(LayerFactory::LayerType::SIGMOID,
-                    std::make_unique<LayerFactory::SigmoidLayerSetting>(
-                        m_in_dim.size, m_learn_rate, 1.0, false)));
-            setting_map.insert(std::move(node_pair));
+            if (m_in_type == InputType::VECTOR)
+            {
+                auto node_pair = std::make_pair(start_id,
+                    std::make_pair(LayerFactory::LayerType::SIGMOID,
+                        std::make_unique<LayerFactory::SigmoidLayerSetting>(
+                            m_in_dim.size, m_learn_rate, 1.0, false)));
+                setting_map.insert(std::move(node_pair));
+            }
+            else if (m_in_type == InputType::IMAGE)
+            {
+                auto node_pair = std::make_pair(start_id,
+                    std::make_pair(LayerFactory::LayerType::IMAGE,
+                        std::make_unique<LayerFactory::ImageLayerSetting>(
+                            m_in_dim.width, m_in_dim.height, m_in_dim.channel_num,
+                            m_learn_rate)));
+                setting_map.insert(std::move(node_pair));
+            }
         }
-        else if (m_in_type == InputType::IMAGE)
-        {
-            auto node_pair = std::make_pair(root_idx,
-                std::make_pair(LayerFactory::LayerType::IMAGE,
-                    std::make_unique<LayerFactory::ImageLayerSetting>(
-                        m_in_dim.width, m_in_dim.height, m_in_dim.channel_num,
-                        m_learn_rate)));
-            setting_map.insert(std::move(node_pair));
-        }
 
-        addLayer(layer1, setting_map);
-
-        for (int idx = 1; idx < layers.size(); idx++)
+        for (auto& json_layer: layers)
         {
-            addLayer(layers[idx], setting_map);
+            addLayer(json_layer, setting_map);
         }
 
         /* finding leaf nodes and calculation of number of output nodes */
@@ -103,152 +106,104 @@ namespace NeuralNet
         }
         std::sort(m_leaf_idx.begin(), m_leaf_idx.end(),
             [](const NodeID& id1, const NodeID& id2) -> bool {
-                if (id1.first == id2.first)
-                    return (id1.second < id2.second);
-                return (id1.first < id2.first);
+                return (id1 < id2);
             }
         );
     }
 
     void Network::addLayer(const Json::Value& jsonLayer, SettingMapType& prevSetting)
     {
-        auto layer_id = jsonLayer["id"].asInt();
         auto layer_type = jsonLayer["type"].asString();
+        auto layer_id = jsonLayer["id"].asInt();
         auto layer_child = jsonLayer["child"];
         auto layer_data_path = jsonLayer["data_location"].asString();
         auto layer_dim = jsonLayer["dimensions"];
 
-        if (!layer_type.compare("branch"))
-        {
-            std::vector<NodeID> vec_child;
-            for (const auto& child_val: layer_child)
-                vec_child.push_back(std::make_pair(child_val.asInt(), 0));
+        std::pair< LayerFactory::LayerType, std::unique_ptr<LayerFactory::LayerSetting> > cur_setting;
 
+        if (!layer_type.compare("sigmoid"))
+        {
             auto layer_enable_do = jsonLayer["enable_dropout"].asBool();
 
             double layer_do_rate = 1.0;
             if (layer_enable_do)
                 layer_do_rate = jsonLayer["dropout_rate"].asDouble();
 
-            auto layer_sizes = layer_dim["sizes"];
-            std::vector<int> vec_sizes;
-            for (const auto& size_val: layer_sizes)
-                vec_sizes.push_back(size_val.asInt());
-
-            for (int i=0; i<vec_sizes.size(); i++)
-            {
-                auto layer_setting = static_cast<std::unique_ptr<LayerFactory::LayerSetting>>(
-                        std::make_unique<LayerFactory::SigmoidLayerSetting>(
-                            vec_sizes[i], m_learn_rate, layer_do_rate, layer_enable_do));
-                auto setting_pair = std::make_pair(LayerFactory::LayerType::SIGMOID,
-                        std::move(layer_setting));
-                auto idx = std::make_pair(layer_id, i);
-                auto first_idx = std::make_pair(layer_id, 0);
-
-                std::unique_ptr<Layer> layer = LayerFactory::getInstance().makeLayer(
-                        prevSetting[first_idx], setting_pair);
-
-                node_map[idx] = std::make_unique<Node>();
-                node_map[idx]->layer = std::move(layer);
-                node_map[idx]->file_path = std::move(layer_data_path);
-                node_map[idx]->next_id.push_back(vec_child[i]);
-
-                auto parent_idx = getParent(first_idx);
-                if (i > 0 && first_idx != root_idx)
-                    node_map[parent_idx]->next_id.push_back(idx);
-                node_map[idx]->prev_id = parent_idx;
-
-                prevSetting.insert(std::make_pair(vec_child[i],
-                        std::move(setting_pair)));
-            }
+            size_t neurons = layer_dim["size"].asUInt();
+            cur_setting = std::make_pair(
+                LayerFactory::LayerType::SIGMOID,
+                std::make_unique<LayerFactory::SigmoidLayerSetting>(
+                        neurons, m_learn_rate, layer_do_rate, layer_enable_do)
+            );
         }
-        else // not branch layer
+        else if (!layer_type.compare("convolution"))
         {
-            auto idx = std::make_pair(layer_id, 0);
-            std::pair< LayerFactory::LayerType, std::unique_ptr<LayerFactory::LayerSetting> > cur_setting;
+            size_t maps = layer_dim["map_num"].asUInt();
+            size_t recep = layer_dim["recep_size"].asUInt();
+            bool zeropad = layer_dim["enable_zero_pad"].asBool();
+            size_t input_w = 0, input_h = 0;
 
-            if (!layer_type.compare("sigmoid"))
+            LayerFactory::getInstance().getOutputDimension(prevSetting[layer_id], input_w, input_h);
+
+            cur_setting = std::make_pair(
+                LayerFactory::LayerType::CONVOLUTION,
+                std::make_unique<LayerFactory::ConvLayerSetting>(maps, recep,
+                        input_w, input_h, m_learn_rate, zeropad)
+            );
+        }
+        else if (!layer_type.compare("maxpool"))
+        {
+            size_t pw = layer_dim["pool_width"].asUInt();
+            size_t ph = layer_dim["pool_height"].asUInt();
+            size_t st = layer_dim["stride"].asUInt();
+            size_t input_w = 0, input_h = 0;
+            size_t map_num = LayerFactory::getInstance().getMapNum(prevSetting[layer_id]);
+
+            LayerFactory::getInstance().getOutputDimension(prevSetting[layer_id], input_w, input_h);
+
+            cur_setting = std::make_pair(
+                LayerFactory::LayerType::MAXPOOL,
+                std::make_unique<LayerFactory::MaxPoolLayerSetting>(map_num,
+                        pw, ph, input_w, input_h, st)
+            );
+        }
+        else
+            throw Json::LogicError("invalid layer type");
+
+        std::unique_ptr<Layer> layer = LayerFactory::getInstance().makeLayer(
+                prevSetting[layer_id], cur_setting);
+        node_map[layer_id] = std::make_unique<Node>();
+        node_map[layer_id]->layer = std::move(layer);
+        node_map[layer_id]->file_path = std::move(layer_data_path);
+        node_map[layer_id]->prev_id = getParent(layer_id);
+
+        for (auto& child_val: layer_child)
+        {
+            NodeID id_child = child_val.asInt();
+            node_map[layer_id]->next_id = std::vector<NodeID>{id_child};
+
+            if (node_map.find(id_child) == node_map.end())
             {
-                auto layer_enable_do = jsonLayer["enable_dropout"].asBool();
-
-                double layer_do_rate = 1.0;
-                if (layer_enable_do)
-                    layer_do_rate = jsonLayer["dropout_rate"].asDouble();
-
-                size_t neurons = layer_dim["size"].asUInt();
-                cur_setting = std::make_pair(
-                    LayerFactory::LayerType::SIGMOID,
-                    std::make_unique<LayerFactory::SigmoidLayerSetting>(
-                            neurons, m_learn_rate, layer_do_rate, layer_enable_do)
-                );
-            }
-            else if (!layer_type.compare("convolution"))
-            {
-                size_t maps = layer_dim["map_num"].asUInt();
-                size_t recep = layer_dim["recep_size"].asUInt();
-                bool zeropad = layer_dim["enable_zero_pad"].asBool();
-                size_t input_w = 0, input_h = 0;
-
-                LayerFactory::getInstance().getOutputDimension(prevSetting[idx], input_w, input_h);
-
-                cur_setting = std::make_pair(
-                    LayerFactory::LayerType::CONVOLUTION,
-                    std::make_unique<LayerFactory::ConvLayerSetting>(maps, recep,
-                            input_w, input_h, m_learn_rate, zeropad)
-                );
-            }
-            else if (!layer_type.compare("maxpool"))
-            {
-                size_t pw = layer_dim["pool_width"].asUInt();
-                size_t ph = layer_dim["pool_height"].asUInt();
-                size_t st = layer_dim["stride"].asUInt();
-                size_t input_w = 0, input_h = 0;
-                size_t map_num = LayerFactory::getInstance().getMapNum(prevSetting[idx]);
-
-                LayerFactory::getInstance().getOutputDimension(prevSetting[idx], input_w, input_h);
-
-                cur_setting = std::make_pair(
-                    LayerFactory::LayerType::MAXPOOL,
-                    std::make_unique<LayerFactory::MaxPoolLayerSetting>(map_num,
-                            pw, ph, input_w, input_h, st)
-                );
+                // branch node... TODO
+                prevSetting.insert(std::make_pair(id_child, std::move(cur_setting)));
             }
             else
-                throw Json::LogicError("invalid layer type");
-
-            std::unique_ptr<Layer> layer = LayerFactory::getInstance().makeLayer(prevSetting[idx],
-                    cur_setting);
-            node_map[idx] = std::make_unique<Node>();
-            node_map[idx]->layer = std::move(layer);
-            node_map[idx]->file_path = std::move(layer_data_path);
-
-            auto parent_idx = getParent(idx);
-            node_map[idx]->prev_id = parent_idx;
-
-            if (!layer_child.isNull())
             {
-                NodeID id_child = std::make_pair(layer_child.asInt(), 0);
-                node_map[idx]->next_id = std::vector<NodeID>{id_child};
-
-                if (node_map.find(id_child) == node_map.end())
-                {
-                    prevSetting.insert(std::make_pair(id_child, std::move(cur_setting)));
-                }
-                else
-                {
-                    std::cout << "noo!!!" << std::endl;
-                }
+                std::cout << "noo!!!" << std::endl;
             }
         }
     }
 
     /* returns itself if the given node ID indicates the root node
-     * returns (-1, 0) if an invalid id is given
+     * returns -1 if an invalid id is given
      */
     Network::NodeID Network::getParent(const Network::NodeID& id) const
     {
-        if (id == root_idx)
-            return id;
+        for (auto& start_id: m_start_idxes)
+        {
+            if (id == start_id)
+                return id;
+        }
 
         for (const auto& node_pair: node_map)
         {
@@ -257,7 +212,7 @@ namespace NeuralNet
                 return node_pair.first;
         }
 
-        return std::make_pair(-1, 0);
+        return -1;
     }
 
     Network::~Network()
@@ -266,11 +221,10 @@ namespace NeuralNet
 
     void Network::loadFromFiles()
     {
-        auto major_id_set = collectMajorIDs();
-        for (auto& major_id: major_id_set)
+        for (auto& node_pair: node_map)
         {
-            auto first_node_id = std::make_pair(major_id, 0);
-            auto& node = *(node_map[first_node_id]);
+            auto node_id = node_pair.first;
+            auto& node = *(node_pair.second);
             if (node.file_path.empty())
                 continue;
 
@@ -285,72 +239,40 @@ namespace NeuralNet
             {
                 auto data_id = dataValue["id"].asInt();
                 auto data_type = dataValue["type"].asString();
+
                 /* TODO: data type check? */
 
-                if (data_id == major_id)
+                if (data_id == node_id)
                 {
-                    if (!data_type.compare("branch"))
-                    {
-                        for (auto& sib_id: node_map[node.prev_id]->next_id)
-                        {
-                            node_map[sib_id]->layer->importLayer(dataValue["data"][sib_id.second]);
-                        }
-                    }
-                    else /* non-branch layer */
-                    {
-                        node.layer->importLayer(dataValue["data"]);
-                    }
+                    node.layer->importLayer(dataValue["data"]);
                 }
+                else
+                    throw Json::LogicError("error loading file at loadFromFiles()");
             }
             else
-                std::cerr << "Error at Network::storeIntoFiles(): " << errors << std::endl;
+                std::cerr << "Error at Network::loadFromFiles(): "
+                    << errors << std::endl;
         }
     }
 
     void Network::storeIntoFiles()
     {
-        auto major_id_set = collectMajorIDs();
-
-        for (auto& major_id: major_id_set)
+        for (auto& node_pair: node_map)
         {
-            auto first_node_id = std::make_pair(major_id, 0);
-            auto& node = *(node_map[first_node_id]);
+            auto node_id = node_pair.first;
+            auto& node = *(node_pair.second);
             if (node.file_path.empty())
                 continue;
 
             Json::Value dataValue(Json::objectValue);
-            dataValue["id"] = Json::Value(major_id);
-
-            /* branch check */
-            if (node_map[node.prev_id]->next_id.size() > 1)
-            {
-                dataValue["type"] = Json::Value("branch");
-
-                Json::Value dataCollection(Json::arrayValue);
-                for (auto& sib_id: node_map[node.prev_id]->next_id)
-                {
-                    dataCollection[sib_id.second] = node_map[sib_id]->layer->exportLayer();
-                }
-                dataValue["data"] = dataCollection;
-            }
-            else
-            {
-                dataValue["type"] = Json::Value(node.layer->what());
-                dataValue["data"] = node.layer->exportLayer();
-            }
+            dataValue["id"] = Json::Value(node_id);
+            dataValue["type"] = Json::Value(node.layer->what());
+            dataValue["data"] = node.layer->exportLayer();
 
             Json::StyledStreamWriter writer("    ");
             std::fstream dataStream(node.file_path, std::ios_base::out);
             writer.write(dataStream, dataValue);
         }
-    }
-
-    std::unordered_set<int> Network::collectMajorIDs()
-    {
-        std::unordered_set<int> major_ids;
-        for (auto& node_pair: node_map)
-            major_ids.insert(node_pair.first.first);
-        return major_ids;
     }
 
     /* used for evaluation of a single set of data */
@@ -403,7 +325,9 @@ namespace NeuralNet
 
         /* forward the input */
         std::queue<NodeID> nodeQueue;
-        nodeQueue.push(root_idx);
+        for (auto& id: m_start_idxes)
+            nodeQueue.push(id);
+
         while (!nodeQueue.empty())
         {
             auto cur_id = nodeQueue.front();
@@ -459,7 +383,9 @@ namespace NeuralNet
             node_traversed[node_pair.first] = false;
 
         std::stack<NodeID> node_stack;
-        node_stack.push(root_idx);
+        for (auto& id: m_start_idxes)
+            node_stack.push(id);
+
         while (!node_stack.empty())
         {
             auto& top_id = node_stack.top();
@@ -585,7 +511,8 @@ namespace NeuralNet
     {
         auto& in_node = *(node_map[in_idx]);
 
-        if (in_idx == root_idx)
+        if (std::find(m_start_idxes.begin(), m_start_idxes.end(), in_idx)
+                != m_start_idxes.end())
         {
             in_node.layer->forward(*(m_input_data), *(in_node.data));
         }
@@ -602,7 +529,8 @@ namespace NeuralNet
     {
         auto& in_node = *(node_map[in_idx]);
 
-        if (in_idx != root_idx)
+        if (std::find(m_start_idxes.begin(), m_start_idxes.end(), in_idx)
+                != m_start_idxes.end())
         {
             auto& prev_node = *(node_map[in_node.prev_id]);
             in_node.layer->backward(*(prev_node.data), *(in_node.data));
