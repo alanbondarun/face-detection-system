@@ -36,10 +36,7 @@ namespace NeuralNet
         using NodeID = int;
         using SettingMapType = std::map<
                 NodeID,
-                std::pair<
-                    LayerFactory::LayerType,
-                    std::unique_ptr<LayerFactory::LayerSetting>
-                >
+                std::unique_ptr<LayerFactory::LayerSetting>
         >;
 
         /* an exception thrown when this class received invalid JSON data */
@@ -72,6 +69,10 @@ namespace NeuralNet
             const std::vector< std::vector<int> >& category_list);
 
     private:
+        void insertLayerSetting(SettingMapType& prevSetting,
+                std::unique_ptr<LayerFactory::LayerSetting>& set,
+                NodeID id);
+
         // parse and add layer(s) from one JSON layer block
         // more than one layer may be add if the JSON block is a branch
         void addLayer(const Json::Value& jsonLayer, SettingMapType& prevSetting);
