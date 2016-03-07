@@ -1,6 +1,7 @@
 #include "network.hpp"
 #include "image/image.hpp"
 #include "calc/calc-cpu.hpp"
+#include <algorithm>
 #include <utility>
 #include <iostream>
 #include <fstream>
@@ -122,14 +123,29 @@ bool load_faces(std::vector<double>& data, std::vector< std::vector<int> >& cate
     return true;
 }
 
-bool load_non_faces(std::vector<double>& data, std::vector< std::vector<int> >& category)
+bool load_nonface_patch(std::vector< std::unique_ptr<NeuralNet::Image> >& images,
+        size_t num_image, size_t train_set)
 {
-    const size_t num_image = 1000;
+    const size_t set_size = 2000;
+    const size_t window_per_img = 10;
+    
+    size_t lbound = set_size * train_set + 1;
+    size_t ubound = lbound + set_size;
 
-    for (size_t i = 1; i <= num_image; i++)
+    std::vector<size_t> idxes;
+    for (size_t i = lbound; i < ubound; i++)
+        idxes.push_back(i);
+
+    std::random_device rd;
+    std::mt19937 rgen(rd());
+    std::shuffle(idxes.begin(), idxes.end(), rgen);
+
+    size_t img_count = 0;
+    size_t loaded_patch = 0;
+    while (loaded_patch < num_image && img_count < idxes.size())
     {
         std::ostringstream oss;
-        oss << "image-nonface/img_" << i << ".bmp";
+        oss << "image-nonface/img_" << idxes[img_count] << ".bmp";
 
         auto img_ptr = NeuralNet::loadBitmapImage(oss.str().c_str());
         if (!img_ptr)
@@ -138,9 +154,39 @@ bool load_non_faces(std::vector<double>& data, std::vector< std::vector<int> >& 
             return false;
         }
 
-//        auto resized_ptr = NeuralNet::fitImageTo(img_ptr, 32, 32);
-//        auto gray_ptr = NeuralNet::grayscaleImage(resized_ptr);
-        auto gray_ptr = NeuralNet::grayscaleImage(img_ptr);
+        std::uniform_int_distribution<size_t> dis_w(0, img_ptr->getWidth() - 32);
+        std::uniform_int_distribution<size_t> dis_h(0, img_ptr->getHeight() - 32);
+
+        for (int i=0; i<window_per_img && i+loaded_patch < num_image; i++)
+        {
+            images.push_back(NeuralNet::grayscaleImage(
+                        NeuralNet::cropImage(img_ptr, dis_w(rgen), dis_h(rgen),
+                            32, 32)
+            ));
+
+            loaded_patch++;
+        }
+
+        img_count++;
+    }
+
+    if (loaded_patch == num_image)
+        return true;
+    return false;
+}
+
+bool load_non_faces(std::vector<double>& data, std::vector< std::vector<int> >& category)
+{
+    const size_t num_image = 3000;
+
+    std::vector< std::unique_ptr<NeuralNet::Image> > images;
+    if (!load_nonface_patch(images, num_image, 0))
+    {
+        return false;
+    }
+
+    for (auto& gray_ptr: images)
+    {
         for (size_t ch = 0; ch < gray_ptr->getChannelNum(); ch++)
         {
             data.insert(data.end(),
@@ -259,14 +305,10 @@ int main(int argc, char* argv[])
     std::cout << "loading evaluation images (LFW) finished" << std::endl;
 
     std::vector< std::unique_ptr<NeuralNet::Image> > nonFaceImages;
-    for (size_t i = 4001; i <= 4000+test_nonface; i++)
+    if (!load_nonface_patch(nonFaceImages, test_nonface, 1))
     {
-        std::ostringstream oss;
-        oss << "image-nonface/img_" << i << ".bmp";
-
-        nonFaceImages.push_back(std::move(
-            NeuralNet::grayscaleImage(NeuralNet::loadBitmapImage(oss.str().c_str()))
-        ));
+        std::cout << "error loading evaluation non-face images" << std::endl;
+        return 0;
     }
     std::cout << "loading evaluation images (non-face) finished" << std::endl;
 
