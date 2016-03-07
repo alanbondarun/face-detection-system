@@ -57,6 +57,16 @@ namespace NeuralNet
     std::unique_ptr<Image> grayscaleImage(const std::unique_ptr<Image>& image);
 
     /**
+     * Histogram equalization (accepts only grayscale images, though...)
+     */
+    std::unique_ptr<Image> equalizePatch(const std::unique_ptr<Image>& image);
+
+    /**
+     * Image patch preprocessing with least-square fit from [3] (see google docs)
+     */
+    std::unique_ptr<Image> leastSquarePatch(const std::unique_ptr<Image>& image);
+
+    /**
      * Loads a JPEG image into a built-in array of vectors.
      * input: a string indicating the file path of the image
      * output: an Image struct including a dynamically allocated double array.

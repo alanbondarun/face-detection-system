@@ -2,6 +2,7 @@
 #include "utils/make_unique.hpp"
 #include "netpbm/ppm.h"
 #include "netpbm/pgm.h"
+#include "Eigen/Dense"
 #include <stdio.h>
 #include <cstdint>
 #include <utility>
@@ -209,6 +210,112 @@ namespace NeuralNet
         return res_img;
     }
 
+    std::unique_ptr<Image> equalizePatch(const std::unique_ptr<Image>& image)
+    {
+        if (image->getChannelNum() != 1)
+            return std::unique_ptr<Image>();
+
+        const size_t level = 255;
+        const auto w = image->getWidth();
+        const auto h = image->getHeight();
+
+        std::vector<size_t> val_distrib(level + 1, 0);
+        for (size_t j = 0; j < h; j++)
+        {
+            for (size_t i = 0; i < w; i++)
+            {
+                int idx = static_cast<int>((image->getValues(0))[j*w + i] * level);
+                if (idx < 0)
+                    val_distrib[0]++;
+                else if (idx > level)
+                    val_distrib[level]++;
+                else
+                    val_distrib[idx]++;
+            }
+        }
+
+        std::vector<size_t> val_cdf(level + 1, 0);
+        val_cdf[0] = val_distrib[0];
+        for (size_t i = 1; i <= level; i++)
+        {
+            val_cdf[i] = val_cdf[i-1] + val_distrib[i];
+        }
+
+        auto newImage = std::make_unique<Image>(w, h, 1);
+        auto new_data_ptr = newImage->getValues(0);
+        for (size_t j = 0; j < h; j++)
+        {
+            for (size_t i = 0; i < w; i++)
+            {
+                int idx = static_cast<int>((image->getValues(0))[j*w + i] * level);
+                if (idx < 0)
+                    new_data_ptr[j*w + i] = static_cast<double>(val_cdf[0]) / level;
+                else if (idx > level)
+                    new_data_ptr[j*w + i] = static_cast<double>(val_cdf[level]) / level;
+                else
+                    new_data_ptr[j*w + i] = static_cast<double>(val_cdf[idx]) / level;
+            }
+        }
+        return newImage;
+    }
+
+    std::unique_ptr<Image> leastSquarePatch(const std::unique_ptr<Image>& image)
+    {
+        // process grayscale patches only
+        if (image->getChannelNum() > 1)
+            return std::unique_ptr<Image>();
+
+        auto data_ptr = image->getValues(0);
+        const auto w = image->getWidth();
+        const auto h = image->getHeight();
+
+        // least square fit to linear plane for light compensation
+        double xsum_orig = 0;
+        double ysum_orig = 0;
+        double csum_orig = 0;
+        for (size_t j = 0; j < h; j++)
+        {
+            for (size_t i = 0; i < w; i++)
+            {
+                xsum_orig += (i * data_ptr[j*w + i]);
+                ysum_orig += (j * data_ptr[j*w + i]);
+                csum_orig += (data_ptr[j*w + i]);
+            }
+        }
+        Eigen::Vector3d vsum(xsum_orig, ysum_orig, csum_orig);
+
+        double x2sum = 0, y2sum = 0, xysum = 0, xsum = 0, ysum = 0;
+        double csum = w*h;
+        for (size_t j = 0; j < h; j++)
+        {
+            for (size_t i = 0; i < w; i++)
+            {
+                x2sum += (i*i);
+                y2sum += (j*j);
+                xysum += (i*j);
+                xsum += i;
+                ysum += j;
+            }
+        }
+        Eigen::Matrix3d msum;
+        msum << x2sum, xysum, xsum,
+             xysum, y2sum, ysum,
+             xsum, ysum, csum;
+        
+        auto vcoeff = msum.inverse() * vsum;
+        
+        auto newImage = std::make_unique<Image>(w, h, 1);
+        for (size_t j = 0; j < h; j++)
+        {
+            for (size_t i = 0; i < w; i++)
+            {
+                (newImage->getValues(0))[j*w + i] = data_ptr[j*w + i]
+                    - i*vcoeff[0] - j*vcoeff[1] - vcoeff[2];
+            }
+        }
+        return newImage;
+    }
+
     std::unique_ptr<Image> loadJPEGImage(const char* filepath)
     {
         /* TODO */
@@ -320,21 +427,29 @@ namespace NeuralNet
             {
                 if (img_ptr->getChannelNum() >= 3)
                 {
-                    pxls[y][x].r = static_cast<pixval>(
-                            (img_ptr->getValues(0))[y*w + x] * maxVal);
-                    pxls[y][x].g = static_cast<pixval>(
-                            (img_ptr->getValues(1))[y*w + x] * maxVal);
-                    pxls[y][x].b = static_cast<pixval>(
-                            (img_ptr->getValues(2))[y*w + x] * maxVal);
+                    double vclip[3];
+                    for (size_t c = 0; c < 3; c++)
+                    {
+                        vclip[c] = (img_ptr->getValues(c))[y*w + x];
+                        if (vclip[c] < 0)
+                            vclip[c] = 0;
+                        if (vclip[c] > 1)
+                            vclip[c] = 1;
+                    }
+                    pxls[y][x].r = static_cast<pixval>(vclip[0] * maxVal);
+                    pxls[y][x].g = static_cast<pixval>(vclip[1] * maxVal);
+                    pxls[y][x].b = static_cast<pixval>(vclip[2] * maxVal);
                 }
                 else
                 {
-                    pxls[y][x].r = static_cast<pixval>(
-                            (img_ptr->getValues(0))[y*w + x] * maxVal);
-                    pxls[y][x].g = static_cast<pixval>(
-                            (img_ptr->getValues(0))[y*w + x] * maxVal);
-                    pxls[y][x].b = static_cast<pixval>(
-                            (img_ptr->getValues(0))[y*w + x] * maxVal);
+                    double vclip = (img_ptr->getValues(0))[y*w + x];
+                    if (vclip < 0)
+                        vclip = 0;
+                    if (vclip > 1)
+                        vclip = 1;
+                    pxls[y][x].r = static_cast<pixval>(vclip * maxVal);
+                    pxls[y][x].g = static_cast<pixval>(vclip * maxVal);
+                    pxls[y][x].b = static_cast<pixval>(vclip * maxVal);
                 }
             }
         }

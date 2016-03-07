@@ -7,43 +7,46 @@ int main(int argc, char* argv[])
 {
     pm_init(argv[0], 0);
 
-    auto img1 = NeuralNet::loadPPMImage("00227_940128_fa.ppm");
+    auto img1 = NeuralNet::loadBitmapImage("eval-image/2.bmp");
     if (!img1)
     {
         printf("img1 error\n");
         return 0;
     }
 
-    auto img2 = NeuralNet::loadPGMImage("BioID_0277.pgm");
+    auto img2 = NeuralNet::loadBitmapImage("eval-image/6.bmp");
     if (!img2)
     {
         printf("img2 error\n");
         return 0;
     }
 
-    auto img5 = NeuralNet::loadBitmapImage("37-big.bmp");
-    if (!img5)
+    auto img3 = NeuralNet::loadBitmapImage("eval-image/11.bmp");
+    if (!img3)
     {
-        printf("img5 error\n");
+        printf("img3 error\n");
         return 0;
     }
 
-    auto img3 = NeuralNet::fitImageTo(img1, 32, 32);
-    auto img4 = NeuralNet::fitImageTo(img2, 32, 32);
-    auto img6 = NeuralNet::grayscaleImage(NeuralNet::fitImageTo(img5, 32, 32));
+    auto img1_res = NeuralNet::leastSquarePatch(
+            NeuralNet::equalizePatch(NeuralNet::grayscaleImage(img1)));
+    auto img2_res = NeuralNet::leastSquarePatch(
+            NeuralNet::equalizePatch(NeuralNet::grayscaleImage(img2)));
+    auto img3_res = NeuralNet::leastSquarePatch(
+            NeuralNet::equalizePatch(NeuralNet::grayscaleImage(img3)));
 
-    if (!NeuralNet::saveAsPPM(img3, "image3.ppm"))
+    if (!NeuralNet::saveAsPPM(img1_res, "image1.ppm"))
+    {
+        printf("error saving image1.ppm\n");
+    }
+
+    if (!NeuralNet::saveAsPPM(img2_res, "image2.ppm"))
+    {
+        printf("error saving image2.ppm\n");
+    }
+
+    if (!NeuralNet::saveAsPPM(img3_res, "image3.ppm"))
     {
         printf("error saving image3.ppm\n");
-    }
-
-    if (!NeuralNet::saveAsPPM(img4, "image4.ppm"))
-    {
-        printf("error saving image4.ppm\n");
-    }
-
-    if (!NeuralNet::saveAsPPM(img6, "37.ppm"))
-    {
-        printf("error saving 37.ppm\n");
     }
 }

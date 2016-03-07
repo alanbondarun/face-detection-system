@@ -90,7 +90,9 @@ bool load_fddb(std::vector< std::unique_ptr<NeuralNet::Image> >& images,
                         majsize,
                         majsize);
             auto fit_ptr = NeuralNet::fitImageTo(crop_ptr, 32, 32);
-            images.push_back(NeuralNet::grayscaleImage(fit_ptr));
+            images.push_back(NeuralNet::leastSquarePatch(
+                        NeuralNet::equalizePatch(
+                            NeuralNet::grayscaleImage(fit_ptr))));
             actual_count++;
         }
         loaded_image += actual_count;
@@ -159,11 +161,11 @@ bool load_nonface_patch(std::vector< std::unique_ptr<NeuralNet::Image> >& images
 
         for (int i=0; i<window_per_img && i+loaded_patch < num_image; i++)
         {
-            images.push_back(NeuralNet::grayscaleImage(
-                        NeuralNet::cropImage(img_ptr, dis_w(rgen), dis_h(rgen),
-                            32, 32)
-            ));
-
+            images.push_back(NeuralNet::leastSquarePatch(
+                    NeuralNet::equalizePatch(NeuralNet::grayscaleImage(
+                         NeuralNet::cropImage(img_ptr, dis_w(rgen), dis_h(rgen),
+                             32, 32)
+            ))));
             loaded_patch++;
         }
 
