@@ -3,8 +3,9 @@
 #include "netpbm/ppm.h"
 #include "netpbm/pgm.h"
 #include "Eigen/Dense"
-#include <stdio.h>
+#include <cstdio>
 #include <cstdint>
+#include <cmath>
 #include <utility>
 #include <vector>
 
@@ -314,6 +315,53 @@ namespace NeuralNet
             }
         }
         return newImage;
+    }
+
+    std::unique_ptr<Image> intensityPatch(const std::unique_ptr<Image>& image,
+            double mean, double stdev)
+    {
+        if (image->getChannelNum() != 1)
+            return std::unique_ptr<Image>();
+
+        const auto orig_data_ptr = image->getValues(0);
+        const auto w = image->getWidth();
+        const auto h = image->getHeight();
+
+        double current_mean = 0;
+        for (size_t j = 0; j < h; j++)
+        {
+            for (size_t i = 0; i < w; i++)
+            {
+                current_mean += orig_data_ptr[j*w + i];
+            }
+        }
+
+        double current_var = 0;
+        for (size_t j = 0; j < h; j++)
+        {
+            for (size_t i = 0; i < w; i++)
+            {
+                current_var += std::pow(orig_data_ptr[j*w + i] - current_mean, 2);
+            }
+        }
+
+        double alpha = stdev * std::sqrt((w * h) / current_var);
+
+        auto newImage = std::make_unique<Image>(w, h, 1);
+        for (size_t j = 0; j < h; j++)
+        {
+            for (size_t i = 0; i < w; i++)
+            {
+                (newImage->getValues(0))[j*w + i] = alpha * (orig_data_ptr[j*w + i]
+                        - current_mean) + mean;
+            }
+        }
+        return newImage;
+    }
+
+    std::unique_ptr<Image> intensityPatch(const std::unique_ptr<Image>& image)
+    {
+        return intensityPatch(image, 0.5, 0.25);
     }
 
     std::unique_ptr<Image> loadJPEGImage(const char* filepath)

@@ -24,6 +24,13 @@ bool load_test(Json::Value& value)
     return ok;
 }
 
+std::unique_ptr<NeuralNet::Image> preprocessImage(
+        const std::unique_ptr<NeuralNet::Image>& image)
+{
+    return NeuralNet::intensityPatch(NeuralNet::leastSquarePatch(
+                NeuralNet::equalizePatch(image)));
+}
+
 bool load_fddb(std::vector< std::unique_ptr<NeuralNet::Image> >& images,
         size_t num_image, bool uses_first)
 {
@@ -90,9 +97,8 @@ bool load_fddb(std::vector< std::unique_ptr<NeuralNet::Image> >& images,
                         majsize,
                         majsize);
             auto fit_ptr = NeuralNet::fitImageTo(crop_ptr, 32, 32);
-            images.push_back(NeuralNet::leastSquarePatch(
-                        NeuralNet::equalizePatch(
-                            NeuralNet::grayscaleImage(fit_ptr))));
+            images.push_back(preprocessImage(
+                        NeuralNet::grayscaleImage(fit_ptr)));
             actual_count++;
         }
         loaded_image += actual_count;
@@ -161,11 +167,10 @@ bool load_nonface_patch(std::vector< std::unique_ptr<NeuralNet::Image> >& images
 
         for (int i=0; i<window_per_img && i+loaded_patch < num_image; i++)
         {
-            images.push_back(NeuralNet::leastSquarePatch(
-                    NeuralNet::equalizePatch(NeuralNet::grayscaleImage(
-                         NeuralNet::cropImage(img_ptr, dis_w(rgen), dis_h(rgen),
-                             32, 32)
-            ))));
+            images.push_back(preprocessImage(NeuralNet::grayscaleImage(
+                     NeuralNet::cropImage(img_ptr, dis_w(rgen), dis_h(rgen),
+                         32, 32)
+            )));
             loaded_patch++;
         }
 
@@ -264,8 +269,8 @@ int main(int argc, char* argv[])
     {
         std::ostringstream oss;
         oss << "eval-image/" << i << ".bmp";
-        imageList.push_back(std::move(
-            NeuralNet::grayscaleImage(NeuralNet::loadBitmapImage(oss.str().c_str()))
+        imageList.push_back(std::move(preprocessImage(
+            NeuralNet::grayscaleImage(NeuralNet::loadBitmapImage(oss.str().c_str())))
         ));
     }
     std::cout << "loading evaluation images (original) finished" << std::endl;
@@ -300,9 +305,9 @@ int main(int argc, char* argv[])
         file_name.append(person_name);
         file_name.append("_0001.ppm");
 
-        lfwTestImages.push_back(std::move(
+        lfwTestImages.push_back(std::move(preprocessImage(
             NeuralNet::grayscaleImage(NeuralNet::loadPPMImage(file_name.c_str()))
-        ));
+        )));
     }
     std::cout << "loading evaluation images (LFW) finished" << std::endl;
 

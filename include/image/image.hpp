@@ -67,6 +67,18 @@ namespace NeuralNet
     std::unique_ptr<Image> leastSquarePatch(const std::unique_ptr<Image>& image);
 
     /**
+     * Linearly transform intensities of the given image with the given mean &
+     * stdev value
+     */
+    std::unique_ptr<Image> intensityPatch(const std::unique_ptr<Image>& image,
+            double mean, double stdev);
+
+    /**
+     * Default mean & stdev value if not given
+     */
+    std::unique_ptr<Image> intensityPatch(const std::unique_ptr<Image>& image);
+
+    /**
      * Loads a JPEG image into a built-in array of vectors.
      * input: a string indicating the file path of the image
      * output: an Image struct including a dynamically allocated double array.

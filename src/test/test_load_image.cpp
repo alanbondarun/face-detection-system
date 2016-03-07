@@ -28,12 +28,15 @@ int main(int argc, char* argv[])
         return 0;
     }
 
-    auto img1_res = NeuralNet::leastSquarePatch(
-            NeuralNet::equalizePatch(NeuralNet::grayscaleImage(img1)));
-    auto img2_res = NeuralNet::leastSquarePatch(
-            NeuralNet::equalizePatch(NeuralNet::grayscaleImage(img2)));
-    auto img3_res = NeuralNet::leastSquarePatch(
-            NeuralNet::equalizePatch(NeuralNet::grayscaleImage(img3)));
+    auto img1_res = NeuralNet::intensityPatch(NeuralNet::leastSquarePatch(
+                NeuralNet::equalizePatch(NeuralNet::grayscaleImage(img1))),
+            0.5, 0.5);
+    auto img2_res = NeuralNet::intensityPatch(NeuralNet::leastSquarePatch(
+                NeuralNet::equalizePatch(NeuralNet::grayscaleImage(img2))),
+            0.5, 0.5);
+    auto img3_res = NeuralNet::intensityPatch(NeuralNet::leastSquarePatch(
+                NeuralNet::equalizePatch(NeuralNet::grayscaleImage(img3))),
+            0.5, 0.5);
 
     if (!NeuralNet::saveAsPPM(img1_res, "image1.ppm"))
     {
