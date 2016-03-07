@@ -249,11 +249,11 @@ namespace NeuralNet
             {
                 int idx = static_cast<int>((image->getValues(0))[j*w + i] * level);
                 if (idx < 0)
-                    new_data_ptr[j*w + i] = static_cast<double>(val_cdf[0]) / level;
+                    new_data_ptr[j*w + i] = static_cast<double>(val_cdf[0]) / (w*h);
                 else if (idx > level)
-                    new_data_ptr[j*w + i] = static_cast<double>(val_cdf[level]) / level;
+                    new_data_ptr[j*w + i] = static_cast<double>(val_cdf[level]) / (w*h);
                 else
-                    new_data_ptr[j*w + i] = static_cast<double>(val_cdf[idx]) / level;
+                    new_data_ptr[j*w + i] = static_cast<double>(val_cdf[idx]) / (w*h);
             }
         }
         return newImage;
