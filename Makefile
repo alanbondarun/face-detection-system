@@ -19,6 +19,7 @@ NEURAL_NET_OBJS := $(EXTLIB_OBJS) $(addprefix $(OBJ_DIR)/, $(CALC_SUBDIR)/calc-c
 	$(LAYER_SUBDIR)/sigmoid_layer.o \
 	$(LAYER_SUBDIR)/max_pool_layer.o \
 	$(LAYER_SUBDIR)/conv_layer.o \
+	$(LAYER_SUBDIR)/norm_layer.o \
 	$(LAYER_SUBDIR)/layer_factory.o \
 	$(LAYER_SUBDIR)/layer_merger.o \
 	$(IMAGE_SUBDIR)/image.o \

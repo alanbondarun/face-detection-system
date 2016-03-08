@@ -65,6 +65,15 @@ namespace NeuralNet
             int dim_w, int dim_h, int dim_conv_w, int dim_conv_h);
     void convolution_mat_wide_zeros(const double *m_in, const double *m_conv, double *m_res,
             int dim_w, int dim_h, int dim_conv_w, int dim_conv_h);
+
+    // calculate local-response normalizations for convolution neurons
+    void lr_normalize_mat(const double *m, double *m_res, size_t dim_w, size_t dim_h,
+            size_t reg_size, double alpha, double beta);
+
+    // calculate normalization term of error propagation
+    // for local-response normalization layers
+    void lr_normalize_prime(const double *m, double *m_res, size_t dim_w, size_t dim_h,
+            size_t reg_size, double alpha, double beta);
 }
 
 #endif // __CALC_CPU_HPP

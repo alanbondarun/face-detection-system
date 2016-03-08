@@ -263,4 +263,16 @@ namespace NeuralNet
             -dim_conv_w+1, -dim_conv_h+1, dim_w+dim_conv_w-1, dim_h+dim_conv_h-1
         ));
     }
+
+    void lr_normalize_mat(const double *m, double *m_res, size_t dim_w, size_t dim_h,
+            size_t reg_size, double alpha, double beta)
+    {
+        // TODO
+    }
+
+    void lr_normalize_prime(const double *m, double *m_res, size_t dim_w, size_t dim_h,
+            size_t reg_size, double alpha, double beta)
+    {
+        // TODO
+    }
 }
