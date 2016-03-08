@@ -345,6 +345,22 @@ namespace NeuralNet
             }
         }
 
+        if (std::isfinite(current_var) && !std::isnormal(current_var))
+        {
+            // if the sum of squares of errors is equal to zero or is subnormal,
+            // then just fill the result image with (0.5) in order to aviod
+            // divide-by-zero exception
+            auto newImage = std::make_unique<Image>(w, h, 1);
+            for (size_t j = 0; j < h; j++)
+            {
+                for (size_t i = 0; i < w; i++)
+                {
+                    (newImage->getValues(0))[j*w + i] = 0.5;
+                }
+            }
+            return newImage;
+        }
+
         double alpha = stdev * std::sqrt((w * h) / current_var);
 
         auto newImage = std::make_unique<Image>(w, h, 1);
