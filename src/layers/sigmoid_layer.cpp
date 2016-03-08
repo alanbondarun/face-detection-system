@@ -140,7 +140,7 @@ namespace NeuralNet
         /* calculate delta_b and update current bias */
         double *delta_b = new double[m_current_d];
 
-        sum_vec_preserve(cur_e, delta_b, m_current_d, m_train_num);
+        sum_vec(cur_e, delta_b, m_current_d, m_train_num);
         apply_vec(delta_b, delta_b, m_current_d, [train_num, learn_rate](double in) -> double {
             return -in*learn_rate/train_num;
         });
