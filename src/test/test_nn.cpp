@@ -1,6 +1,7 @@
 #include "network.hpp"
 #include "image/image.hpp"
 #include "calc/calc-cpu.hpp"
+#include "netpbm/pm.h"
 #include <algorithm>
 #include <utility>
 #include <iostream>
@@ -241,6 +242,8 @@ int main(int argc, char* argv[])
     const size_t test_fddb = 1000;
     const size_t test_nonface = 1000;
     const size_t n_eval_ch = 1;
+
+    pm_init(argv[0], 0);
 
     std::ofstream res_file("result.txt");
 

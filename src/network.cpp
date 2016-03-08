@@ -504,6 +504,8 @@ namespace NeuralNet
         {
             std::shuffle(data_idxes.begin(), data_idxes.end(), rgen);
 
+            std::vector<double> error_vals(m_train_size, 0);
+
             for (size_t batch_num = 0; batch_num * m_batch_size < m_train_size; batch_num++)
             {
                 for (size_t i = 0; i < m_batch_size; i++)
@@ -537,6 +539,7 @@ namespace NeuralNet
                         }
                     }
 
+                    // softmax output value calculation
                     std::vector<double> softmax_output(m_batch_size * output_nodes, 0);
                     apply_vec(leaf_node.data->get(LayerData::DataIndex::ACTIVATION),
                             softmax_output.data(), output_nodes * m_batch_size,
@@ -556,6 +559,25 @@ namespace NeuralNet
                         }
                     }
 
+                    // error value calculation
+                    std::vector<double> batch_errors(m_batch_size * output_nodes, 0);
+                    apply_vec(softmax_output.data(), batch_errors.data(),
+                            output_nodes * m_batch_size,
+                            [](double in) -> double {
+                                return std::log(in);
+                            });
+                    pmul_vec(batch_errors.data(), deriv_cost.data(), batch_errors.data(),
+                            output_nodes * m_batch_size);
+                    for (size_t j = 0; j < m_batch_size; j++)
+                    {
+                        double errorsum = 0;
+                        for (size_t k = 0; k < output_nodes; k++)
+                        {
+                            errorsum += batch_errors[j*output_nodes + k];
+                        }
+                        error_vals[batch_num*m_batch_size + j] += errorsum;
+                    }
+
                     add_vec(softmax_output.data(),
                             deriv_cost.data(),
                             deriv_cost.data(),
@@ -568,6 +590,15 @@ namespace NeuralNet
 
                 backPropagate();
             }
+
+            // print the total error value for this epoch
+            double total_error = 0;
+            for (auto& error: error_vals)
+            {
+                total_error += error;
+            }
+            std::cout << "total error for epoch #" << (epoch+1) <<
+                " = " << total_error << std::endl;
         }
     }
 
