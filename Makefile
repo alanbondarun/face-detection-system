@@ -13,7 +13,7 @@ IMAGE_SUBDIR := image
 
 TARGETS := $(BUILD_DIR)/led-user $(BUILD_DIR)/test_nn $(BUILD_DIR)/test_load_image
 EXTLIB_OBJS := $(addprefix $(OBJ_DIR)/, $(EXTLIB_SUBDIR)/jsoncpp.o)
-NEURAL_NET_OBJS := $(addprefix $(OBJ_DIR)/, $(CALC_SUBDIR)/calc-cpu.o \
+NEURAL_NET_OBJS := $(EXTLIB_OBJS) $(addprefix $(OBJ_DIR)/, $(CALC_SUBDIR)/calc-cpu.o \
 	$(CALC_SUBDIR)/util-functions.o \
 	$(LAYER_SUBDIR)/layer_data.o \
 	$(LAYER_SUBDIR)/sigmoid_layer.o \
@@ -22,10 +22,11 @@ NEURAL_NET_OBJS := $(addprefix $(OBJ_DIR)/, $(CALC_SUBDIR)/calc-cpu.o \
 	$(LAYER_SUBDIR)/layer_factory.o \
 	$(LAYER_SUBDIR)/layer_merger.o \
 	$(IMAGE_SUBDIR)/image.o \
-	network.o) $(EXTLIB_OBJS)
-MIDDLE_OBJS := $(addprefix $(OBJ_DIR)/, led-user.o \
-	$(TEST_SUBDIR)/test_load_image.o $(TEST_SUBDIR)/test_nn.o) \
-	$(NEURAL_NET_OBJS)
+	network.o)
+MIDDLE_OBJS := $(NEURAL_NET_OBJS) $(addprefix $(OBJ_DIR)/, led-user.o \
+	$(TEST_SUBDIR)/test_load_image.o $(TEST_SUBDIR)/test_nn.o)
+
+MIDDLE_OBJS_DEP = $(MIDDLE_OBJS:.o=.d)
 
 .PHONY: all clean directory program
 
@@ -63,6 +64,7 @@ endif
 export TARGET_OS
 
 CXXFLAGS := -std=c++0x -I$(INCLUDE_DIR) -L$(LIBRARY_DIR) -lnetpbm -Wl,-rpath=$(shell pwd)/$(LIBRARY_DIR) -Wall -g
+DEPEND_FLAGS := -MMD -MP 
 
 all: directory program
 
@@ -91,28 +93,22 @@ ifneq ($(INCLUDE_MODULE),)
 	$(MAKE) -C $(MODULE_DIR) clean
 endif
 endif
-	rm -rf $(TARGETS) $(MIDDLE_OBJS)
+	rm -rf $(TARGETS) $(MIDDLE_OBJS) $(MIDDLE_OBJS_DEP)
 
 # default rule for object files
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp
-	$(CXX) $(CXXFLAGS) -c -o $@ $<
-
-###################################
-# list of additional dependencies #
-###################################
-
-$(OBJ_DIR)/$(LAYER_SUBDIR)/layer_merger.o: $(SRC_DIR)/$(LAYER_SUBDIR)/layer_merger.cpp \
-	$(INCLUDE_DIR)/$(LAYER_SUBDIR)/layer_merger.hpp
+	$(CXX) -c -o $@ $(CXXFLAGS) $(DEPEND_FLAGS) -MT $@ -MF $(patsubst %.o,%.d,$@) $<
 
 $(OBJ_DIR)/led-user.o: $(SRC_DIR)/led-user.c
-	$(CXX) $(CXXFLAGS) -c -o $@ $<
+	$(CXX) -c -o $@ $(CXXFLAGS) $(DEPEND_FLAGS) -MT $@ -MF $(patsubst %.o,%.d,$@) $<
 
 $(BUILD_DIR)/led-user: $(OBJ_DIR)/led-user.o
-	$(CXX) $(CXXFLAGS) -o $(BUILD_DIR)/led-user $(OBJ_DIR)/led-user.o
+	$(CXX) -o $@ $(CXXFLAGS) $(DEPEND_FLAGS) -MT $@ -MF $(patsubst %.o,%.d,$@) $^
 
 $(BUILD_DIR)/test_nn: $(OBJ_DIR)/$(TEST_SUBDIR)/test_nn.o $(NEURAL_NET_OBJS)
-	$(CXX) $(CXXFLAGS) -o $@ $^
+	$(CXX) -o $@ $(CXXFLAGS) $(DEPEND_FLAGS) -MT $@ -MF $(patsubst %.o,%.d,$@) $^
 
 $(BUILD_DIR)/test_load_image: $(OBJ_DIR)/$(IMAGE_SUBDIR)/image.o $(OBJ_DIR)/$(TEST_SUBDIR)/test_load_image.o
-	$(CXX) $(CXXFLAGS) -o $@ $^
+	$(CXX) -o $@ $(CXXFLAGS) $(DEPEND_FLAGS) -MT $@ -MF $(patsubst %.o,%.d,$@) $^
 
+-include $(MIDDLE_OBJS_DEP)
