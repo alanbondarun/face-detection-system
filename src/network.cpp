@@ -598,8 +598,7 @@ namespace NeuralNet
                 != m_start_idxes.end())
         {
             // the node is an input node
-            auto& prev_node = *(node_map[in_node.prev_id]);
-            in_node.layer->backward(*(prev_node.data), *(in_node.data));
+            in_node.layer->backward(*(m_input_data), *(in_node.data));
         }
         else if (merger_map.find(in_idx) != merger_map.end())
         {
@@ -616,7 +615,8 @@ namespace NeuralNet
         }
         else
         {
-            in_node.layer->backward(*(m_input_data), *(in_node.data));
+            auto& prev_node = *(node_map[in_node.prev_id]);
+            in_node.layer->backward(*(prev_node.data), *(in_node.data));
         }
 
         return in_node.prev_id;
