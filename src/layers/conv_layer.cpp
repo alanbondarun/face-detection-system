@@ -44,17 +44,27 @@ namespace NeuralNet
                 * m_set.recep_size * m_set.recep_size;
         m_weight = new double[num_weights];
 
-        /* weight initialization */
+        const size_t num_biases = m_set.current_map_num * m_output_width
+                * m_output_height;
+        m_bias = new double[num_biases];
+
+        // weight and bias initialization
         std::random_device rd;
         std::mt19937 rgen(rd());
-        std::normal_distribution<double> dist_w(0.0, std::sqrt(1.0 / (m_output_width * m_output_height)));
+
+        std::normal_distribution<double> dist_w(0.0,
+                std::sqrt(1.0 / (m_output_width * m_output_height)));
+        std::normal_distribution<double> dist_b(0.0, 1.0);
 
         for (size_t i = 0; i < num_weights; i++)
             m_weight[i] = dist_w(rgen);
+        for (size_t i = 0; i < num_biases; i++)
+            m_bias[i] = dist_b(rgen);
     }
 
     ConvLayer::~ConvLayer()
     {
+        delete [] m_bias;
         delete [] m_weight;
     }
 
@@ -73,7 +83,9 @@ namespace NeuralNet
         {
             size_t w_offset = 0;
             size_t prev_offset = 0;
-            size_t cur_offset = i * m_set.current_map_num * m_output_width * m_output_height;
+            size_t cur_offset = i * m_set.current_map_num * m_output_width
+                * m_output_height;
+            size_t bias_offset = 0;
 
             for (size_t ncur = 0; ncur < m_set.current_map_num; ncur++)
             {
@@ -90,11 +102,14 @@ namespace NeuralNet
                     prev_offset += (m_set.image_width * m_set.image_height);
                 }
 
-                apply_vec(cur_z + cur_offset, cur_a + cur_offset, m_output_width * m_output_height,
-                        f_activation);
-                cur_offset += (m_output_width * m_output_height);
-            }
+                add_vec(cur_z + cur_offset, m_bias + bias_offset, cur_z + cur_offset,
+                        m_output_width * m_output_height);
+                apply_vec(cur_z + cur_offset, cur_a + cur_offset,
+                        m_output_width * m_output_height, f_activation);
 
+                cur_offset += (m_output_width * m_output_height);
+                bias_offset += (m_output_width * m_output_height);
+            }
         }
 
         delete [] temp_z;
@@ -197,6 +212,20 @@ namespace NeuralNet
             }
         }
 
+        // calculate delta_b and update current bias
+        double *delta_b = new double[m_set.current_map_num * m_output_width *
+                m_output_height];
+        sum_vec(cur_e, delta_b, m_set.current_map_num * m_output_width * m_output_height,
+                train_num);
+        apply_vec(delta_b, delta_b,
+                m_set.current_map_num * m_output_width * m_output_height,
+                [train_num, learn_rate](double in) -> double {
+                    return -in*learn_rate/train_num;
+                });
+        add_vec(m_bias, delta_b, m_bias,
+                m_set.current_map_num * m_output_width * m_output_height);
+
+        delete [] delta_b;
         delete [] delta_w;
         delete [] temp_pe;
         delete [] temp_w;
@@ -235,16 +264,33 @@ namespace NeuralNet
         auto weight_lists = coeffs["weight"];
         if (weight_lists.size() != m_set.current_map_num * m_set.prev_map_num)
             throw Json::LogicError("invalid number of feature maps");
-        for (int i = 0; i < m_set.current_map_num * m_set.prev_map_num; i++)
+        for (size_t i = 0; i < m_set.current_map_num * m_set.prev_map_num; i++)
         {
-            auto weights = weight_lists[i];
+            auto weights = weight_lists[static_cast<int>(i)];
             if (weights.size() != m_set.recep_size * m_set.recep_size)
                 throw Json::LogicError("invalid feature map");
 
-            for (int j = 0; j < m_set.recep_size * m_set.recep_size; j++)
+            for (size_t j = 0; j < m_set.recep_size * m_set.recep_size; j++)
             {
-                *(m_weight + weight_offset) = weights[j].asDouble();
+                *(m_weight + weight_offset) = weights[static_cast<int>(j)].asDouble();
                 weight_offset++;
+            }
+        }
+
+        size_t bias_offset = 0;
+        auto bias_lists = coeffs["bias"];
+        if (bias_lists.size() != m_set.current_map_num)
+            throw Json::LogicError("invalid number of feature maps");
+        for (size_t i = 0; i < m_set.current_map_num; i++)
+        {
+            auto biases = bias_lists[static_cast<int>(i)];
+            if (biases.size() != m_output_width * m_output_height)
+                throw Json::LogicError("invalid biases for a feature map");
+
+            for (size_t j = 0; j < m_output_width * m_output_height; j++)
+            {
+                *(m_bias + bias_offset) = biases[static_cast<int>(j)].asDouble();
+                bias_offset++;
             }
         }
     }
@@ -272,6 +318,21 @@ namespace NeuralNet
             weight_lists.append(weights);
         }
         coeff_value["weight"] = weight_lists;
+
+        size_t bias_offset = 0;
+        Json::Value bias_lists(Json::arrayValue);
+        for (size_t i = 0; i < m_set.current_map_num; i++)
+        {
+            Json::Value biases(Json::arrayValue);
+            for (size_t j = 0; j < m_output_width * m_output_height; j++)
+            {
+                biases.append(Json::Value(m_bias[bias_offset]));
+                bias_offset++;
+            }
+
+            bias_lists.append(biases);
+        }
+        coeff_value["bias"] = bias_lists;
 
         return coeff_value;
     }

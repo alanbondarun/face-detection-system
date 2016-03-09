@@ -57,6 +57,7 @@ namespace NeuralNet
                 int, int, int, int);
 
         double *m_weight;
+        double *m_bias;
     };
 }
 
