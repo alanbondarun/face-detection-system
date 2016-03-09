@@ -1,0 +1,8 @@
+{
+    "width": 640,
+    "height": 480,
+    "patch_size": 32,
+    "stride": 4,
+    "shrink_ratio": 0.89,
+    "net_config_file": "../net_set/test.json"
+}

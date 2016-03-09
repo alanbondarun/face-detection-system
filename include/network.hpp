@@ -62,6 +62,9 @@ namespace NeuralNet
         // returns classification value for one portion of data
         std::vector< int > evaluate(const std::vector<double>& data);
 
+        // returns classification values for a set of data
+        std::vector< std::vector<int> > evaluateAll(const std::vector<double>& data);
+
         // trains with m_train_size number of data
         // category_list: list of (list of desired output data for each input data)
         //    for each output layer

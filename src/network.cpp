@@ -360,6 +360,12 @@ namespace NeuralNet
         return retval;
     }
 
+    std::vector< std::vector<int> > Network::evaluateAll(
+            const std::vector<double>& data)
+    {
+        // TODO
+    }
+
     void Network::feedForward(const std::vector<double>& data,
             const std::vector<size_t>& list_idx)
     {
