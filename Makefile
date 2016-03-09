@@ -20,6 +20,7 @@ NEURAL_NET_OBJS := $(addprefix $(OBJ_DIR)/, $(CALC_SUBDIR)/calc-cpu.o \
 	$(LAYER_SUBDIR)/max_pool_layer.o \
 	$(LAYER_SUBDIR)/conv_layer.o \
 	$(LAYER_SUBDIR)/layer_factory.o \
+	$(LAYER_SUBDIR)/layer_merger.o \
 	$(IMAGE_SUBDIR)/image.o \
 	network.o) $(EXTLIB_OBJS)
 MIDDLE_OBJS := $(addprefix $(OBJ_DIR)/, led-user.o \
@@ -95,6 +96,13 @@ endif
 # default rule for object files
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp
 	$(CXX) $(CXXFLAGS) -c -o $@ $<
+
+###################################
+# list of additional dependencies #
+###################################
+
+$(OBJ_DIR)/$(LAYER_SUBDIR)/layer_merger.o: $(SRC_DIR)/$(LAYER_SUBDIR)/layer_merger.cpp \
+	$(INCLUDE_DIR)/$(LAYER_SUBDIR)/layer_merger.hpp
 
 $(OBJ_DIR)/led-user.o: $(SRC_DIR)/led-user.c
 	$(CXX) $(CXXFLAGS) -c -o $@ $<

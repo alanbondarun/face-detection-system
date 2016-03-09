@@ -18,6 +18,7 @@ namespace NeuralNet
             size_t image_height;
             size_t pool_width;
             size_t pool_height;
+            size_t stride;
         };
 
         MaxPoolLayer(const Dimension& dim);
@@ -34,6 +35,7 @@ namespace NeuralNet
         virtual Json::Value exportLayer();
 
         virtual std::string what() { return "maxpool"; }
+        virtual size_t getNeuronNum() const;
 
     private:
         const Dimension m_dim;

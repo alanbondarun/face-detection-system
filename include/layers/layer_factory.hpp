@@ -17,7 +17,7 @@ namespace NeuralNet
     public:
         enum class LayerType
         {
-            SIGMOID, CONVOLUTION, MAXPOOL, IMAGE
+            NONE, SIGMOID, CONVOLUTION, MAXPOOL, IMAGE
         };
 
         /* layer setting structs */
@@ -60,14 +60,12 @@ namespace NeuralNet
         };
         struct MaxPoolLayerSetting: public LayerSetting
         {
-            size_t map_num, pool_w, pool_h, input_w, input_h, output_w, output_h;
-            explicit MaxPoolLayerSetting(size_t _m, size_t _w, size_t _h, size_t _iw, size_t _ih)
+            size_t map_num, pool_w, pool_h, input_w, input_h, output_w, output_h, stride;
+            explicit MaxPoolLayerSetting(size_t _m, size_t _w, size_t _h, size_t _iw, size_t _ih, size_t _st)
                 : LayerSetting(), map_num(_m), pool_w(_w), pool_h(_h), input_w(_iw), input_h(_ih),
-                output_w(_iw / _w), output_h(_ih / _h) {}
+                output_w(_iw / _w), output_h(_ih / _h), stride(_st) {}
             virtual ~MaxPoolLayerSetting() {}
         };
-
-        using SettingPair = std::pair< LayerType, std::unique_ptr<LayerSetting> >;
 
         /* allow the usage of ctor only within this class */
     private:
@@ -88,13 +86,15 @@ namespace NeuralNet
         /* default factory function.
          * returns empty unique_ptr for invalid layer type
          */
-        std::unique_ptr<Layer> makeLayer(const SettingPair& prev_setting,
-                const SettingPair& cur_setting);
+        std::unique_ptr<Layer> makeLayer(const LayerSetting* prev_setting,
+                const LayerSetting* cur_setting);
 
         /* helper functions */
-        void getOutputDimension(const SettingPair& set_pair,
+        void getOutputDimension(const LayerSetting* set,
                 size_t& width, size_t& height);
-        size_t getMapNum(const SettingPair& set_pair);
+        size_t getMapNum(const LayerSetting* set);
+
+        LayerType whatType(const LayerSetting* set);
 
     private:
         std::map< std::pair<LayerType, LayerType>,

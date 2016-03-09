@@ -5,8 +5,11 @@
 namespace NeuralNet
 {
     MaxPoolLayer::MaxPoolLayer(const Dimension& dim)
-        : m_dim(dim), m_output_width(m_dim.image_width / m_dim.pool_width),
-        m_output_height(m_dim.image_height / m_dim.pool_height)
+        : m_dim(dim),
+        m_output_width((dim.image_width - dim.pool_width) /
+                (dim.pool_width - (dim.stride - 1)) + 1),
+        m_output_height((dim.image_height - dim.pool_height) /
+                (dim.pool_height - (dim.stride - 1)) + 1)
     {
     }
 
@@ -28,10 +31,10 @@ namespace NeuralNet
                         * (m_output_width * m_output_height);
                 downsample_max(prev_z + back_offset, cur_z + front_offset,
                         m_dim.image_width, m_dim.image_height,
-                        m_dim.pool_width, m_dim.pool_height);
+                        m_dim.pool_width, m_dim.pool_height, m_dim.stride);
                 downsample_max(prev_a + back_offset, cur_a + front_offset,
                         m_dim.image_width, m_dim.image_height,
-                        m_dim.pool_width, m_dim.pool_height);
+                        m_dim.pool_width, m_dim.pool_height, m_dim.stride);
             }
         }
     }
@@ -60,7 +63,7 @@ namespace NeuralNet
                 upsample_max(cur_e + front_offset, prev_a + back_offset,
                         prev_e + back_offset,
                         m_dim.image_width, m_dim.image_height,
-                        m_dim.pool_width, m_dim.pool_height);
+                        m_dim.pool_width, m_dim.pool_height, m_dim.stride);
             }
         }
     }
@@ -76,6 +79,11 @@ namespace NeuralNet
             train_num,
             m_dim.map_num * m_output_width * m_output_height
         );
+    }
+
+    size_t MaxPoolLayer::getNeuronNum() const
+    {
+        return m_dim.map_num * m_output_width * m_output_height;
     }
 
     void MaxPoolLayer::importLayer(const Json::Value& coeffs)

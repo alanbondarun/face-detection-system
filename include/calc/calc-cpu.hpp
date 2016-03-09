@@ -37,11 +37,12 @@ namespace NeuralNet
     void vec_outer_prod(const double *v1, const double *v2, double *mres, size_t dim_n, size_t dim_m);
 
     /* calculate downsampling */
-    void downsample_max(const double *m, double *mres, size_t dim_w, size_t dim_h, size_t pool_w, size_t pool_h);
+    void downsample_max(const double *m, double *mres, size_t dim_w, size_t dim_h, size_t pool_w,
+            size_t pool_h, size_t stride);
 
     /* calculate upsampling */
     void upsample_max(const double *me, const double *ma, double *me_res,
-            size_t dim_w, size_t dim_h, size_t pool_w, size_t pool_h);
+            size_t dim_w, size_t dim_h, size_t pool_w, size_t pool_h, size_t stride);
 
     /* flip (rotate 180 deg) a matrix */
     void flip_mat(const double *m, double *mres, size_t dim_w, size_t dim_h);

@@ -215,6 +215,11 @@ namespace NeuralNet
             m_set.current_map_num * m_output_width * m_output_height
         );
     }
+    
+    size_t ConvLayer::getNeuronNum() const
+    {
+        return m_set.current_map_num * m_output_width * m_output_height;
+    }
 
     void ConvLayer::importLayer(const Json::Value& coeffs)
     {

@@ -28,13 +28,38 @@ namespace NeuralNet
                 = std::move(std::make_unique< LayerCreator<ConvLayerSetting, MaxPoolLayerSetting> >());
     }
 
-    std::unique_ptr<Layer> LayerFactory::makeLayer(const SettingPair& prev_setting,
-            const SettingPair& cur_setting)
+    LayerFactory::LayerType LayerFactory::whatType(const LayerFactory::LayerSetting* set)
     {
-        auto creator = m_creators.find(std::make_pair(prev_setting.first, cur_setting.first));
+        if (dynamic_cast<const SigmoidLayerSetting*>(set))
+        {
+            return LayerType::SIGMOID;
+        }
+        if (dynamic_cast<const ImageLayerSetting*>(set))
+        {
+            return LayerType::IMAGE;
+        }
+        if (dynamic_cast<const ConvLayerSetting*>(set))
+        {
+            return LayerType::CONVOLUTION;
+        }
+        if (dynamic_cast<const MaxPoolLayerSetting*>(set))
+        {
+            return LayerType::MAXPOOL;
+        }
+        return LayerType::NONE;
+    }
+
+    std::unique_ptr<Layer> LayerFactory::makeLayer(
+            const LayerFactory::LayerSetting* prev_setting,
+            const LayerFactory::LayerSetting* cur_setting)
+    {
+        auto prev_t = whatType(prev_setting);
+        auto cur_t = whatType(cur_setting);
+
+        auto creator = m_creators.find(std::make_pair(prev_t, cur_t));
         if (creator != m_creators.end())
         {
-            return creator->second->create(*(prev_setting.second), *(cur_setting.second));
+            return creator->second->create(*(prev_setting), *(cur_setting));
         }
         return std::unique_ptr<Layer>();
     }
@@ -176,49 +201,52 @@ namespace NeuralNet
                     cast_cur_set.input_h,
                     cast_cur_set.pool_w,
                     cast_cur_set.pool_h,
+                    cast_cur_set.stride
                 })
         );
     }
 
-    void LayerFactory::getOutputDimension(const SettingPair& set_pair,
+    void LayerFactory::getOutputDimension(const LayerSetting* set,
             size_t& width, size_t& height)
     {
-        if (set_pair.first == LayerType::IMAGE)
+        auto set_t = whatType(set);
+        if (set_t == LayerType::IMAGE)
         {
-            auto ils = static_cast<const ImageLayerSetting&>(*(set_pair.second));
+            auto ils = static_cast<const ImageLayerSetting&>(*(set));
             width = ils.image_w;
             height = ils.image_h;
         }
-        else if (set_pair.first == LayerType::CONVOLUTION)
+        else if (set_t == LayerType::CONVOLUTION)
         {
-            auto cs = static_cast<const ConvLayerSetting&>(*(set_pair.second));
+            auto cs = static_cast<const ConvLayerSetting&>(*(set));
             width = cs.output_w;
             height = cs.output_h;
         }
-        else if (set_pair.first == LayerType::MAXPOOL)
+        else if (set_t == LayerType::MAXPOOL)
         {
-            auto mps = static_cast<const MaxPoolLayerSetting&>(*(set_pair.second));
+            auto mps = static_cast<const MaxPoolLayerSetting&>(*(set));
             width = mps.output_w;
             height = mps.output_h;
         }
     }
 
-    size_t LayerFactory::getMapNum(const SettingPair& set_pair)
+    size_t LayerFactory::getMapNum(const LayerSetting* set)
     {
         size_t num = 0;
-        if (set_pair.first == LayerType::IMAGE)
+        auto set_t = whatType(set);
+        if (set_t == LayerType::IMAGE)
         {
-            auto ils = static_cast<const ImageLayerSetting&>(*(set_pair.second));
+            auto ils = static_cast<const ImageLayerSetting&>(*(set));
             num = ils.channel_num;
         }
-        else if (set_pair.first == LayerType::CONVOLUTION)
+        else if (set_t == LayerType::CONVOLUTION)
         {
-            auto cs = static_cast<const ConvLayerSetting&>(*(set_pair.second));
+            auto cs = static_cast<const ConvLayerSetting&>(*(set));
             num = cs.map_num;
         }
-        else if (set_pair.first == LayerType::MAXPOOL)
+        else if (set_t == LayerType::MAXPOOL)
         {
-            auto mps = static_cast<const MaxPoolLayerSetting&>(*(set_pair.second));
+            auto mps = static_cast<const MaxPoolLayerSetting&>(*(set));
             num = mps.map_num;
         }
         return num;

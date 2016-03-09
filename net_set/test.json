@@ -11,12 +11,13 @@
     "batch_size": 1,
     "epoch_num": 1,
     "learn_rate": 0.01,
+    "start_id": [1],
     "layers": [
         {
             "id": 1,
             "type": "convolution",
             "data_location": "1.json",
-            "children": [2],
+            "child": [2],
             "dimensions": {
                 "map_num": 32,
                 "recep_size": 5,
@@ -28,17 +29,18 @@
             "id": 2,
             "type": "maxpool",
             "data_location": "2.json",
-            "children": [3],
+            "child": [3],
             "dimensions": {
                 "pool_width": 2,
-                "pool_height": 2
+                "pool_height": 2,
+                "stride": 1
             }
         },
         {
             "id": 3,
             "type": "convolution",
             "data_location": "3.json",
-            "children": [4],
+            "child": [4],
             "dimensions": {
                 "map_num": 32,
                 "recep_size": 3,
@@ -50,7 +52,7 @@
             "id": 4,
             "type": "convolution",
             "data_location": "4.json",
-            "children": [5],
+            "child": [5],
             "dimensions": {
                 "map_num": 24,
                 "recep_size": 3,
@@ -62,17 +64,18 @@
             "id": 5,
             "type": "maxpool",
             "data_location": "5.json",
-            "children": [6],
+            "child": [6],
             "dimensions": {
                 "pool_width": 2,
-                "pool_height": 2
+                "pool_height": 2,
+                "stride": 1
             }
         },
         {
             "id": 6,
             "type": "sigmoid",
             "data_location": "6.json",
-            "children": [7],
+            "child": [7],
             "dimensions": {
                 "size": 512
             },
@@ -82,7 +85,7 @@
             "id": 7,
             "type": "sigmoid",
             "data_location": "7.json",
-            "children": [8],
+            "child": [8],
             "dimensions": {
                 "size": 128
             },
@@ -93,7 +96,7 @@
             "id": 8,
             "type": "sigmoid",
             "data_location": "8.json",
-            "children": [],
+            "child": [],
             "dimensions": {
                 "size": 2
             },

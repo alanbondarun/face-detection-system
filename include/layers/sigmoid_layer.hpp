@@ -32,6 +32,7 @@ namespace NeuralNet
         virtual Json::Value exportLayer();
 
         virtual std::string what() { return "sigmoid"; }
+        virtual size_t getNeuronNum() const;
 
         void setDropout(bool enable) { m_dropout_enabled = enable; }
 
