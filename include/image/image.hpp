@@ -74,6 +74,11 @@ namespace NeuralNet
             double mean, double stdev);
 
     /**
+     * Calculate the variance of pixel values from a grayscale image
+     */
+    double getVariance(const std::unique_ptr<Image>& image);
+
+    /**
      * Default mean & stdev value if not given
      */
     std::unique_ptr<Image> intensityPatch(const std::unique_ptr<Image>& image);

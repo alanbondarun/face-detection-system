@@ -317,6 +317,33 @@ namespace NeuralNet
         return newImage;
     }
 
+    double getVariance(const std::unique_ptr<Image>& image)
+    {
+        const auto orig_data_ptr = image->getValues(0);
+        const auto w = image->getWidth();
+        const auto h = image->getHeight();
+
+        double current_mean = 0;
+        for (size_t j = 0; j < h; j++)
+        {
+            for (size_t i = 0; i < w; i++)
+            {
+                current_mean += orig_data_ptr[j*w + i];
+            }
+        }
+        current_mean /= (w*h);
+
+        double current_var = 0;
+        for (size_t j = 0; j < h; j++)
+        {
+            for (size_t i = 0; i < w; i++)
+            {
+                current_var += std::pow(orig_data_ptr[j*w + i] - current_mean, 2);
+            }
+        }
+        return current_var / (w * h);
+    }
+
     std::unique_ptr<Image> intensityPatch(const std::unique_ptr<Image>& image,
             double mean, double stdev)
     {
@@ -335,16 +362,9 @@ namespace NeuralNet
                 current_mean += orig_data_ptr[j*w + i];
             }
         }
+        current_mean /= (w*h);
 
-        double current_var = 0;
-        for (size_t j = 0; j < h; j++)
-        {
-            for (size_t i = 0; i < w; i++)
-            {
-                current_var += std::pow(orig_data_ptr[j*w + i] - current_mean, 2);
-            }
-        }
-
+        double current_var = getVariance(image);
         if (std::isfinite(current_var) && !std::isnormal(current_var))
         {
             // if the sum of squares of errors is equal to zero or is subnormal,
@@ -361,7 +381,7 @@ namespace NeuralNet
             return newImage;
         }
 
-        double alpha = stdev * std::sqrt((w * h) / current_var);
+        double alpha = stdev * std::sqrt(1.0 / current_var);
 
         auto newImage = std::make_unique<Image>(w, h, 1);
         for (size_t j = 0; j < h; j++)

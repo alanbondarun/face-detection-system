@@ -136,7 +136,9 @@ bool load_nonface_patch(std::vector< std::unique_ptr<NeuralNet::Image> >& images
         size_t num_image, size_t train_set)
 {
     const size_t set_size = 2000;
-    const size_t window_per_img = 10;
+    const size_t sample_per_img = 10;
+    const size_t max_sample_per_img = 1000;
+    const double var_thresh = 0.0007;
     
     size_t lbound = set_size * train_set + 1;
     size_t ubound = lbound + set_size;
@@ -148,6 +150,9 @@ bool load_nonface_patch(std::vector< std::unique_ptr<NeuralNet::Image> >& images
     std::random_device rd;
     std::mt19937 rgen(rd());
     std::shuffle(idxes.begin(), idxes.end(), rgen);
+
+    size_t num_failed_imgs = 0;
+    size_t num_accept_imgs = 0;
 
     size_t img_count = 0;
     size_t loaded_patch = 0;
@@ -166,17 +171,35 @@ bool load_nonface_patch(std::vector< std::unique_ptr<NeuralNet::Image> >& images
         std::uniform_int_distribution<size_t> dis_w(0, img_ptr->getWidth() - 32);
         std::uniform_int_distribution<size_t> dis_h(0, img_ptr->getHeight() - 32);
 
-        for (int i=0; i<window_per_img && i+loaded_patch < num_image; i++)
+        size_t added_patch = 0;
+        for (int i=0; i<max_sample_per_img && added_patch < sample_per_img
+                && added_patch + loaded_patch < num_image; i++)
         {
-            images.push_back(preprocessImage(NeuralNet::grayscaleImage(
-                     NeuralNet::cropImage(img_ptr, dis_w(rgen), dis_h(rgen),
-                         32, 32)
-            )));
-            loaded_patch++;
+            auto cropImage = NeuralNet::grayscaleImage(NeuralNet::cropImage(
+                        img_ptr, dis_w(rgen), dis_h(rgen), 32, 32));
+
+            if (NeuralNet::getVariance(cropImage) <= var_thresh)
+            {
+                num_failed_imgs++;
+            }
+            else
+            {
+                num_accept_imgs++;
+            }
+
+            if (NeuralNet::getVariance(cropImage) <= var_thresh)
+                continue;
+
+            images.push_back(preprocessImage(cropImage));
+            added_patch++;
         }
+        loaded_patch += added_patch;
 
         img_count++;
     }
+
+    std::cout << "accept=" << num_accept_imgs << " reject="
+        << num_failed_imgs << std::endl;
 
     if (loaded_patch == num_image)
         return true;
