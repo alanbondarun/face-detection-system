@@ -32,6 +32,22 @@ std::unique_ptr<NeuralNet::Image> preprocessImage(
                 NeuralNet::equalizePatch(image)));
 }
 
+std::vector<double> getRawDataFromImages(
+        const std::vector< std::unique_ptr<NeuralNet::Image> >& images)
+{
+    std::vector<double> data;
+    for (auto& img_ptr: images)
+    {
+        for (size_t c = 0; c < img_ptr->getChannelNum(); c++)
+        {
+            data.insert(data.end(), img_ptr->getValues(c),
+                    img_ptr->getValues(c) +
+                        (img_ptr->getWidth() * img_ptr->getHeight()));
+        }
+    }
+    return data;
+}
+
 bool load_fddb(std::vector< std::unique_ptr<NeuralNet::Image> >& images,
         size_t num_image, bool uses_first)
 {
@@ -233,26 +249,14 @@ bool load_non_faces(std::vector<double>& data, std::vector< std::vector<int> >& 
 }
 
 int eval_faces(NeuralNet::Network& network,
-        std::vector< std::unique_ptr<NeuralNet::Image> >& test_images, int correct)
+        const std::vector<double>& eval_data, int correct)
 {
-    const size_t n_eval_ch = 1;
+    auto res = network.evaluateAll(eval_data);
+
     int count = 0;
-    for (int i = 0; i < test_images.size(); i++)
+    for (auto& res_val: res[0])
     {
-        std::vector<double> eval_data;
-        for (size_t j = 0; j < n_eval_ch; j++)
-        {
-            eval_data.insert(eval_data.end(),
-                    test_images[i]->getValues(j),
-                    test_images[i]->getValues(j) +
-                        (test_images[i]->getWidth() * test_images[i]->getHeight())
-            );
-        }
-
-        auto res = network.evaluate(eval_data);
-
-        // counts faces only
-        if (res[0] == correct)
+        if (res_val == correct)
             count++;
     }
     return count;
@@ -264,11 +268,8 @@ int main(int argc, char* argv[])
     const size_t test_lfw = 1000;
     const size_t test_fddb = 1000;
     const size_t test_nonface = 1000;
-    const size_t n_eval_ch = 1;
 
     pm_init(argv[0], 0);
-
-    std::ofstream res_file("result.txt");
 
     std::cout << "initiating network..." << std::endl;
 
@@ -299,6 +300,9 @@ int main(int argc, char* argv[])
             NeuralNet::grayscaleImage(NeuralNet::loadBitmapImage(oss.str().c_str())))
         ));
     }
+
+    auto originalImgData = getRawDataFromImages(imageList);
+    imageList.clear();
     std::cout << "loading evaluation images (original) finished" << std::endl;
 
     std::vector< std::unique_ptr<NeuralNet::Image> > fddbTestImages;
@@ -307,6 +311,9 @@ int main(int argc, char* argv[])
         std::cout << "error loading FDDB test images" << std::endl;
         return false;
     }
+
+    auto fddbTestData = getRawDataFromImages(fddbTestImages);
+    fddbTestImages.clear();
     std::cout << "loading evaluation images (FDDB) finished" << std::endl;
 
     // loading LFW images for evaluation
@@ -335,6 +342,9 @@ int main(int argc, char* argv[])
             NeuralNet::grayscaleImage(NeuralNet::loadPPMImage(file_name.c_str()))
         )));
     }
+
+    auto lfwTestData = getRawDataFromImages(lfwTestImages);
+    lfwTestImages.clear();
     std::cout << "loading evaluation images (LFW) finished" << std::endl;
 
     std::vector< std::unique_ptr<NeuralNet::Image> > nonFaceImages;
@@ -343,6 +353,9 @@ int main(int argc, char* argv[])
         std::cout << "error loading evaluation non-face images" << std::endl;
         return 0;
     }
+
+    auto nonFaceTestData = getRawDataFromImages(nonFaceImages);
+    nonFaceImages.clear();
     std::cout << "loading evaluation images (non-face) finished" << std::endl;
 
     if (do_train)
@@ -356,14 +369,14 @@ int main(int argc, char* argv[])
         {
             return 0;
         }
-        std::cout << "loading face images finished" << std::endl;
+        std::cout << "loading face images (for training) finished" << std::endl;
 
         // load non-face images
         if (!load_non_faces(data, category))
         {
             return 0;
         }
-        std::cout << "loading non-face images finished" << std::endl;
+        std::cout << "loading non-face images (for training) finished" << std::endl;
 
         const size_t n_epoch = 30;
         for (size_t q = 1; q <= n_epoch; q++)
@@ -377,79 +390,60 @@ int main(int argc, char* argv[])
 
             std::cout << "result of epoch #" << q << std::endl;
             std::cout << "(0 = face, 1 = non-face)" << std::endl;
-            res_file << "result of epoch #" << q << std::endl;
-            res_file << "(0 = face, 1 = non-face)" << std::endl;
 
             // evaluation with other images
             size_t correct = 0;
+            auto res_original = network.evaluateAll(originalImgData);
+
             for (size_t i = 0; i < imageCount; i++)
             {
-                std::vector<double> eval_data;
-                for (size_t j = 0; j < n_eval_ch; j++)
-                {
-                    eval_data.insert(eval_data.end(),
-                            imageList[i]->getValues(j),
-                            imageList[i]->getValues(j) +
-                                (imageList[i]->getWidth() * imageList[i]->getHeight())
-                    );
-                }
-
-                auto res = network.evaluate(eval_data);
-                for (auto& category_val: res)
-                {
-                    std::cout << "image #" << (i+1) << ": " << category_val << std::endl;
-                    res_file << "image #" << (i+1) << ": " << category_val << std::endl;
-                    if (i<14 && category_val==0)
-                        correct++;
-                    if (14<=i && category_val==1)
-                        correct++;
-                }
+                std::cout << "image #" << (i+1) << ":";
+                for (auto& category_val: res_original)
+                    std::cout << " " << category_val[i];
+                std::cout << std::endl;
+                if (i<14 && res_original[0][i]==0)
+                    correct++;
+                if (14<=i && res_original[0][i]==1)
+                    correct++;
             }
             std::cout << "correct answers: " << correct << std::endl;
-            res_file << "correct answers: " << correct << std::endl;
 
-            size_t t1 = eval_faces(network, lfwTestImages, 0);
-            size_t t2 = eval_faces(network, nonFaceImages, 1);
-            size_t t3 = eval_faces(network, fddbTestImages, 0);
+            size_t t1 = eval_faces(network, lfwTestData, 0);
+            size_t t2 = eval_faces(network, nonFaceTestData, 1);
+            size_t t3 = eval_faces(network, fddbTestData, 0);
             std::cout << "test with LFW: " << t1 << "/" << test_lfw << std::endl;
-            res_file << "test with LFW: " << t1 << "/" << test_lfw << std::endl;
             std::cout << "test with non-face: " << t2 << "/" << test_nonface << std::endl;
-            res_file << "test with non-face: " << t2 << "/" << test_nonface << std::endl;
             std::cout << "test with FDDB: " << t3 << "/" << test_fddb << std::endl;
-            res_file << "test with FDDB: " << t3 << "/" << test_fddb << std::endl;
         }
     }
     else
     {
         network.loadFromFiles();
 
+        std::cout << "(0 = face, 1 = non-face)" << std::endl;
+
+        // evaluation with other images
+        size_t correct = 0;
+        auto res_original = network.evaluateAll(originalImgData);
+
         for (size_t i = 0; i < imageCount; i++)
         {
-            std::vector<double> eval_data;
-            for (size_t j = 0; j < n_eval_ch; j++)
-            {
-                eval_data.insert(eval_data.end(),
-                        imageList[i]->getValues(j),
-                        imageList[i]->getValues(j) +
-                            (imageList[i]->getWidth() * imageList[i]->getHeight())
-                );
-            }
-
-            auto res = network.evaluate(eval_data);
-            for (auto& category_val: res)
-            {
-                std::cout << "image #" << (i+1) << ": " << category_val << std::endl;
-            }
+            std::cout << "image #" << (i+1) << ":";
+            for (auto& category_val: res_original)
+                std::cout << " " << category_val[i];
+            std::cout << std::endl;
+            if (i<14 && res_original[0][i]==0)
+                correct++;
+            if (14<=i && res_original[0][i]==1)
+                correct++;
         }
+        std::cout << "correct answers: " << correct << std::endl;
 
-        size_t t1 = eval_faces(network, lfwTestImages, 0);
-        size_t t2 = eval_faces(network, nonFaceImages, 1);
-        size_t t3 = eval_faces(network, fddbTestImages, 0);
+        size_t t1 = eval_faces(network, lfwTestData, 0);
+        size_t t2 = eval_faces(network, nonFaceTestData, 1);
+        size_t t3 = eval_faces(network, fddbTestData, 0);
         std::cout << "test with LFW: " << t1 << "/" << test_lfw << std::endl;
-        res_file << "test with LFW: " << t1 << "/" << test_lfw << std::endl;
         std::cout << "test with non-face: " << t2 << "/" << test_nonface << std::endl;
-        res_file << "test with non-face: " << t2 << "/" << test_nonface << std::endl;
         std::cout << "test with FDDB: " << t3 << "/" << test_fddb << std::endl;
-            res_file << "test with FDDB: " << t3 << "/" << test_fddb << std::endl;
     }
 }
