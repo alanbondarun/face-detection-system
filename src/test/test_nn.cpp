@@ -126,7 +126,7 @@ bool load_fddb(std::vector< std::unique_ptr<NeuralNet::Image> >& images,
 
 bool load_faces(std::vector<double>& data, std::vector< std::vector<int> >& category)
 {
-    const size_t num_image = 1000;
+    const size_t num_image = 2000;
     std::vector< std::unique_ptr<NeuralNet::Image> > images;
 
     if (!load_fddb(images, num_image, true))
@@ -224,7 +224,7 @@ bool load_nonface_patch(std::vector< std::unique_ptr<NeuralNet::Image> >& images
 
 bool load_non_faces(std::vector<double>& data, std::vector< std::vector<int> >& category)
 {
-    const size_t num_image = 3000;
+    const size_t num_image = 5000;
 
     std::vector< std::unique_ptr<NeuralNet::Image> > images;
     if (!load_nonface_patch(images, num_image, 0))

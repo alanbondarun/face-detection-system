@@ -387,19 +387,7 @@ namespace NeuralNet
             }
         }
 
-        // layer data construction
-        m_input_data = std::make_unique<LayerData>(num_data, m_unit_size);
-        for (auto& node_pair: node_map)
-        {
-            node_pair.second->data =
-                    std::move(node_pair.second->layer->createLayerData(num_data));
-        }
-        for (auto& node_pair: merger_map)
-        {
-            node_pair.second->data =
-                    std::move(node_pair.second->merger->createLayerData(num_data));
-        }
-
+        prepareLayerData(num_data);
         feedForward(data, lst_idxes);
 
         /* return value generation */
@@ -490,6 +478,21 @@ namespace NeuralNet
         }
     }
 
+    void Network::prepareLayerData(size_t train_num)
+    {
+        m_input_data = std::make_unique<LayerData>(train_num, m_unit_size);
+        for (auto& node_pair: node_map)
+        {
+            node_pair.second->data =
+                    std::move(node_pair.second->layer->createLayerData(train_num));
+        }
+        for (auto& node_pair: merger_map)
+        {
+            node_pair.second->data =
+                    std::move(node_pair.second->merger->createLayerData(train_num));
+        }
+    }
+
     // returns list of error values for each test case
     void Network::calcOutputErrors(
             const std::vector< std::vector<int> >& category_list,
@@ -575,7 +578,7 @@ namespace NeuralNet
         if (!(m_learn_rate_set.enable))
             return;
 
-        const size_t window_first_idx = total_errors.size() -
+        const int window_first_idx = total_errors.size() -
                 m_learn_rate_set.drop_count - 1;
         if (window_first_idx < 0)
             return;
@@ -591,7 +594,7 @@ namespace NeuralNet
         if (!error_not_falling)
             return;
 
-        m_learn_rate /= m_learn_rate_set.rate;
+        m_learn_rate *= m_learn_rate_set.rate;
         for (auto& node_pair: node_map)
         {
             node_pair.second->layer->setLearnRate(m_learn_rate);
@@ -608,19 +611,6 @@ namespace NeuralNet
             data_idxes.push_back(i);
 
         std::vector<size_t> batch_idxes(m_batch_size);
-
-        // layer data construction
-        m_input_data = std::make_unique<LayerData>(m_batch_size, m_unit_size);
-        for (auto& node_pair: node_map)
-        {
-            node_pair.second->data =
-                    std::move(node_pair.second->layer->createLayerData(m_batch_size));
-        }
-        for (auto& node_pair: merger_map)
-        {
-            node_pair.second->data =
-                    std::move(node_pair.second->merger->createLayerData(m_batch_size));
-        }
 
         std::random_device rd;
         std::mt19937 rgen(rd());
@@ -640,6 +630,7 @@ namespace NeuralNet
 
         for (size_t epoch = 0; epoch < m_epoch_num; epoch++)
         {
+            prepareLayerData(m_batch_size);
             std::shuffle(data_idxes.begin(), data_idxes.end(), rgen);
 
             std::vector<double> error_vals(m_train_size, 0);
@@ -680,6 +671,7 @@ namespace NeuralNet
             {
                 std::cout << "learn rate is below the threshold (" << 
                     m_learn_rate_set.halt_thresh_rate << "). Stop." << std::endl;
+                break;
             }
         }
     }

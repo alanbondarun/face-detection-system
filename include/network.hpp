@@ -95,6 +95,8 @@ namespace NeuralNet
                 std::unique_ptr<LayerFactory::LayerSetting>& set,
                 NodeID id, NodeID child_id);
 
+        void prepareLayerData(size_t train_num);
+
         void testTestSet(const TestSet& testset);
 
         // parse and add layer(s) from one JSON layer block
