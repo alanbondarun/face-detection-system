@@ -30,6 +30,15 @@ namespace NeuralNet
         struct MergerNode;
         struct TestSet;
 
+        struct LearnRateSetting
+        {
+            bool enable;
+            double rate;
+            size_t drop_count;
+            double drop_thresh;
+            double halt_thresh_rate;
+        };
+
         using NodeUPtr = std::unique_ptr<Node>;
         using MergerNodeUPtr = std::unique_ptr<MergerNode>;
 
@@ -105,6 +114,14 @@ namespace NeuralNet
 
         std::vector<int> getCategory(const LayerData& data) const;
 
+        void calcOutputErrors(
+                const std::vector< std::vector<int> >& category_list,
+                const std::vector< size_t >& batch_idxes,
+                std::vector<double>& error_vals,
+                size_t batch_num);
+
+        void dropLearnRate(const std::vector<double>& total_errors);
+
         /* dimensions */
         InputType m_in_type;
         struct InputSize
@@ -114,6 +131,7 @@ namespace NeuralNet
         } m_in_dim;
         size_t m_unit_size, m_train_size, m_batch_size, m_epoch_num;
         double m_learn_rate;
+        LearnRateSetting m_learn_rate_set;
 
         std::vector<NodeID> m_start_idxes;
         std::vector<NodeID> m_leaf_idx;

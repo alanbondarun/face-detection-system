@@ -37,6 +37,9 @@ namespace NeuralNet
         virtual std::string what() { return "maxpool"; }
         virtual size_t getNeuronNum() const;
 
+        virtual void setLearnRate(double rate) {}
+        virtual double getLearnRate() const { return 0; }
+
     private:
         const Dimension m_dim;
         const size_t m_output_width, m_output_height;

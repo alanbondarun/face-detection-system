@@ -61,7 +61,19 @@ namespace NeuralNet
         m_batch_size = setting["batch_size"].asUInt();
         m_epoch_num = setting["epoch_num"].asUInt();
 
+        // learn rate setting
         m_learn_rate = setting["learn_rate"].asDouble();
+
+        auto lr_drop_value = setting["learn_rate_drop"];
+        m_learn_rate_set.enable = lr_drop_value["enable"].asBool();
+        if (m_learn_rate_set.enable)
+        {
+            m_learn_rate_set.rate = lr_drop_value["rate"].asDouble();
+            m_learn_rate_set.drop_count = lr_drop_value["drop_count"].asUInt();
+            m_learn_rate_set.drop_thresh = lr_drop_value["drop_thresh"].asDouble();
+            m_learn_rate_set.halt_thresh_rate =
+                lr_drop_value["halt_thresh_rate"].asDouble();
+        }
 
         /* input file description */
         auto input_val = setting["input"];
@@ -478,6 +490,116 @@ namespace NeuralNet
         }
     }
 
+    // returns list of error values for each test case
+    void Network::calcOutputErrors(
+            const std::vector< std::vector<int> >& category_list,
+            const std::vector< size_t >& batch_idxes,
+            std::vector<double>& error_vals,
+            size_t batch_num)
+    {
+        for (size_t i = 0; i < m_leaf_idx.size(); i++)
+        {
+            auto& leaf_id = m_leaf_idx[i];
+            auto& leaf_node = *(node_map[leaf_id]);
+            auto output_nodes = leaf_node.data->getDataNum();
+
+            std::vector<double> sprime_z(m_batch_size * output_nodes, 0);
+            copy_vec(leaf_node.data->get(LayerData::DataIndex::INTER_VALUE),
+                    sprime_z.data(),
+                    output_nodes * m_batch_size);
+            apply_vec(sprime_z.data(), sprime_z.data(), output_nodes * m_batch_size,
+                    ActivationFuncs::f_sigmoid_prime);
+
+            std::vector<double> deriv_cost(m_batch_size * output_nodes, 0);
+            for (size_t j = 0; j < m_batch_size; j++)
+            {
+                for (size_t k = 0; k < output_nodes; k++)
+                {
+                    deriv_cost[j * output_nodes + k] =
+                            -category_list[i][output_nodes * batch_idxes[j] + k];
+                }
+            }
+
+            // softmax output value calculation
+            std::vector<double> softmax_output(m_batch_size * output_nodes, 0);
+            apply_vec(leaf_node.data->get(LayerData::DataIndex::ACTIVATION),
+                    softmax_output.data(), output_nodes * m_batch_size,
+                    [](double in) -> double {
+                        return std::exp(in);
+                    });
+            for (size_t j = 0; j < m_batch_size; j++)
+            {
+                double expsum = 0;
+                for (size_t k = 0; k < output_nodes; k++)
+                {
+                    expsum += softmax_output[j*output_nodes + k];
+                }
+                for (size_t k = 0; k < output_nodes; k++)
+                {
+                    softmax_output[j*output_nodes + k] /= expsum;
+                }
+            }
+
+            // error value calculation
+            std::vector<double> batch_errors(m_batch_size * output_nodes, 0);
+            apply_vec(softmax_output.data(), batch_errors.data(),
+                    output_nodes * m_batch_size,
+                    [](double in) -> double {
+                        return std::log(in);
+                    });
+            pmul_vec(batch_errors.data(), deriv_cost.data(), batch_errors.data(),
+                    output_nodes * m_batch_size);
+            for (size_t j = 0; j < m_batch_size; j++)
+            {
+                double errorsum = 0;
+                for (size_t k = 0; k < output_nodes; k++)
+                {
+                    errorsum += batch_errors[j*output_nodes + k];
+                }
+                error_vals[batch_num*m_batch_size + j] += errorsum;
+            }
+
+            add_vec(softmax_output.data(),
+                    deriv_cost.data(),
+                    deriv_cost.data(),
+                    output_nodes * m_batch_size);
+
+            pmul_vec(sprime_z.data(), deriv_cost.data(),
+                    leaf_node.data->get(LayerData::DataIndex::ERROR),
+                    output_nodes * m_batch_size);
+        }
+    }
+
+    void Network::dropLearnRate(const std::vector<double>& total_errors)
+    {
+        if (!(m_learn_rate_set.enable))
+            return;
+
+        const size_t window_first_idx = total_errors.size() -
+                m_learn_rate_set.drop_count - 1;
+        if (window_first_idx < 0)
+            return;
+
+        bool error_not_falling = true;
+        for (size_t i = window_first_idx; i < total_errors.size() - 1; i++)
+        {
+            if (total_errors[i] - total_errors[i+1] >= m_learn_rate_set.drop_thresh)
+            {
+                error_not_falling = false;
+            }
+        }
+        if (!error_not_falling)
+            return;
+
+        m_learn_rate /= m_learn_rate_set.rate;
+        for (auto& node_pair: node_map)
+        {
+            node_pair.second->layer->setLearnRate(m_learn_rate);
+        }
+
+        std::cout << "learn rate dropped to: " << m_learn_rate << std::endl;
+    }
+
     void Network::train(const std::vector<double>& data,
             const std::vector< std::vector<int> >& category_list)
     {
@@ -514,6 +636,8 @@ namespace NeuralNet
             }
         }
 
+        std::vector<double> total_errors;
+
         for (size_t epoch = 0; epoch < m_epoch_num; epoch++)
         {
             std::shuffle(data_idxes.begin(), data_idxes.end(), rgen);
@@ -528,80 +652,7 @@ namespace NeuralNet
                 }
 
                 feedForward(data, batch_idxes);
-
-                /* error value for output layers */
-                for (size_t i = 0; i < m_leaf_idx.size(); i++)
-                {
-                    auto& leaf_id = m_leaf_idx[i];
-                    auto& leaf_node = *(node_map[leaf_id]);
-                    auto output_nodes = leaf_node.data->getDataNum();
-
-                    std::vector<double> sprime_z(m_batch_size * output_nodes, 0);
-                    copy_vec(leaf_node.data->get(LayerData::DataIndex::INTER_VALUE),
-                            sprime_z.data(),
-                            output_nodes * m_batch_size);
-                    apply_vec(sprime_z.data(), sprime_z.data(), output_nodes * m_batch_size,
-                            ActivationFuncs::f_sigmoid_prime);
-
-                    std::vector<double> deriv_cost(m_batch_size * output_nodes, 0);
-                    for (size_t j = 0; j < m_batch_size; j++)
-                    {
-                        for (size_t k = 0; k < output_nodes; k++)
-                        {
-                            deriv_cost[j * output_nodes + k] =
-                                    -category_list[i][output_nodes * batch_idxes[j] + k];
-                        }
-                    }
-
-                    // softmax output value calculation
-                    std::vector<double> softmax_output(m_batch_size * output_nodes, 0);
-                    apply_vec(leaf_node.data->get(LayerData::DataIndex::ACTIVATION),
-                            softmax_output.data(), output_nodes * m_batch_size,
-                            [](double in) -> double {
-                                return std::exp(in);
-                            });
-                    for (size_t j = 0; j < m_batch_size; j++)
-                    {
-                        double expsum = 0;
-                        for (size_t k = 0; k < output_nodes; k++)
-                        {
-                            expsum += softmax_output[j*output_nodes + k];
-                        }
-                        for (size_t k = 0; k < output_nodes; k++)
-                        {
-                            softmax_output[j*output_nodes + k] /= expsum;
-                        }
-                    }
-
-                    // error value calculation
-                    std::vector<double> batch_errors(m_batch_size * output_nodes, 0);
-                    apply_vec(softmax_output.data(), batch_errors.data(),
-                            output_nodes * m_batch_size,
-                            [](double in) -> double {
-                                return std::log(in);
-                            });
-                    pmul_vec(batch_errors.data(), deriv_cost.data(), batch_errors.data(),
-                            output_nodes * m_batch_size);
-                    for (size_t j = 0; j < m_batch_size; j++)
-                    {
-                        double errorsum = 0;
-                        for (size_t k = 0; k < output_nodes; k++)
-                        {
-                            errorsum += batch_errors[j*output_nodes + k];
-                        }
-                        error_vals[batch_num*m_batch_size + j] += errorsum;
-                    }
-
-                    add_vec(softmax_output.data(),
-                            deriv_cost.data(),
-                            deriv_cost.data(),
-                            output_nodes * m_batch_size);
-
-                    pmul_vec(sprime_z.data(), deriv_cost.data(),
-                            leaf_node.data->get(LayerData::DataIndex::ERROR),
-                            output_nodes * m_batch_size);
-                }
-
+                calcOutputErrors(category_list, batch_idxes, error_vals, batch_num);
                 backPropagate();
             }
 
@@ -617,10 +668,18 @@ namespace NeuralNet
             }
             std::cout << "total error = " << total_error << std::endl;
 
-            // test for each train set
+            total_errors.push_back(total_error);
+            
             for (auto& test_set: m_list_testset)
             {
                 testTestSet(test_set);
+            }
+
+            dropLearnRate(total_errors);
+            if (m_learn_rate <= m_learn_rate_set.halt_thresh_rate)
+            {
+                std::cout << "learn rate is below the threshold (" << 
+                    m_learn_rate_set.halt_thresh_rate << "). Stop." << std::endl;
             }
         }
     }

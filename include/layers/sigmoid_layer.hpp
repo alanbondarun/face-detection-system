@@ -41,7 +41,7 @@ namespace NeuralNet
 
     private:
         const size_t m_prev_d, m_current_d;
-        const double m_learn_rate;
+        double m_learn_rate;
 
         const bool m_uses_dropout;
         bool m_dropout_enabled;
@@ -50,6 +50,10 @@ namespace NeuralNet
         double *m_weight;
         double *m_bias;
         double *m_dropout_coeff;
+
+    public:
+        virtual void setLearnRate(double rate) { m_learn_rate = rate; }
+        virtual double getLearnRate() const { return m_learn_rate; }
     };
 }
 

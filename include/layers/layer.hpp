@@ -50,6 +50,10 @@ namespace NeuralNet
         virtual std::string what() = 0;
         virtual size_t getNeuronNum() const = 0;
 
+        // learn rate modulation
+        virtual void setLearnRate(double rate) = 0;
+        virtual double getLearnRate() const = 0;
+
     protected:
         /**
          * CPU and GPU versions of the forward() and backward() that child classes

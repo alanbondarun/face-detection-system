@@ -11,6 +11,13 @@
     "batch_size": 1,
     "epoch_num": 30,
     "learn_rate": 0.01,
+    "learn_rate_drop": {
+        "enable": true,
+        "rate": 0.5,
+        "drop_count": 5,
+        "drop_thresh": 0.005,
+        "halt_thresh_rate": 0.0001
+    },
     "start_id": [1],
     "layers": [
         {

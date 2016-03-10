@@ -46,7 +46,7 @@ namespace NeuralNet
 
     private:
         LayerSetting m_set;
-        const double m_learn_rate;
+        double m_learn_rate;
         size_t m_output_width, m_output_height;
 
         std::function<double(double)> f_activation;
@@ -58,6 +58,10 @@ namespace NeuralNet
 
         double *m_weight;
         double *m_bias;
+
+    public:
+        virtual void setLearnRate(double rate) { m_learn_rate = rate; }
+        virtual double getLearnRate() const { return m_learn_rate; }
     };
 }
 
