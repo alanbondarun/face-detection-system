@@ -378,43 +378,32 @@ int main(int argc, char* argv[])
         }
         std::cout << "loading non-face images (for training) finished" << std::endl;
 
-        const size_t n_epoch = 30;
-        for (size_t q = 1; q <= n_epoch; q++)
-        {
-            // actual training goes here
-            network.train(data, category);
-            std::cout << "epoch #" << q << " finished, storing infos..."
-                    << std::endl;
+        // put test sets into the network
+        std::vector< std::vector<int> > clist1;
+        clist1.emplace_back(test_lfw, 0);
+        network.registerTestSet("LFW", std::move(lfwTestData), std::move(clist1));
 
-            network.storeIntoFiles();
+        std::vector< std::vector<int> > clist2;
+        clist2.emplace_back(test_nonface, 1);
+        network.registerTestSet("non-face", std::move(nonFaceTestData),
+                std::move(clist2));
 
-            std::cout << "result of epoch #" << q << std::endl;
-            std::cout << "(0 = face, 1 = non-face)" << std::endl;
+        std::vector< std::vector<int> > clist3;
+        clist3.emplace_back(test_fddb, 0);
+        network.registerTestSet("FDDB", std::move(fddbTestData), std::move(clist3));
 
-            // evaluation with other images
-            size_t correct = 0;
-            auto res_original = network.evaluateAll(originalImgData);
+        std::vector< std::vector<int> > clist4;
+        std::vector<int> clist4_temp;
+        for (size_t i = 0; i < 14; i++)
+            clist4_temp.push_back(0);
+        for (size_t i = 0; i < 14; i++)
+            clist4_temp.push_back(1);
+        clist4.push_back(clist4_temp);
+        network.registerTestSet("original", std::move(originalImgData),
+                std::move(clist4));
 
-            for (size_t i = 0; i < imageCount; i++)
-            {
-                std::cout << "image #" << (i+1) << ":";
-                for (auto& category_val: res_original)
-                    std::cout << " " << category_val[i];
-                std::cout << std::endl;
-                if (i<14 && res_original[0][i]==0)
-                    correct++;
-                if (14<=i && res_original[0][i]==1)
-                    correct++;
-            }
-            std::cout << "correct answers: " << correct << std::endl;
-
-            size_t t1 = eval_faces(network, lfwTestData, 0);
-            size_t t2 = eval_faces(network, nonFaceTestData, 1);
-            size_t t3 = eval_faces(network, fddbTestData, 0);
-            std::cout << "test with LFW: " << t1 << "/" << test_lfw << std::endl;
-            std::cout << "test with non-face: " << t2 << "/" << test_nonface << std::endl;
-            std::cout << "test with FDDB: " << t3 << "/" << test_fddb << std::endl;
-        }
+        // actual training goes here
+        network.train(data, category);
     }
     else
     {

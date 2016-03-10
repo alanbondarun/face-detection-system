@@ -34,6 +34,23 @@ namespace NeuralNet
         std::vector<NodeID> prev_id;
     };
 
+    struct Network::TestSet
+    {
+        std::string name;
+        std::vector<double> data;
+        std::vector< std::vector<int> > category_list;
+
+        // copy-construct data & category list
+        explicit TestSet(const std::string& _name, const std::vector<double>& _data,
+                const std::vector< std::vector<int> >& _categ_list)
+            : name(_name), data(_data), category_list(_categ_list) {}
+
+        // move-construct data & category list
+        explicit TestSet(const std::string& _name, std::vector<double>&& _data,
+                std::vector< std::vector<int> >&& _categ_list)
+            : name(_name), data(_data), category_list(_categ_list) {}
+    };
+
     /* may emit Json::Exception while execution */
     Network::Network(const Json::Value& setting)
     {
@@ -319,6 +336,18 @@ namespace NeuralNet
         }
     }
 
+    void Network::registerTestSet(const std::string& name, const std::vector<double>& data,
+            const std::vector< std::vector<int> >& categ_list)
+    {
+        m_list_testset.emplace_back(name, data, categ_list);
+    }
+
+    void Network::registerTestSet(const std::string& name, std::vector<double>&& data,
+            std::vector< std::vector<int> >&& categ_list)
+    {
+        m_list_testset.emplace_back(name, data, categ_list);
+    }
+
     // used for evaluation of a number of data
     std::vector< std::vector<int> > Network::evaluateAll(const std::vector<double>& data)
     {
@@ -576,15 +605,49 @@ namespace NeuralNet
                 backPropagate();
             }
 
+            std::cout << "epoch #" << (epoch+1) <<
+                " finished, saving data..." << std::endl;
+            storeIntoFiles();
+
             // print the total error value for this epoch
             double total_error = 0;
             for (auto& error: error_vals)
             {
                 total_error += error;
             }
-            std::cout << "total error for epoch #" << (epoch+1) <<
-                " = " << total_error << std::endl;
+            std::cout << "total error = " << total_error << std::endl;
+
+            // test for each train set
+            for (auto& test_set: m_list_testset)
+            {
+                testTestSet(test_set);
+            }
         }
+    }
+
+    void Network::testTestSet(const Network::TestSet& testset)
+    {
+        std::cout << "Testing test " << testset.name << ":";
+
+        auto result = evaluateAll(testset.data);
+        if (result.size() != testset.category_list.size())
+            throw NetworkException("invalid size of given category lists");
+        for (size_t i = 0; i < result.size(); i++)
+        {
+            if (result[i].size() != testset.category_list[i].size())
+                throw NetworkException("invalid size of given category lists");
+
+            size_t count = 0;
+            for (size_t j = 0; j < result[i].size(); j++)
+            {
+                if (result[i][j] == testset.category_list[i][j])
+                    count++;
+            }
+
+            std::cout << " (" << count << "/" << result[i].size() << ")";
+        }
+
+        std::cout << std::endl;
     }
 
     std::vector<Network::NodeID> Network::feedForwardLayer(const Network::NodeID& in_idx)

@@ -28,6 +28,7 @@ namespace NeuralNet
     private:
         struct Node;
         struct MergerNode;
+        struct TestSet;
 
         using NodeUPtr = std::unique_ptr<Node>;
         using MergerNodeUPtr = std::unique_ptr<MergerNode>;
@@ -60,6 +61,14 @@ namespace NeuralNet
         void loadFromFiles();
         void storeIntoFiles();
 
+        // insert test data to the network (copy-construct)
+        void registerTestSet(const std::string& name, const std::vector<double>& data,
+                const std::vector< std::vector<int> >& categ_list);
+
+        // insert test data to the network (move-construct)
+        void registerTestSet(const std::string& name, std::vector<double>&& data,
+                std::vector< std::vector<int> >&& categ_list);
+
         // returns classification value for one portion of data
         std::vector< int > evaluate(const std::vector<double>& data);
 
@@ -76,6 +85,8 @@ namespace NeuralNet
         void insertLayerSetting(SettingMapType& prevSetting,
                 std::unique_ptr<LayerFactory::LayerSetting>& set,
                 NodeID id, NodeID child_id);
+
+        void testTestSet(const TestSet& testset);
 
         // parse and add layer(s) from one JSON layer block
         // more than one layer may be add if the JSON block is a branch
@@ -110,6 +121,7 @@ namespace NeuralNet
         std::map< NodeID, MergerNodeUPtr> merger_map;
 
         std::unique_ptr<LayerData> m_input_data;
+        std::vector< TestSet > m_list_testset;
     };
 }
 
