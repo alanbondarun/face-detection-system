@@ -145,14 +145,14 @@ namespace NeuralNet
         const size_t delta_w = pool_w - (stride - 1);
         const size_t delta_h = pool_h - (stride - 1);
         const size_t ratio_w = (dim_w - pool_w) / delta_w + 1;
-        for (int i=0; i + pool_h <= dim_h; i += delta_h)
+        for (size_t i=0; i + pool_h <= dim_h; i += delta_h)
         {
-            for (int j=0; j + pool_w <= dim_w; j += delta_w)
+            for (size_t j=0; j + pool_w <= dim_w; j += delta_w)
             {
                 double vmax = m[i*dim_w + j];
-                for (int y=i; y < i+pool_h; y++)
+                for (size_t y=i; y < i+pool_h; y++)
                 {
-                    for (int x=j; x < j+pool_w; x++)
+                    for (size_t x=j; x < j+pool_w; x++)
                     {
                         vmax = std::max(vmax, m[y*dim_w + x]);
                     }
@@ -169,20 +169,20 @@ namespace NeuralNet
         const size_t delta_h = pool_h - (stride - 1);
         const size_t ratio_w = (dim_w - pool_w) / delta_w + 1;
 
-        for (int i=0; i<dim_w * dim_h; i++)
+        for (size_t i=0; i<dim_w * dim_h; i++)
         {
             me_res[i] = 0;
         }
 
-        for (int i=0; i + pool_h <= dim_h; i += delta_h)
+        for (size_t i=0; i + pool_h <= dim_h; i += delta_h)
         {
-            for (int j=0; j + pool_w <= dim_w; j += delta_w)
+            for (size_t j=0; j + pool_w <= dim_w; j += delta_w)
             {
-                int max_x = 0, max_y = 0;
+                auto max_x = j, max_y = i;
                 double vmax = ma[i*dim_w + j];
-                for (int y=i; y < i+pool_h; y++)
+                for (size_t y=i; y < i+pool_h; y++)
                 {
-                    for (int x=j; x < j+pool_w; x++)
+                    for (size_t x=j; x < j+pool_w; x++)
                     {
                         if (vmax < ma[y*dim_w + x])
                         {
