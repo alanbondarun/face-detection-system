@@ -2,6 +2,7 @@
 #define __NETWORK_HPP
 
 #include <memory>
+#include <exception>
 #include <string>
 #include <utility>
 #include <cstdlib>
@@ -40,16 +41,16 @@ namespace NeuralNet
         >;
 
         /* an exception thrown when this class received invalid JSON data */
-        class InvalidJSONException
+        class NetworkException: public std::exception
         {
         public:
-            InvalidJSONException(const std::string& region)
-                : m_reg(std::string("Invalid JSON setting") + region) {}
-            virtual ~InvalidJSONException() {}
-            virtual const char* what() const { return m_reg.c_str(); }
+            NetworkException(const std::string& msg)
+                : m_msg(std::string("Error at Network: ") + msg) {}
+            virtual ~NetworkException() {}
+            virtual const char* what() const noexcept { return m_msg.c_str(); }
 
         private:
-            const std::string m_reg;
+            const std::string m_msg;
         };
 
         Network(const Json::Value& setting);

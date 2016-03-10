@@ -319,10 +319,21 @@ namespace NeuralNet
         }
     }
 
-    /* used for evaluation of a single set of data */
-    std::vector< int > Network::evaluate(const std::vector<double>& data)
+    // used for evaluation of a number of data
+    std::vector< std::vector<int> > Network::evaluateAll(const std::vector<double>& data)
     {
-        std::vector<size_t> lst_idxes{0};
+        if (data.size() % m_unit_size != 0)
+        {
+            throw NetworkException("evaluate(): size of data does not match with that "
+                    "of the network");
+        }
+        size_t num_data = data.size() / m_unit_size;
+
+        std::vector<size_t> lst_idxes;
+        for (size_t i = 0; i < num_data; i++)
+        {
+            lst_idxes.push_back(i);
+        }
 
         // disable dropout of sigmoid layers for evaluation
         for (auto& node_pair: node_map)
@@ -336,34 +347,44 @@ namespace NeuralNet
         }
 
         // layer data construction
-        m_input_data = std::make_unique<LayerData>(1, m_unit_size);
+        m_input_data = std::make_unique<LayerData>(num_data, m_unit_size);
         for (auto& node_pair: node_map)
         {
             node_pair.second->data =
-                    std::move(node_pair.second->layer->createLayerData(1));
+                    std::move(node_pair.second->layer->createLayerData(num_data));
         }
         for (auto& node_pair: merger_map)
         {
             node_pair.second->data =
-                    std::move(node_pair.second->merger->createLayerData(1));
+                    std::move(node_pair.second->merger->createLayerData(num_data));
         }
 
         feedForward(data, lst_idxes);
 
         /* return value generation */
-        std::vector< int > retval;
+        std::vector< std::vector<int> > retval;
         for (auto& leaf_id: m_leaf_idx)
         {
-            retval.push_back(getCategory(*(node_map[leaf_id]->data))[0]);
+            retval.push_back(getCategory(*(node_map[leaf_id]->data)));
         }
 
         return retval;
     }
 
-    std::vector< std::vector<int> > Network::evaluateAll(
-            const std::vector<double>& data)
+    // evaluate for a single data
+    std::vector<int> Network::evaluate(const std::vector<double>& data)
     {
-        // TODO
+        if (data.size() != m_unit_size)
+            throw NetworkException("evaluate(): size of data does not match with that "
+                    "of the network");
+
+        auto retval = evaluateAll(data);
+        std::vector<int> oned_retval;
+        for (auto& value_list: retval)
+        {
+            oned_retval.push_back(value_list[0]);
+        }
+        return oned_retval;
     }
 
     void Network::feedForward(const std::vector<double>& data,
@@ -392,7 +413,7 @@ namespace NeuralNet
         for (size_t t = 0; t < data.getTrainNum(); t++)
         {
             const double* out = data.get(LayerData::DataIndex::ACTIVATION)
-                    + t * data.getDataNum() * sizeof(double);
+                    + (t * data.getDataNum());
             int maxi=0;
 
             for (size_t i=1; i<data.getDataNum(); i++)
