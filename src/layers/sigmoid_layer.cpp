@@ -23,7 +23,7 @@ namespace NeuralNet
         /* weight and bias initializaion */
         std::random_device rd;
         std::mt19937 rgen(rd());
-        std::normal_distribution<double> dist_w(0.0, std::sqrt(1.0 / m_current_d));
+        std::normal_distribution<double> dist_w(0.0, std::sqrt(2.0 / (m_prev_d)));
         std::normal_distribution<double> dist_b(0.0, 1.0);
 
         for (size_t i = 0; i < m_current_d * m_prev_d; i++)

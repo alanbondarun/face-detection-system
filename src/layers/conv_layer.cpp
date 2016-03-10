@@ -52,14 +52,12 @@ namespace NeuralNet
         std::random_device rd;
         std::mt19937 rgen(rd());
 
-        std::normal_distribution<double> dist_w(0.0,
-                std::sqrt(1.0 / (m_output_width * m_output_height)));
-        std::normal_distribution<double> dist_b(0.0, 1.0);
+        std::normal_distribution<double> dist_w(0.0, std::sqrt(2.0 / (m_set.image_width * m_set.image_height)));
 
         for (size_t i = 0; i < num_weights; i++)
             m_weight[i] = dist_w(rgen);
         for (size_t i = 0; i < num_biases; i++)
-            m_bias[i] = dist_b(rgen);
+            m_bias[i] = 0;
     }
 
     ConvLayer::~ConvLayer()

@@ -397,7 +397,7 @@ namespace NeuralNet
 
     std::unique_ptr<Image> intensityPatch(const std::unique_ptr<Image>& image)
     {
-        return intensityPatch(image, 0.5, 0.25);
+        return intensityPatch(image, 0, 0.25);
     }
 
     std::unique_ptr<Image> loadJPEGImage(const char* filepath)
