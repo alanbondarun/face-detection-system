@@ -30,6 +30,44 @@ namespace NeuralNet
         delete [] value;
     }
 
+    Image::Image(const Image& other)
+        : width(other.width), height(other.height), channel_num(other.channel_num)
+    {
+        value = new double*[channel_num];
+        for (size_t i = 0; i < channel_num; i++)
+        {
+            value[i] = new double[width * height];
+
+            for (size_t j = 0; j < width * height; j++)
+                value[i][j] = other.value[i][j];
+        }
+    }
+
+    Image& Image::operator=(const Image& other)
+    {
+        Image tmp(other);
+        *this = std::move(tmp);
+        return *this;
+    }
+
+    Image::Image(Image&& other) noexcept
+        : width(other.width), height(other.height), channel_num(other.channel_num),
+        value(other.value)
+    {
+        other.value = nullptr;
+    }
+
+    Image& Image::operator=(Image&& other) noexcept
+    {
+        for (size_t i = 0; i < channel_num; i++)
+            delete [] value[i];
+        delete [] value;
+
+        value = other.value;
+        other.value = nullptr;
+        return *this;
+    }
+
     std::unique_ptr<Image> loadBitmapImage(const char* filepath)
     {
         FILE* fp = fopen(filepath, "r");

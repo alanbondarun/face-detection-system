@@ -15,7 +15,14 @@ namespace NeuralNet
     {
     public:
         explicit Image(size_t _width, size_t _height, size_t _channels);
-        ~Image();
+        ~Image() noexcept;
+
+        Image(const Image& other);
+        Image& operator=(const Image& other);
+
+        Image(Image&& other) noexcept;
+        Image& operator=(Image&& other) noexcept;
+
         size_t getWidth() const { return width; }
         size_t getHeight() const { return height; }
         size_t getChannelNum() const { return channel_num; }
