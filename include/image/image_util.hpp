@@ -19,7 +19,7 @@ namespace NeuralNet
      */
     std::vector< std::unique_ptr<Image> > extractPatches(
             const std::unique_ptr<Image>& original_image,
-            int patch_width, int patch_height, int stride);
+            size_t patch_width, size_t patch_height, size_t gap);
 }
 
 #endif // __IMAGE_UTIL_HPP

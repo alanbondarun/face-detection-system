@@ -1,5 +1,6 @@
 #include <iostream>
 #include <fstream>
+#include <sstream>
 #include <string>
 #include "utils/make_unique.hpp"
 #include "json/json.h"
@@ -16,6 +17,7 @@ struct SearchConfig
     size_t min_image_width;
     double shrink_ratio;
     std::string net_config_file;
+    std::string test_file;
 };
 
 bool loadConfig(SearchConfig& config, const std::string& filepath)
@@ -44,6 +46,7 @@ bool loadConfig(SearchConfig& config, const std::string& filepath)
         config.min_image_width = value["min_image_width"].asUInt();
         config.shrink_ratio = value["shrink_ratio"].asDouble();
         config.net_config_file = value["net_config_file"].asString();
+        config.test_file = value["test_file"].asString();
     }
     catch (Json::Exception e)
     {
@@ -81,13 +84,16 @@ int main()
         std::cout << "error at loading configuration" << std::endl;
         return 0;
     }
+    std::cout << "loading configuration complete" << std::endl;
 
-    // TODO: load an image (just an empty pointer now)
-    std::unique_ptr<NeuralNet::Image> image;
+    // load an image (just an empty pointer now)
+    auto image = NeuralNet::loadBitmapImage(config.test_file.c_str());
+    std::cout << "loading test image complete" << std::endl;
     
     // load image patches from the given image
     auto image_pyramid = NeuralNet::pyramidImage(image, config.shrink_ratio,
             config.min_image_width);
+    std::cout << "loading image pyramid complete" << std::endl;
 
     std::vector<double> patch_data;
     for (auto& small_image: image_pyramid)
@@ -108,6 +114,7 @@ int main()
             }
         }
     }
+    std::cout << "loading image patches complete" << std::endl;
     
     // classify patches with the trained network
     auto network = loadNetwork(config.net_config_file);
@@ -117,8 +124,10 @@ int main()
         return 0;
     }
     network->loadFromFiles();
+    std::cout << "loading network complete" << std::endl;
     
     auto category_list = network->evaluateAll(patch_data);
+    std::cout << "image patch evaluation complete" << std::endl;
 
     size_t positive_res = 0;
     for (auto val: category_list[0])
