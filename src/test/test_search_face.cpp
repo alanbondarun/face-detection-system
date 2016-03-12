@@ -2,6 +2,7 @@
 #include <fstream>
 #include <sstream>
 #include <string>
+#include "netpbm/pm.h"
 #include "utils/make_unique.hpp"
 #include "json/json.h"
 #include "image/image.hpp"
@@ -76,8 +77,10 @@ std::unique_ptr<NeuralNet::Network> loadNetwork(const std::string& filepath)
     return std::make_unique<NeuralNet::Network>(value);
 }
 
-int main()
+int main(int argc, char* argv[])
 {
+    pm_init(argv[0], 0);
+
     SearchConfig config;
     if (!loadConfig(config, "../net_set/search_face.json"))
     {

@@ -61,6 +61,8 @@ namespace NeuralNet
         m_batch_size = setting["batch_size"].asUInt();
         m_epoch_num = setting["epoch_num"].asUInt();
 
+        m_max_eval_patch = setting["max_eval_patch"].asUInt();
+
         // learn rate setting
         m_learn_rate = setting["learn_rate"].asDouble();
 
@@ -370,12 +372,6 @@ namespace NeuralNet
         }
         size_t num_data = data.size() / m_unit_size;
 
-        std::vector<size_t> lst_idxes;
-        for (size_t i = 0; i < num_data; i++)
-        {
-            lst_idxes.push_back(i);
-        }
-
         // disable dropout of sigmoid layers for evaluation
         for (auto& node_pair: node_map)
         {
@@ -387,14 +383,28 @@ namespace NeuralNet
             }
         }
 
-        prepareLayerData(num_data);
-        feedForward(data, lst_idxes);
-
-        /* return value generation */
-        std::vector< std::vector<int> > retval;
-        for (auto& leaf_id: m_leaf_idx)
+        std::vector< std::vector<int> > retval(m_leaf_idx.size());
+        for (size_t idx_d = 0; idx_d < num_data; idx_d += m_max_eval_patch)
         {
-            retval.push_back(getCategory(*(node_map[leaf_id]->data)));
+            size_t test_data_num = std::min(m_max_eval_patch, num_data - idx_d);
+
+            std::vector<size_t> lst_idxes;
+            for (size_t i = idx_d; i < idx_d + test_data_num; i++)
+            {
+                lst_idxes.push_back(i);
+            }
+
+            prepareLayerData(test_data_num);
+            feedForward(data, lst_idxes);
+
+            // return value generation
+            for (size_t i = 0; i < m_leaf_idx.size(); i++)
+            for (auto& leaf_id: m_leaf_idx)
+            {
+                auto category_list = getCategory(*(node_map[m_leaf_idx[i]]->data));
+                retval[i].insert(retval[i].end(), category_list.begin(),
+                        category_list.end());
+            }
         }
 
         return retval;

@@ -132,6 +132,7 @@ namespace NeuralNet
             size_t width, height, channel_num;
         } m_in_dim;
         size_t m_unit_size, m_train_size, m_batch_size, m_epoch_num;
+        size_t m_max_eval_patch;
         double m_learn_rate;
         LearnRateSetting m_learn_rate_set;
 

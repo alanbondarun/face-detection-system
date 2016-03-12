@@ -10,6 +10,7 @@
     "train_num": 7000,
     "batch_size": 1,
     "epoch_num": 30,
+    "max_eval_patch": 100,
     "learn_rate": 0.01,
     "learn_rate_drop": {
         "enable": true,
