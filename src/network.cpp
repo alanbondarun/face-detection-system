@@ -594,9 +594,9 @@ namespace NeuralNet
             return;
 
         bool error_not_falling = true;
-        for (size_t i = window_first_idx; i < total_errors.size() - 1; i++)
+        for (size_t i = window_first_idx + 1; i < total_errors.size(); i++)
         {
-            if (total_errors[i] - total_errors[i+1] >= m_learn_rate_set.drop_thresh)
+            if (total_errors[window_first_idx] - total_errors[i] >= m_learn_rate_set.drop_thresh)
             {
                 error_not_falling = false;
             }
