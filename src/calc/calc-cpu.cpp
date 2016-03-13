@@ -229,8 +229,8 @@ namespace NeuralNet
                 double sum=0;
                 for (int jj=0;jj<dim_conv_h;jj++) {
                     for (int ii=0;ii<dim_conv_w;ii++) {
-                        int in_i = range.x + i + ii;
-                        int in_j = range.y + j + jj;
+                        int in_i = range.x + i + dim_conv_w - ii - 1;
+                        int in_j = range.y + j + dim_conv_h - jj - 1;
                         if (in_i >= 0 && in_i < i_dim_w && in_j >= 0 && in_j < i_dim_h)
                             sum += m_conv[jj*dim_conv_w + ii] * m_in[in_j*dim_w + in_i];
                     }
