@@ -12,7 +12,8 @@ TEST_SUBDIR := test
 IMAGE_SUBDIR := image
 
 TARGETS := $(BUILD_DIR)/led-user $(BUILD_DIR)/test_nn $(BUILD_DIR)/test_load_image \
-	$(BUILD_DIR)/test_search_face
+	$(BUILD_DIR)/test_search_face \
+	$(BUILD_DIR)/test_cl
 EXTLIB_OBJS := $(addprefix $(OBJ_DIR)/, $(EXTLIB_SUBDIR)/jsoncpp.o)
 NEURAL_NET_OBJS := $(EXTLIB_OBJS) $(addprefix $(OBJ_DIR)/, $(CALC_SUBDIR)/calc-cpu.o \
 	$(CALC_SUBDIR)/util-functions.o \
@@ -26,7 +27,8 @@ NEURAL_NET_OBJS := $(EXTLIB_OBJS) $(addprefix $(OBJ_DIR)/, $(CALC_SUBDIR)/calc-c
 	$(IMAGE_SUBDIR)/image_util.o \
 	network.o)
 MIDDLE_OBJS := $(NEURAL_NET_OBJS) $(addprefix $(OBJ_DIR)/, led-user.o \
-	$(TEST_SUBDIR)/test_load_image.o $(TEST_SUBDIR)/test_nn.o)
+	$(TEST_SUBDIR)/test_load_image.o $(TEST_SUBDIR)/test_nn.o \
+	$(TEST_SUBDIR)/test_cl.o)
 
 MIDDLE_OBJS_DEP = $(MIDDLE_OBJS:.o=.d)
 
@@ -65,7 +67,7 @@ endif
 endif
 export TARGET_OS
 
-CXXFLAGS := -std=c++0x -I$(INCLUDE_DIR) -L$(LIBRARY_DIR) -lnetpbm -Wl,-rpath=$(shell pwd)/$(LIBRARY_DIR) -Wall -g
+CXXFLAGS := -std=c++0x -I$(INCLUDE_DIR) -L$(LIBRARY_DIR) -lnetpbm -lOpenCL -Wl,-rpath=$(shell pwd)/$(LIBRARY_DIR) -Wall -g
 DEPEND_FLAGS := -MMD -MP 
 
 all: directory program
@@ -115,6 +117,9 @@ $(BUILD_DIR)/test_load_image: $(OBJ_DIR)/$(IMAGE_SUBDIR)/image.o $(OBJ_DIR)/$(TE
 
 $(BUILD_DIR)/test_search_face: $(OBJ_DIR)/$(TEST_SUBDIR)/test_search_face.o \
 		$(NEURAL_NET_OBJS)
+	$(CXX) -o $@ $(CXXFLAGS) $(DEPEND_FLAGS) -MT $@ -MF $(patsubst %.o,%.d,$@) $^
+
+$(BUILD_DIR)/test_cl: $(OBJ_DIR)/$(TEST_SUBDIR)/test_cl.o $(NEURAL_NET_OBJS)
 	$(CXX) -o $@ $(CXXFLAGS) $(DEPEND_FLAGS) -MT $@ -MF $(patsubst %.o,%.d,$@) $^
 
 -include $(MIDDLE_OBJS_DEP)
