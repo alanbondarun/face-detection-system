@@ -77,6 +77,9 @@ namespace NeuralNet
                 lr_drop_value["halt_thresh_rate"].asDouble();
         }
 
+        // additional learning setting
+        m_uses_gpu = setting["uses_gpu"].asBool();
+
         /* input file description */
         auto input_val = setting["input"];
         auto input_type_str = input_val["type"].asString();
@@ -719,7 +722,7 @@ namespace NeuralNet
                 != m_start_idxes.end())
         {
             // the node is an input node
-            in_node.layer->forward(*(m_input_data), *(in_node.data));
+            in_node.layer->forward(*(m_input_data), *(in_node.data), m_uses_gpu);
         }
         else if (merger_map.find(in_idx) != merger_map.end())
         {
@@ -730,12 +733,12 @@ namespace NeuralNet
                 merge_node.merger->assign(p_idx, *(node_map[p_idx]->data),
                         *(merge_node.data));
             }
-            in_node.layer->forward(*(merge_node.data), *(in_node.data));
+            in_node.layer->forward(*(merge_node.data), *(in_node.data), m_uses_gpu);
         }
         else
         {
             auto& prev_node = *(node_map[in_node.prev_id]);
-            in_node.layer->forward(*(prev_node.data), *(in_node.data));
+            in_node.layer->forward(*(prev_node.data), *(in_node.data), m_uses_gpu);
         }
 
         return in_node.next_id;
@@ -749,13 +752,13 @@ namespace NeuralNet
                 != m_start_idxes.end())
         {
             // the node is an input node
-            in_node.layer->backward(*(m_input_data), *(in_node.data));
+            in_node.layer->backward(*(m_input_data), *(in_node.data), m_uses_gpu);
         }
         else if (merger_map.find(in_idx) != merger_map.end())
         {
             // the node is a merging node
             auto& merge_node = *(merger_map[in_idx]);
-            in_node.layer->backward(*(merge_node.data), *(in_node.data));
+            in_node.layer->backward(*(merge_node.data), *(in_node.data), m_uses_gpu);
 
             std::map< NodeID, LayerData* > parent_datas;
             for (auto& p_idx: merge_node.prev_id)
@@ -767,7 +770,7 @@ namespace NeuralNet
         else
         {
             auto& prev_node = *(node_map[in_node.prev_id]);
-            in_node.layer->backward(*(prev_node.data), *(in_node.data));
+            in_node.layer->backward(*(prev_node.data), *(in_node.data), m_uses_gpu);
         }
 
         return in_node.prev_id;

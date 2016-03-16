@@ -18,23 +18,21 @@ namespace NeuralNet
         virtual ~Layer() {}
 
         /* forwarding input of the layer */
-        void forward(const LayerData& prev, LayerData& current)
+        void forward(const LayerData& prev, LayerData& current, bool uses_gpu)
         {
-#ifdef USES_GPU
-            forward_gpu(prev, current);
-#else
-            forward_cpu(prev, current);
-#endif
+            if (uses_gpu)
+                forward_gpu(prev, current);
+            else
+                forward_cpu(prev, current);
         }
 
         /* backpropagation of the layer */
-        void backward(LayerData& prev, LayerData& current)
+        void backward(LayerData& prev, LayerData& current, bool uses_gpu)
         {
-#ifdef USES_GPU
-            backward_gpu(prev, current);
-#else
-            backward_cpu(prev, current);
-#endif
+            if (uses_gpu)
+                backward_gpu(prev, current);
+            else
+                backward_cpu(prev, current);
         }
 
         /* creation of appropriate layer data for the layer */

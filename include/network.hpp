@@ -135,6 +135,7 @@ namespace NeuralNet
         size_t m_max_eval_patch;
         float m_learn_rate;
         LearnRateSetting m_learn_rate_set;
+        bool m_uses_gpu;
 
         std::vector<NodeID> m_start_idxes;
         std::vector<NodeID> m_leaf_idx;
