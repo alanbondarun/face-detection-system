@@ -38,23 +38,24 @@ namespace NeuralNet
             std::cout << device.getInfo<CL_DEVICE_NAME>() << std::endl;
         }
 
-        cl::Device m_device = devices[m_default_dev_num];
+        m_device = devices[m_default_dev_num];
         std::cout << "using device: " << m_device.getInfo<CL_DEVICE_NAME>() << std::endl;
 
-        cl::Program::Sources sources = loadSources();
+        auto sources = loadSources();
      
         context = cl::Context(m_device);
         program = cl::Program(context, sources);
 
-        if(program.build({m_device})!=CL_SUCCESS){
-            std::cout<<" Error building: "<<program.getBuildInfo<CL_PROGRAM_BUILD_LOG>(m_device)<<"\n";
-            exit(1);
+        if (program.build({m_device}) != CL_SUCCESS)
+        {
+            throw CLContextException(std::string("error at Program::build: ")
+                    + program.getBuildInfo<CL_PROGRAM_BUILD_LOG>(m_device));
         }
 
         queue = cl::CommandQueue(context,m_device);
     }
 
-    cl::Program::Sources CLContext::loadSources()
+    std::string CLContext::loadSources()
     {
         std::vector<std::string> src_file_list = {
             "../cl_src/helper.cl",
@@ -62,7 +63,7 @@ namespace NeuralNet
         //  "../cl_src/conv.cl",
         //  "../cl_src/maxpool.cl"    
         };
-        cl::Program::Sources sources;
+        std::string sources;
 
         for (auto& src_file_name: src_file_list)
         {
@@ -79,7 +80,7 @@ namespace NeuralNet
                 std::getline(ifs, line);
                 source_str += (line + '\n');
             }
-            sources.push_back({source_str.c_str(), source_str.length()});
+            sources += source_str;
         }
 
         return sources;

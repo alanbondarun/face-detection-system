@@ -56,7 +56,7 @@ namespace NeuralNet
         cl::Platform m_platform;
         cl::Device m_device;
 
-        cl::Program::Sources loadSources();
+        std::string loadSources();
 
         const size_t m_default_platf_num = 0;
         const size_t m_default_dev_num = 0;
