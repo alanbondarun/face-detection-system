@@ -14,17 +14,17 @@ namespace NeuralNet
         m_uses_dropout(set.dropout_enable), m_dropout_enabled(false),
         m_dropout_rate(set.dropout_rate)
     {
-        m_weight = new double[m_current_d * m_prev_d];
-        m_bias = new double[m_current_d];
+        m_weight = new float[m_current_d * m_prev_d];
+        m_bias = new float[m_current_d];
 
         if (m_uses_dropout)
-            m_dropout_coeff = new double[m_current_d];
+            m_dropout_coeff = new float[m_current_d];
 
         /* weight and bias initializaion */
         std::random_device rd;
         std::mt19937 rgen(rd());
-        std::normal_distribution<double> dist_w(0.0, std::sqrt(2.0 / (m_prev_d)));
-        std::normal_distribution<double> dist_b(0.0, 1.0);
+        std::normal_distribution<float> dist_w(0.0, std::sqrt(2.0 / (m_prev_d)));
+        std::normal_distribution<float> dist_b(0.0, 1.0);
 
         for (size_t i = 0; i < m_current_d * m_prev_d; i++)
             m_weight[i] = dist_w(rgen);
@@ -70,10 +70,10 @@ namespace NeuralNet
                 std::random_device rd;
                 std::mt19937 rgen(rd());
                 std::uniform_real_distribution<> dis(0, 1);
-                const double dropout_rate = m_dropout_rate;
+                const float dropout_rate = m_dropout_rate;
 
                 apply_vec(m_dropout_coeff, m_dropout_coeff, m_current_d,
-                        [dropout_rate, &rgen, &dis](double in) -> double {
+                        [dropout_rate, &rgen, &dis](float in) -> float {
                             return (dis(rgen) <= dropout_rate) ? 1:0;
                         });
                 for (size_t m = 0; m < m_train_num; m++)
@@ -125,10 +125,10 @@ namespace NeuralNet
         }
 
         /* calculate error value for previous layer */
-        double *sprime_z = new double[m_prev_d * m_train_num];
+        float *sprime_z = new float[m_prev_d * m_train_num];
         apply_vec(prev_z, sprime_z, m_prev_d * m_train_num, ActivationFuncs::f_sigmoid_prime);
 
-        double *temp_w = new double[m_prev_d * m_current_d];
+        float *temp_w = new float[m_prev_d * m_current_d];
         transpose_mat(m_weight, temp_w, m_current_d, m_prev_d);
 
         for (int i=0; i<m_train_num; i++)
@@ -138,24 +138,24 @@ namespace NeuralNet
         pmul_vec(prev_e, sprime_z, prev_e, m_prev_d * m_train_num);
 
         /* calculate delta_b and update current bias */
-        double *delta_b = new double[m_current_d];
+        float *delta_b = new float[m_current_d];
 
         sum_vec(cur_e, delta_b, m_current_d, m_train_num);
-        apply_vec(delta_b, delta_b, m_current_d, [train_num, learn_rate](double in) -> double {
+        apply_vec(delta_b, delta_b, m_current_d, [train_num, learn_rate](float in) -> float {
             return -in*learn_rate/train_num;
         });
         add_vec(m_bias, delta_b, m_bias, m_current_d);
 
         /* calculate delta_w and update current weight */
-        double *delta_w = new double[m_prev_d * m_current_d];
-        memset(delta_w, 0, sizeof(double) * m_prev_d * m_current_d);
+        float *delta_w = new float[m_prev_d * m_current_d];
+        memset(delta_w, 0, sizeof(float) * m_prev_d * m_current_d);
 
         for (int i=0; i<m_train_num; i++)
         {
             vec_outer_prod(cur_e, prev_a, temp_w, m_current_d, m_prev_d);
             add_vec(delta_w, temp_w, delta_w, m_prev_d * m_current_d);
         }
-        apply_vec(delta_w, delta_w, m_prev_d * m_current_d, [train_num, learn_rate](double in) -> double {
+        apply_vec(delta_w, delta_w, m_prev_d * m_current_d, [train_num, learn_rate](float in) -> float {
             return -in*learn_rate/train_num;
         });
         add_vec(m_weight, delta_w, m_weight, m_prev_d * m_current_d);

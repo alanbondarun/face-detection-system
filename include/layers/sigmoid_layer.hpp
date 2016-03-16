@@ -14,8 +14,8 @@ namespace NeuralNet
         {
             size_t prev_neurons;
             size_t current_neurons;
-            double learn_rate;
-            double dropout_rate;
+            float learn_rate;
+            float dropout_rate;
             bool dropout_enable;
         };
         SigmoidLayer(const Setting& set);
@@ -36,24 +36,24 @@ namespace NeuralNet
 
         void setDropout(bool enable) { m_dropout_enabled = enable; }
 
-        static const std::function<double(double)> f_sigmoid;
-        static const std::function<double(double)> f_sigmoid_prime;
+        static const std::function<float(float)> f_sigmoid;
+        static const std::function<float(float)> f_sigmoid_prime;
 
     private:
         const size_t m_prev_d, m_current_d;
-        double m_learn_rate;
+        float m_learn_rate;
 
         const bool m_uses_dropout;
         bool m_dropout_enabled;
-        const double m_dropout_rate;
+        const float m_dropout_rate;
 
-        double *m_weight;
-        double *m_bias;
-        double *m_dropout_coeff;
+        float *m_weight;
+        float *m_bias;
+        float *m_dropout_coeff;
 
     public:
-        virtual void setLearnRate(double rate) { m_learn_rate = rate; }
-        virtual double getLearnRate() const { return m_learn_rate; }
+        virtual void setLearnRate(float rate) { m_learn_rate = rate; }
+        virtual float getLearnRate() const { return m_learn_rate; }
     };
 }
 

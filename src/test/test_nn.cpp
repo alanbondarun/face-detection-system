@@ -32,10 +32,10 @@ std::unique_ptr<NeuralNet::Image> preprocessImage(
                 NeuralNet::equalizePatch(image)));
 }
 
-std::vector<double> getRawDataFromImages(
+std::vector<float> getRawDataFromImages(
         const std::vector< std::unique_ptr<NeuralNet::Image> >& images)
 {
-    std::vector<double> data;
+    std::vector<float> data;
     for (auto& img_ptr: images)
     {
         for (size_t c = 0; c < img_ptr->getChannelNum(); c++)
@@ -102,7 +102,7 @@ bool load_fddb(std::vector< std::unique_ptr<NeuralNet::Image> >& images,
             }
             
             std::istringstream iss2(line_str);
-            double majsize, minsize, tilt, centx, centy;
+            float majsize, minsize, tilt, centx, centy;
             iss2 >> majsize >> minsize >> tilt >> centx >> centy;
 
             if (majsize < 32)
@@ -124,7 +124,7 @@ bool load_fddb(std::vector< std::unique_ptr<NeuralNet::Image> >& images,
     return true;
 }
 
-bool load_faces(std::vector<double>& data, std::vector< std::vector<int> >& category)
+bool load_faces(std::vector<float>& data, std::vector< std::vector<int> >& category)
 {
     const size_t num_image = 2000;
     std::vector< std::unique_ptr<NeuralNet::Image> > images;
@@ -154,7 +154,7 @@ bool load_nonface_patch(std::vector< std::unique_ptr<NeuralNet::Image> >& images
     const size_t set_size = 2000;
     const size_t sample_per_img = 10;
     const size_t max_sample_per_img = 1000;
-    const double var_thresh = 0.0007;
+    const float var_thresh = 0.0007;
     
     size_t lbound = set_size * train_set + 1;
     size_t ubound = lbound + set_size;
@@ -222,7 +222,7 @@ bool load_nonface_patch(std::vector< std::unique_ptr<NeuralNet::Image> >& images
     return false;
 }
 
-bool load_non_faces(std::vector<double>& data, std::vector< std::vector<int> >& category)
+bool load_non_faces(std::vector<float>& data, std::vector< std::vector<int> >& category)
 {
     const size_t num_image = 5000;
 
@@ -249,7 +249,7 @@ bool load_non_faces(std::vector<double>& data, std::vector< std::vector<int> >& 
 }
 
 int eval_faces(NeuralNet::Network& network,
-        const std::vector<double>& eval_data, int correct)
+        const std::vector<float>& eval_data, int correct)
 {
     auto res = network.evaluateAll(eval_data);
 
@@ -360,7 +360,7 @@ int main(int argc, char* argv[])
 
     if (do_train)
     {
-        std::vector<double> data;
+        std::vector<float> data;
         std::vector< std::vector<int> > category;
         category.push_back(std::vector<int>());
 

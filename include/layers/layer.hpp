@@ -51,8 +51,8 @@ namespace NeuralNet
         virtual size_t getNeuronNum() const = 0;
 
         // learn rate modulation
-        virtual void setLearnRate(double rate) = 0;
-        virtual double getLearnRate() const = 0;
+        virtual void setLearnRate(float rate) = 0;
+        virtual float getLearnRate() const = 0;
 
     protected:
         /**

@@ -37,16 +37,16 @@ namespace NeuralNet
     struct Network::TestSet
     {
         std::string name;
-        std::vector<double> data;
+        std::vector<float> data;
         std::vector< std::vector<int> > category_list;
 
         // copy-construct data & category list
-        explicit TestSet(const std::string& _name, const std::vector<double>& _data,
+        explicit TestSet(const std::string& _name, const std::vector<float>& _data,
                 const std::vector< std::vector<int> >& _categ_list)
             : name(_name), data(_data), category_list(_categ_list) {}
 
         // move-construct data & category list
-        explicit TestSet(const std::string& _name, std::vector<double>&& _data,
+        explicit TestSet(const std::string& _name, std::vector<float>&& _data,
                 std::vector< std::vector<int> >&& _categ_list)
             : name(_name), data(_data), category_list(_categ_list) {}
     };
@@ -222,7 +222,7 @@ namespace NeuralNet
             auto layer_enable_do = jsonLayer["enable_dropout"].asBool();
             size_t neurons = layer_dim["size"].asUInt();
 
-            double layer_do_rate = 1.0;
+            float layer_do_rate = 1.0;
             if (layer_enable_do)
                 layer_do_rate = jsonLayer["dropout_rate"].asDouble();
 
@@ -350,20 +350,20 @@ namespace NeuralNet
         }
     }
 
-    void Network::registerTestSet(const std::string& name, const std::vector<double>& data,
+    void Network::registerTestSet(const std::string& name, const std::vector<float>& data,
             const std::vector< std::vector<int> >& categ_list)
     {
         m_list_testset.emplace_back(name, data, categ_list);
     }
 
-    void Network::registerTestSet(const std::string& name, std::vector<double>&& data,
+    void Network::registerTestSet(const std::string& name, std::vector<float>&& data,
             std::vector< std::vector<int> >&& categ_list)
     {
         m_list_testset.emplace_back(name, data, categ_list);
     }
 
     // used for evaluation of a number of data
-    std::vector< std::vector<int> > Network::evaluateAll(const std::vector<double>& data)
+    std::vector< std::vector<int> > Network::evaluateAll(const std::vector<float>& data)
     {
         if (data.size() % m_unit_size != 0)
         {
@@ -411,7 +411,7 @@ namespace NeuralNet
     }
 
     // evaluate for a single data
-    std::vector<int> Network::evaluate(const std::vector<double>& data)
+    std::vector<int> Network::evaluate(const std::vector<float>& data)
     {
         if (data.size() != m_unit_size)
             throw NetworkException("evaluate(): size of data does not match with that "
@@ -426,7 +426,7 @@ namespace NeuralNet
         return oned_retval;
     }
 
-    void Network::feedForward(const std::vector<double>& data,
+    void Network::feedForward(const std::vector<float>& data,
             const std::vector<size_t>& list_idx)
     {
         /* fill the data in the input LayerData */
@@ -451,7 +451,7 @@ namespace NeuralNet
 
         for (size_t t = 0; t < data.getTrainNum(); t++)
         {
-            const double* out = data.get(LayerData::DataIndex::ACTIVATION)
+            const float* out = data.get(LayerData::DataIndex::ACTIVATION)
                     + (t * data.getDataNum());
             int maxi=0;
 
@@ -477,7 +477,7 @@ namespace NeuralNet
             {
                 auto& node_data = *(node_pair.second->data);
                 memset(node_data.get(LayerData::DataIndex::ERROR), 0,
-                        sizeof(node_data.getDataNum() * node_data.getTrainNum() * sizeof(double)));
+                        sizeof(node_data.getDataNum() * node_data.getTrainNum() * sizeof(float)));
             }
         }
 
@@ -507,7 +507,7 @@ namespace NeuralNet
     void Network::calcOutputErrors(
             const std::vector< std::vector<int> >& category_list,
             const std::vector< size_t >& batch_idxes,
-            std::vector<double>& error_vals,
+            std::vector<float>& error_vals,
             size_t batch_num)
     {
         for (size_t i = 0; i < m_leaf_idx.size(); i++)
@@ -516,14 +516,14 @@ namespace NeuralNet
             auto& leaf_node = *(node_map[leaf_id]);
             auto output_nodes = leaf_node.data->getDataNum();
 
-            std::vector<double> sprime_z(m_batch_size * output_nodes, 0);
+            std::vector<float> sprime_z(m_batch_size * output_nodes, 0);
             copy_vec(leaf_node.data->get(LayerData::DataIndex::INTER_VALUE),
                     sprime_z.data(),
                     output_nodes * m_batch_size);
             apply_vec(sprime_z.data(), sprime_z.data(), output_nodes * m_batch_size,
                     ActivationFuncs::f_sigmoid_prime);
 
-            std::vector<double> deriv_cost(m_batch_size * output_nodes, 0);
+            std::vector<float> deriv_cost(m_batch_size * output_nodes, 0);
             for (size_t j = 0; j < m_batch_size; j++)
             {
                 for (size_t k = 0; k < output_nodes; k++)
@@ -534,15 +534,15 @@ namespace NeuralNet
             }
 
             // softmax output value calculation
-            std::vector<double> softmax_output(m_batch_size * output_nodes, 0);
+            std::vector<float> softmax_output(m_batch_size * output_nodes, 0);
             apply_vec(leaf_node.data->get(LayerData::DataIndex::ACTIVATION),
                     softmax_output.data(), output_nodes * m_batch_size,
-                    [](double in) -> double {
+                    [](float in) -> float {
                         return std::exp(in);
                     });
             for (size_t j = 0; j < m_batch_size; j++)
             {
-                double expsum = 0;
+                float expsum = 0;
                 for (size_t k = 0; k < output_nodes; k++)
                 {
                     expsum += softmax_output[j*output_nodes + k];
@@ -554,17 +554,17 @@ namespace NeuralNet
             }
 
             // error value calculation
-            std::vector<double> batch_errors(m_batch_size * output_nodes, 0);
+            std::vector<float> batch_errors(m_batch_size * output_nodes, 0);
             apply_vec(softmax_output.data(), batch_errors.data(),
                     output_nodes * m_batch_size,
-                    [](double in) -> double {
+                    [](float in) -> float {
                         return std::log(in);
                     });
             pmul_vec(batch_errors.data(), deriv_cost.data(), batch_errors.data(),
                     output_nodes * m_batch_size);
             for (size_t j = 0; j < m_batch_size; j++)
             {
-                double errorsum = 0;
+                float errorsum = 0;
                 for (size_t k = 0; k < output_nodes; k++)
                 {
                     errorsum += batch_errors[j*output_nodes + k];
@@ -583,7 +583,7 @@ namespace NeuralNet
         }
     }
 
-    void Network::dropLearnRate(const std::vector<double>& total_errors)
+    void Network::dropLearnRate(const std::vector<float>& total_errors)
     {
         if (!(m_learn_rate_set.enable))
             return;
@@ -613,7 +613,7 @@ namespace NeuralNet
         std::cout << "learn rate dropped to: " << m_learn_rate << std::endl;
     }
 
-    void Network::train(const std::vector<double>& data,
+    void Network::train(const std::vector<float>& data,
             const std::vector< std::vector<int> >& category_list)
     {
         std::vector<size_t> data_idxes;
@@ -636,14 +636,14 @@ namespace NeuralNet
             }
         }
 
-        std::vector<double> total_errors;
+        std::vector<float> total_errors;
 
         for (size_t epoch = 0; epoch < m_epoch_num; epoch++)
         {
             prepareLayerData(m_batch_size);
             std::shuffle(data_idxes.begin(), data_idxes.end(), rgen);
 
-            std::vector<double> error_vals(m_train_size, 0);
+            std::vector<float> error_vals(m_train_size, 0);
 
             for (size_t batch_num = 0; batch_num * m_batch_size < m_train_size; batch_num++)
             {
@@ -662,7 +662,7 @@ namespace NeuralNet
             storeIntoFiles();
 
             // print the total error value for this epoch
-            double total_error = 0;
+            float total_error = 0;
             for (auto& error: error_vals)
             {
                 total_error += error;

@@ -2,9 +2,9 @@
 
 namespace NeuralNet
 {
-    void add_vec(const double *v1, const double *v2, double *vres, size_t dim)
+    void add_vec(const float *v1, const float *v2, float *vres, size_t dim)
     {
-        double *pres = vres;
+        float *pres = vres;
         while (vres - pres < dim)
         {
             *vres = *v1 + *v2;
@@ -14,9 +14,9 @@ namespace NeuralNet
         }
     }
 
-    void pmul_vec(const double *v1, const double *v2, double *vres, size_t dim)
+    void pmul_vec(const float *v1, const float *v2, float *vres, size_t dim)
     {
-        double *pres = vres;
+        float *pres = vres;
         while (vres - pres < dim)
         {
             *vres = *v1 * *v2;
@@ -26,10 +26,10 @@ namespace NeuralNet
         }
     }
 
-    void mul_mat_vec(const double *m, const double *v, double *vres, size_t dim_r, size_t dim_c)
+    void mul_mat_vec(const float *m, const float *v, float *vres, size_t dim_r, size_t dim_c)
     {
-        double *pres = vres;
-        const double *pv = v;
+        float *pres = vres;
+        const float *pv = v;
         while (vres - pres < dim_r)
         {
             *vres = 0;
@@ -44,9 +44,9 @@ namespace NeuralNet
         }
     }
 
-    void copy_vec(const double *v, double *vres, size_t dim)
+    void copy_vec(const float *v, float *vres, size_t dim)
     {
-        const double *pres = v;
+        const float *pres = v;
         while (v - pres < dim)
         {
             *vres = *v;
@@ -55,9 +55,9 @@ namespace NeuralNet
         }
     }
 
-    void set_vec(double *v, double val, size_t dim)
+    void set_vec(float *v, float val, size_t dim)
     {
-        double *pv = v;
+        float *pv = v;
         while (v - pv < dim)
         {
             *v = val;
@@ -65,9 +65,9 @@ namespace NeuralNet
         }
     }
 
-    void const_mul_vec(double *v, double val, size_t dim)
+    void const_mul_vec(float *v, float val, size_t dim)
     {
-        double *pv = v;
+        float *pv = v;
         while (v - pv < dim)
         {
             *v *= val;
@@ -75,9 +75,9 @@ namespace NeuralNet
         }
     }
 
-    void apply_vec(const double *v, double *vres, size_t dim, std::function<double(double)> func)
+    void apply_vec(const float *v, float *vres, size_t dim, std::function<float(float)> func)
     {
-        const double *pres = v;
+        const float *pres = v;
         while (v - pres < dim)
         {
             *vres = func(*v);
@@ -86,7 +86,7 @@ namespace NeuralNet
         }
     }
 
-    void transpose_mat(const double *m, double *mres, size_t dim_r, size_t dim_c)
+    void transpose_mat(const float *m, float *mres, size_t dim_r, size_t dim_c)
     {
         for (int i=0; i<dim_r; i++)
         {
@@ -97,10 +97,10 @@ namespace NeuralNet
         }
     }
 
-    void sum_vec(const double *vset, double *vres, size_t dim_v, size_t num_v)
+    void sum_vec(const float *vset, float *vres, size_t dim_v, size_t num_v)
     {
-        double *p_vres = vres;
-        const double *p_vset = vset;
+        float *p_vres = vres;
+        const float *p_vset = vset;
 
         /* initialize to zero before addition */
         while (vres - p_vres < dim_v)
@@ -122,10 +122,10 @@ namespace NeuralNet
         }
     }
 
-    void vec_outer_prod(const double *v1, const double *v2, double *mres, size_t dim_n, size_t dim_m)
+    void vec_outer_prod(const float *v1, const float *v2, float *mres, size_t dim_n, size_t dim_m)
     {
-        const double *p_v1 = v1;
-        const double *p_v2 = v2;
+        const float *p_v1 = v1;
+        const float *p_v2 = v2;
         while (v1 - p_v1 < dim_n)
         {
             while (v2 - p_v2 < dim_m)
@@ -139,7 +139,7 @@ namespace NeuralNet
         }
     }
 
-    void downsample_max(const double *m, double *mres, size_t dim_w, size_t dim_h, size_t pool_w,
+    void downsample_max(const float *m, float *mres, size_t dim_w, size_t dim_h, size_t pool_w,
             size_t pool_h, size_t stride)
     {
         const size_t delta_w = pool_w - (stride - 1);
@@ -149,7 +149,7 @@ namespace NeuralNet
         {
             for (size_t j=0; j + pool_w <= dim_w; j += delta_w)
             {
-                double vmax = m[i*dim_w + j];
+                float vmax = m[i*dim_w + j];
                 for (size_t y=i; y < i+pool_h; y++)
                 {
                     for (size_t x=j; x < j+pool_w; x++)
@@ -162,7 +162,7 @@ namespace NeuralNet
         }
     }
 
-    void upsample_max(const double *me, const double *ma, double *me_res,
+    void upsample_max(const float *me, const float *ma, float *me_res,
             size_t dim_w, size_t dim_h, size_t pool_w, size_t pool_h, size_t stride)
     {
         const size_t delta_w = pool_w - (stride - 1);
@@ -179,7 +179,7 @@ namespace NeuralNet
             for (size_t j=0; j + pool_w <= dim_w; j += delta_w)
             {
                 auto max_x = j, max_y = i;
-                double vmax = ma[i*dim_w + j];
+                float vmax = ma[i*dim_w + j];
                 for (size_t y=i; y < i+pool_h; y++)
                 {
                     for (size_t x=j; x < j+pool_w; x++)
@@ -197,10 +197,10 @@ namespace NeuralNet
         }
     }
 
-    void flip_mat(const double *m, double *mres, size_t dim_w, size_t dim_h)
+    void flip_mat(const float *m, float *mres, size_t dim_w, size_t dim_h)
     {
-        const double *pm = m;
-        double *pmres = mres + (dim_w*dim_h - 1);
+        const float *pm = m;
+        float *pmres = mres + (dim_w*dim_h - 1);
 
         if (m == mres)
         {
@@ -218,7 +218,7 @@ namespace NeuralNet
 
     }
 
-    void convolution_mat(const double *m_in, const double *m_conv, double *m_res,
+    void convolution_mat(const float *m_in, const float *m_conv, float *m_res,
             int dim_w, int dim_h, int dim_conv_w, int dim_conv_h,
             const MatrixRange& range)
     {
@@ -226,7 +226,7 @@ namespace NeuralNet
         const int i_dim_h = dim_h;
         for (int j=0;j<range.h;j++) {
             for (int i=0;i<range.w;i++) {
-                double sum=0;
+                float sum=0;
                 for (int jj=0;jj<dim_conv_h;jj++) {
                     for (int ii=0;ii<dim_conv_w;ii++) {
                         int in_i = range.x + i + ii;
@@ -240,7 +240,7 @@ namespace NeuralNet
         }
     }
 
-    void convolution_mat_no_zeros(const double *m_in, const double *m_conv, double *m_res,
+    void convolution_mat_no_zeros(const float *m_in, const float *m_conv, float *m_res,
             int dim_w, int dim_h, int dim_conv_w, int dim_conv_h)
     {
         convolution_mat(m_in, m_conv, m_res, dim_w, dim_h, dim_conv_w, dim_conv_h, MatrixRange(
@@ -248,7 +248,7 @@ namespace NeuralNet
         ));
     }
 
-    void convolution_mat_same_zeros(const double *m_in, const double *m_conv, double *m_res,
+    void convolution_mat_same_zeros(const float *m_in, const float *m_conv, float *m_res,
             int dim_w, int dim_h, int dim_conv_w, int dim_conv_h)
     {
         convolution_mat(m_in, m_conv, m_res, dim_w, dim_h, dim_conv_w, dim_conv_h, MatrixRange(
@@ -256,7 +256,7 @@ namespace NeuralNet
         ));
     }
 
-    void convolution_mat_wide_zeros(const double *m_in, const double *m_conv, double *m_res,
+    void convolution_mat_wide_zeros(const float *m_in, const float *m_conv, float *m_res,
             int dim_w, int dim_h, int dim_conv_w, int dim_conv_h)
     {
         convolution_mat(m_in, m_conv, m_res, dim_w, dim_h, dim_conv_w, dim_conv_h, MatrixRange(

@@ -42,17 +42,17 @@ namespace NeuralNet
 
         const size_t num_weights = m_set.current_map_num * m_set.prev_map_num
                 * m_set.recep_size * m_set.recep_size;
-        m_weight = new double[num_weights];
+        m_weight = new float[num_weights];
 
         const size_t num_biases = m_set.current_map_num * m_output_width
                 * m_output_height;
-        m_bias = new double[num_biases];
+        m_bias = new float[num_biases];
 
         // weight and bias initialization
         std::random_device rd;
         std::mt19937 rgen(rd());
 
-        std::normal_distribution<double> dist_w(0.0, std::sqrt(2.0 / (m_set.image_width * m_set.image_height)));
+        std::normal_distribution<float> dist_w(0.0, std::sqrt(2.0 / (m_set.image_width * m_set.image_height)));
 
         for (size_t i = 0; i < num_weights; i++)
             m_weight[i] = dist_w(rgen);
@@ -73,9 +73,9 @@ namespace NeuralNet
         auto cur_a = current.get(LayerData::DataIndex::ACTIVATION);
         auto cur_z = current.get(LayerData::DataIndex::INTER_VALUE);
 
-        memset(cur_z, 0, sizeof(double) * train_num
+        memset(cur_z, 0, sizeof(float) * train_num
                 * m_set.current_map_num * m_output_width * m_output_height);
-        double *temp_z = new double[m_output_width * m_output_height];
+        float *temp_z = new float[m_output_width * m_output_height];
 
         for (size_t i=0; i<train_num; i++)
         {
@@ -128,13 +128,13 @@ namespace NeuralNet
         auto prev_e = prev.get(LayerData::DataIndex::ERROR);
         auto cur_e = current.get(LayerData::DataIndex::ERROR);
 
-        memset(prev_e, 0, sizeof(double) * train_num
+        memset(prev_e, 0, sizeof(float) * train_num
                 * m_set.prev_map_num * m_set.image_width * m_set.image_height);
 
         /* calculate error value for previous layer */
-        double *sprime_z = new double[m_set.image_width * m_set.image_height];
-        double *temp_w = new double[m_set.recep_size * m_set.recep_size];
-        double *temp_pe = new double[m_set.image_width * m_set.image_height];
+        float *sprime_z = new float[m_set.image_width * m_set.image_height];
+        float *temp_w = new float[m_set.recep_size * m_set.recep_size];
+        float *temp_pe = new float[m_set.image_width * m_set.image_height];
         for (size_t i=0; i<train_num; i++)
         {
             size_t w_offset = 0;
@@ -169,7 +169,7 @@ namespace NeuralNet
         }
 
         /* calculate delta_w and update current weight */
-        double *delta_w = new double[m_set.recep_size * m_set.recep_size];
+        float *delta_w = new float[m_set.recep_size * m_set.recep_size];
         size_t dw_offset = 0;
         for (size_t ncur = 0; ncur < m_set.current_map_num; ncur++)
         {
@@ -178,7 +178,7 @@ namespace NeuralNet
                 size_t cur_offset = ncur * m_output_width * m_output_height;
                 size_t prev_offset = (nprev * m_set.image_width * m_set.image_height);
 
-                memset(delta_w, 0, sizeof(double) * m_set.recep_size * m_set.recep_size);
+                memset(delta_w, 0, sizeof(float) * m_set.recep_size * m_set.recep_size);
 
                 for (size_t i = 0; i < train_num; i++)
                 {
@@ -200,7 +200,7 @@ namespace NeuralNet
                 }
 
                 apply_vec(delta_w, delta_w, m_set.recep_size * m_set.recep_size,
-                    [train_num, learn_rate](double in) -> double {
+                    [train_num, learn_rate](float in) -> float {
                         return -in*learn_rate/train_num;
                 });
                 add_vec(m_weight + dw_offset, delta_w, m_weight + dw_offset,
@@ -211,13 +211,13 @@ namespace NeuralNet
         }
 
         // calculate delta_b and update current bias
-        double *delta_b = new double[m_set.current_map_num * m_output_width *
+        float *delta_b = new float[m_set.current_map_num * m_output_width *
                 m_output_height];
         sum_vec(cur_e, delta_b, m_set.current_map_num * m_output_width * m_output_height,
                 train_num);
         apply_vec(delta_b, delta_b,
                 m_set.current_map_num * m_output_width * m_output_height,
-                [train_num, learn_rate](double in) -> double {
+                [train_num, learn_rate](float in) -> float {
                     return -in*learn_rate/train_num;
                 });
         add_vec(m_bias, delta_b, m_bias,

@@ -6,7 +6,7 @@ namespace NeuralNet
         : m_train_num(train_num), m_data_num(data_num)
     {
         /* memory allocation */
-        data = new double[DATA_COUNT * train_num * data_num];
+        data = new float[DATA_COUNT * train_num * data_num];
     }
 
     LayerData::~LayerData()
@@ -19,7 +19,7 @@ namespace NeuralNet
         /* TODO */
     }
 
-    double *LayerData::get(LayerData::DataIndex idx) const
+    float *LayerData::get(LayerData::DataIndex idx) const
     {
         return data + (static_cast<int>(idx) * m_train_num * m_data_num);
     }

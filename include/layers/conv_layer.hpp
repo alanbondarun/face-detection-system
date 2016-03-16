@@ -19,7 +19,7 @@ namespace NeuralNet
             size_t image_width;
             size_t image_height;
             size_t recep_size;
-            double learn_rate;
+            float learn_rate;
             bool enable_zero_pad;
         };
 
@@ -46,22 +46,22 @@ namespace NeuralNet
 
     private:
         LayerSetting m_set;
-        double m_learn_rate;
+        float m_learn_rate;
         size_t m_output_width, m_output_height;
 
-        std::function<double(double)> f_activation;
-        std::function<double(double)> f_activation_prime;
-        void (*f_convolution)(const double *, const double *, double *,
+        std::function<float(float)> f_activation;
+        std::function<float(float)> f_activation_prime;
+        void (*f_convolution)(const float *, const float *, float *,
                 int, int, int, int);
-        void (*f_convol_back)(const double *, const double *, double *,
+        void (*f_convol_back)(const float *, const float *, float *,
                 int, int, int, int);
 
-        double *m_weight;
-        double *m_bias;
+        float *m_weight;
+        float *m_bias;
 
     public:
-        virtual void setLearnRate(double rate) { m_learn_rate = rate; }
-        virtual double getLearnRate() const { return m_learn_rate; }
+        virtual void setLearnRate(float rate) { m_learn_rate = rate; }
+        virtual float getLearnRate() const { return m_learn_rate; }
     };
 }
 

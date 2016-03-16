@@ -28,10 +28,10 @@ namespace NeuralNet
         struct SigmoidLayerSetting: public LayerSetting
         {
             size_t neuron_num;
-            double learn_rate;
-            double dropout_rate;
+            float learn_rate;
+            float dropout_rate;
             bool enable_dropout;
-            explicit SigmoidLayerSetting(size_t _n, double _l, double _droprate, bool _dr)
+            explicit SigmoidLayerSetting(size_t _n, float _l, float _droprate, bool _dr)
                 : LayerSetting(), neuron_num(_n), learn_rate(_l), dropout_rate(_droprate),
                 enable_dropout(_dr) {}
             virtual ~SigmoidLayerSetting() {}
@@ -39,8 +39,8 @@ namespace NeuralNet
         struct ImageLayerSetting: public LayerSetting
         {
             size_t image_w, image_h, channel_num;
-            double learn_rate;
-            explicit ImageLayerSetting(size_t _w, size_t _h, size_t _c, double _lr)
+            float learn_rate;
+            explicit ImageLayerSetting(size_t _w, size_t _h, size_t _c, float _lr)
                 : LayerSetting(), image_w(_w), image_h(_h),
                 channel_num(_c), learn_rate(_lr) {}
             virtual ~ImageLayerSetting() {}
@@ -48,10 +48,10 @@ namespace NeuralNet
         struct ConvLayerSetting: public LayerSetting
         {
             size_t map_num, recep_size, input_w, input_h;
-            double learn_rate;
+            float learn_rate;
             bool enable_zero_pad;
             size_t output_w, output_h;
-            explicit ConvLayerSetting(size_t _m, size_t _r, size_t _iw, size_t _ih, double _l, bool _zeropad)
+            explicit ConvLayerSetting(size_t _m, size_t _r, size_t _iw, size_t _ih, float _l, bool _zeropad)
                 : LayerSetting(), map_num(_m), recep_size(_r), input_w(_iw), input_h(_ih),
                 learn_rate(_l), enable_zero_pad(_zeropad),
                 output_w((enable_zero_pad)?(_iw):(_iw - (_r - 1))),

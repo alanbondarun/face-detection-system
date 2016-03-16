@@ -5,11 +5,11 @@ namespace NeuralNet
 {
     std::vector< std::unique_ptr<Image> > pyramidImage(
             const std::unique_ptr<Image>& original_image,
-            double ratio, size_t min_width)
+            float ratio, size_t min_width)
     {
         auto ow = original_image->getWidth();
         auto current_width = ow;
-        double bratio = 1.0;
+        float bratio = 1.0;
         std::vector< std::unique_ptr<Image> > img_list;
 
         while (current_width >= min_width)

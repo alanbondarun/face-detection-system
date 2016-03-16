@@ -7,45 +7,45 @@
 namespace NeuralNet
 {
     /* addition of vectors */
-    void add_vec(const double *v1, const double *v2, double *vres, size_t dim);
+    void add_vec(const float *v1, const float *v2, float *vres, size_t dim);
 
     /* pairwise multiplication of vectors */
-    void pmul_vec(const double *v1, const double *v2, double *vres, size_t dim);
+    void pmul_vec(const float *v1, const float *v2, float *vres, size_t dim);
 
     /* vector-matrix multiplication: (r x c) matrix and c-ary vector */
-    void mul_mat_vec(const double *m, const double *v, double *vres, size_t dim_r, size_t dim_c);
+    void mul_mat_vec(const float *m, const float *v, float *vres, size_t dim_r, size_t dim_c);
 
     /* copy a vector */
-    void copy_vec(const double *v, double *vres, size_t dim);
+    void copy_vec(const float *v, float *vres, size_t dim);
 
     // set each element of the vector to the given value
-    void set_vec(double *v, double val, size_t dim);
+    void set_vec(float *v, float val, size_t dim);
 
     // multiply each element of the vector to the given value
-    void const_mul_vec(double *v, double val, size_t dim);
+    void const_mul_vec(float *v, float val, size_t dim);
 
     /* apply function to a vector */
-    void apply_vec(const double *v, double *vres, size_t dim, std::function<double(double)> func);
+    void apply_vec(const float *v, float *vres, size_t dim, std::function<float(float)> func);
 
     /* transpose a given matrix */
-    void transpose_mat(const double *m, double *mres, size_t dim_r, size_t dim_c);
+    void transpose_mat(const float *m, float *mres, size_t dim_r, size_t dim_c);
 
     /* sum up a set of vectors */
-    void sum_vec(const double *vset, double *vres, size_t dim_v, size_t num_v);
+    void sum_vec(const float *vset, float *vres, size_t dim_v, size_t num_v);
 
     /* vector outer product */
-    void vec_outer_prod(const double *v1, const double *v2, double *mres, size_t dim_n, size_t dim_m);
+    void vec_outer_prod(const float *v1, const float *v2, float *mres, size_t dim_n, size_t dim_m);
 
     /* calculate downsampling */
-    void downsample_max(const double *m, double *mres, size_t dim_w, size_t dim_h, size_t pool_w,
+    void downsample_max(const float *m, float *mres, size_t dim_w, size_t dim_h, size_t pool_w,
             size_t pool_h, size_t stride);
 
     /* calculate upsampling */
-    void upsample_max(const double *me, const double *ma, double *me_res,
+    void upsample_max(const float *me, const float *ma, float *me_res,
             size_t dim_w, size_t dim_h, size_t pool_w, size_t pool_h, size_t stride);
 
     /* flip (rotate 180 deg) a matrix */
-    void flip_mat(const double *m, double *mres, size_t dim_w, size_t dim_h);
+    void flip_mat(const float *m, float *mres, size_t dim_w, size_t dim_h);
 
     struct MatrixRange
     {
@@ -55,15 +55,15 @@ namespace NeuralNet
     };
 
     /* calculate convolution */
-    void convolution_mat(const double *m_in, const double *m_conv, double *m_res,
+    void convolution_mat(const float *m_in, const float *m_conv, float *m_res,
             int dim_w, int dim_h, int dim_conv_w, int dim_conv_h,
             const MatrixRange& range);
 
-    void convolution_mat_no_zeros(const double *m_in, const double *m_conv, double *m_res,
+    void convolution_mat_no_zeros(const float *m_in, const float *m_conv, float *m_res,
             int dim_w, int dim_h, int dim_conv_w, int dim_conv_h);
-    void convolution_mat_same_zeros(const double *m_in, const double *m_conv, double *m_res,
+    void convolution_mat_same_zeros(const float *m_in, const float *m_conv, float *m_res,
             int dim_w, int dim_h, int dim_conv_w, int dim_conv_h);
-    void convolution_mat_wide_zeros(const double *m_in, const double *m_conv, double *m_res,
+    void convolution_mat_wide_zeros(const float *m_in, const float *m_conv, float *m_res,
             int dim_w, int dim_h, int dim_conv_w, int dim_conv_h);
 }
 

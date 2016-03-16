@@ -26,16 +26,16 @@ namespace NeuralNet
         size_t getWidth() const { return width; }
         size_t getHeight() const { return height; }
         size_t getChannelNum() const { return channel_num; }
-        double* getValues(size_t channel) const { return value[channel]; }
+        float* getValues(size_t channel) const { return value[channel]; }
     private:
         size_t width, height, channel_num;
-        double** value;
+        float** value;
     };
 
     /**
      * Loads a image into a built-in array of vectors.
      * input: a string indicating the file path of the image
-     * output: an Image struct including a dynamically allocated double array.
+     * output: an Image struct including a dynamically allocated float array.
      *     this contains RGB values for each pixel, each of which are between
      *     0 and 1 (inclusive).
      *     the pixels are sorted in raster scan order.
@@ -78,12 +78,12 @@ namespace NeuralNet
      * stdev value
      */
     std::unique_ptr<Image> intensityPatch(const std::unique_ptr<Image>& image,
-            double mean, double stdev);
+            float mean, float stdev);
 
     /**
      * Calculate the variance of pixel values from a grayscale image
      */
-    double getVariance(const std::unique_ptr<Image>& image);
+    float getVariance(const std::unique_ptr<Image>& image);
 
     /**
      * Default mean & stdev value if not given
@@ -93,7 +93,7 @@ namespace NeuralNet
     /**
      * Loads a JPEG image into a built-in array of vectors.
      * input: a string indicating the file path of the image
-     * output: an Image struct including a dynamically allocated double array.
+     * output: an Image struct including a dynamically allocated float array.
      *     this contains RGB values for each pixel, each of which are between
      *     0 and 1 (inclusive).
      *     the pixels are sorted in raster scan order.
