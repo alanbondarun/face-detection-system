@@ -19,6 +19,7 @@ namespace NeuralNet
             size_t pool_width;
             size_t pool_height;
             size_t stride;
+            bool uses_gpu;
         };
 
         MaxPoolLayer(const Dimension& dim);

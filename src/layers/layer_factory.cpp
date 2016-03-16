@@ -78,7 +78,8 @@ namespace NeuralNet
                 cast_cur_set.neuron_num,
                 cast_cur_set.learn_rate,
                 cast_cur_set.dropout_rate,
-                cast_cur_set.enable_dropout
+                cast_cur_set.enable_dropout,
+                cast_cur_set.uses_gpu
             })
         );
     }
@@ -97,7 +98,8 @@ namespace NeuralNet
                 cast_cur_set.neuron_num,
                 cast_cur_set.learn_rate,
                 cast_cur_set.dropout_rate,
-                cast_cur_set.enable_dropout
+                cast_cur_set.enable_dropout,
+                cast_cur_set.uses_gpu
             })
         );
     }
@@ -116,7 +118,8 @@ namespace NeuralNet
                 cast_cur_set.neuron_num,
                 cast_cur_set.learn_rate,
                 cast_cur_set.dropout_rate,
-                cast_cur_set.enable_dropout
+                cast_cur_set.enable_dropout,
+                cast_cur_set.uses_gpu
             })
         );
     }
@@ -137,7 +140,8 @@ namespace NeuralNet
                     cast_prev_set.image_h,
                     cast_cur_set.recep_size,
                     cast_cur_set.learn_rate,
-                    cast_cur_set.enable_zero_pad
+                    cast_cur_set.enable_zero_pad,
+                    cast_cur_set.uses_gpu
                 }),
                 ConvLayer::ActivationFunc::RELU
         );
@@ -159,7 +163,8 @@ namespace NeuralNet
                     cast_prev_set.output_h,
                     cast_cur_set.recep_size,
                     cast_cur_set.learn_rate,
-                    cast_cur_set.enable_zero_pad
+                    cast_cur_set.enable_zero_pad,
+                    cast_cur_set.uses_gpu
                 }),
                 ConvLayer::ActivationFunc::RELU
         );
@@ -181,7 +186,8 @@ namespace NeuralNet
                     cast_prev_set.output_h,
                     cast_cur_set.recep_size,
                     cast_cur_set.learn_rate,
-                    cast_cur_set.enable_zero_pad
+                    cast_cur_set.enable_zero_pad,
+                    cast_cur_set.uses_gpu
                 }),
                 ConvLayer::ActivationFunc::RELU
         );
@@ -201,7 +207,8 @@ namespace NeuralNet
                     cast_cur_set.input_h,
                     cast_cur_set.pool_w,
                     cast_cur_set.pool_h,
-                    cast_cur_set.stride
+                    cast_cur_set.stride,
+                    cast_cur_set.uses_gpu
                 })
         );
     }

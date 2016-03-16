@@ -12,7 +12,8 @@ namespace NeuralNet
         : m_prev_d(set.prev_neurons), m_current_d(set.current_neurons),
         m_learn_rate(set.learn_rate),
         m_uses_dropout(set.dropout_enable), m_dropout_enabled(false),
-        m_dropout_rate(set.dropout_rate)
+        m_dropout_rate(set.dropout_rate),
+        m_uses_gpu(set.uses_gpu)
     {
         m_weight = new float[m_current_d * m_prev_d];
         m_bias = new float[m_current_d];

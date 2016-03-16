@@ -118,7 +118,7 @@ namespace NeuralNet
             {
                 auto node_pair = std::make_pair(start_id,
                     std::make_unique<LayerFactory::SigmoidLayerSetting>(
-                        m_in_dim.size, m_learn_rate, 1.0, false));
+                        m_in_dim.size, m_learn_rate, 1.0, false, m_uses_gpu));
                 setting_map.insert(std::move(node_pair));
             }
             else if (m_in_type == InputType::IMAGE)
@@ -185,7 +185,7 @@ namespace NeuralNet
                 // update prevSetting
                 prevSetting[child_id] = std::make_unique<LayerFactory::SigmoidLayerSetting>(
                         merger_map[child_id]->merger->getNeuronNum(),
-                        0.01, 1, false
+                        0.01, 1, false, m_uses_gpu
                 );
             }
             else
@@ -230,7 +230,7 @@ namespace NeuralNet
                 layer_do_rate = jsonLayer["dropout_rate"].asDouble();
 
             cur_setting = std::make_unique<LayerFactory::SigmoidLayerSetting>(
-                    neurons, m_learn_rate, layer_do_rate, layer_enable_do);
+                    neurons, m_learn_rate, layer_do_rate, layer_enable_do, m_uses_gpu);
         }
         else if (!layer_type.compare("convolution"))
         {
@@ -243,7 +243,7 @@ namespace NeuralNet
                     input_w, input_h);
 
             cur_setting = std::make_unique<LayerFactory::ConvLayerSetting>(maps,
-                    recep, input_w, input_h, m_learn_rate, zeropad);
+                    recep, input_w, input_h, m_learn_rate, zeropad, m_uses_gpu);
         }
         else if (!layer_type.compare("maxpool"))
         {
@@ -258,7 +258,7 @@ namespace NeuralNet
                     input_w, input_h);
 
             cur_setting = std::make_unique<LayerFactory::MaxPoolLayerSetting>(
-                    map_num, pw, ph, input_w, input_h, st);
+                    map_num, pw, ph, input_w, input_h, st, m_uses_gpu);
         }
         else
             throw Json::LogicError("invalid layer type");

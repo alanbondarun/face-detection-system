@@ -21,6 +21,7 @@ namespace NeuralNet
             size_t recep_size;
             float learn_rate;
             bool enable_zero_pad;
+            bool uses_gpu;
         };
 
         enum class ActivationFunc

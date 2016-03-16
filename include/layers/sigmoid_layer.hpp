@@ -17,6 +17,7 @@ namespace NeuralNet
             float learn_rate;
             float dropout_rate;
             bool dropout_enable;
+            bool uses_gpu;
         };
         SigmoidLayer(const Setting& set);
         virtual ~SigmoidLayer();
@@ -46,6 +47,7 @@ namespace NeuralNet
         const bool m_uses_dropout;
         bool m_dropout_enabled;
         const float m_dropout_rate;
+        const bool m_uses_gpu;
 
         float *m_weight;
         float *m_bias;
