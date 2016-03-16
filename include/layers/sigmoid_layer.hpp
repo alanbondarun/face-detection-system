@@ -5,6 +5,8 @@
 #include "json/json.h"
 #include <functional>
 
+#include "CL/cl.hpp"
+
 namespace NeuralNet
 {
     class SigmoidLayer: public Layer
@@ -41,6 +43,8 @@ namespace NeuralNet
         static const std::function<float(float)> f_sigmoid_prime;
 
     private:
+        void refreshDropout();
+
         const size_t m_prev_d, m_current_d;
         float m_learn_rate;
 
@@ -52,6 +56,10 @@ namespace NeuralNet
         float *m_weight;
         float *m_bias;
         float *m_dropout_coeff;
+
+        // OpenCL contexts
+        cl::Buffer m_buf_pa, m_buf_w, m_buf_b, m_buf_ca, m_buf_cz, m_buf_do;
+        cl::Kernel m_fwd_kernel;
 
     public:
         virtual void setLearnRate(float rate) { m_learn_rate = rate; }

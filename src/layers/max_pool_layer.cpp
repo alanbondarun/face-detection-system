@@ -42,6 +42,8 @@ namespace NeuralNet
     void MaxPoolLayer::forward_gpu(const LayerData& prev, LayerData& current)
     {
         /* TODO: OpenCL intergration */
+        // not implemented yet, just use cpu temporarily
+        forward_cpu(prev, current);
     }
 
     void MaxPoolLayer::backward_cpu(LayerData& prev, LayerData& current)
@@ -71,6 +73,8 @@ namespace NeuralNet
     void MaxPoolLayer::backward_gpu(LayerData& prev, LayerData& current)
     {
         /* TODO: OpenCL intergration */
+        // not implemented yet, just use cpu temporarily
+        backward_cpu(prev, current);
     }
 
     std::unique_ptr<LayerData> MaxPoolLayer::createLayerData(size_t train_num)

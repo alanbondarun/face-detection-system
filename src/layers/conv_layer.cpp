@@ -116,6 +116,8 @@ namespace NeuralNet
     void ConvLayer::forward_gpu(const LayerData& prev, LayerData& current)
     {
         /* TODO: OpenCL intergration */
+        // not implemented yet, just use cpu temporarily
+        forward_cpu(prev, current);
     }
 
     void ConvLayer::backward_cpu(LayerData& prev, LayerData& current)
@@ -233,6 +235,8 @@ namespace NeuralNet
     void ConvLayer::backward_gpu(LayerData& prev, LayerData& current)
     {
         /* TODO: OpenCL intergration */
+        // not implemented yet, just use cpu temporarily
+        backward_cpu(prev, current);
     }
 
     std::unique_ptr<LayerData> ConvLayer::createLayerData(size_t train_num)
