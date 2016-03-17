@@ -23,7 +23,8 @@ namespace NeuralNet
         LayerData(size_t train_num, size_t data_num);
         virtual ~LayerData();
 
-        // TODO: special function implementation
+        LayerData(const LayerData& other);
+        LayerData& operator=(const LayerData& other);
 
         /* returns the desired array */
         float *get(DataIndex idx) const;

@@ -11,6 +11,7 @@
 #include "network.hpp"
 #include "calc/calc-cpu.hpp"
 #include "calc/util-functions.hpp"
+#include "layers/cl_layer_data.hpp"
 #include "layers/layer_factory.hpp"
 #include "layers/sigmoid_layer.hpp"
 #include "layers/layer_merger.hpp"
@@ -493,7 +494,15 @@ namespace NeuralNet
 
     void Network::prepareLayerData(size_t train_num)
     {
-        m_input_data = std::make_unique<LayerData>(train_num, m_unit_size);
+        if (m_uses_gpu)
+        {
+            m_input_data = std::make_unique<CLLayerData>(train_num, m_unit_size);
+        }
+        else
+        {
+            m_input_data = std::make_unique<LayerData>(train_num, m_unit_size);
+        }
+
         for (auto& node_pair: node_map)
         {
             node_pair.second->data =

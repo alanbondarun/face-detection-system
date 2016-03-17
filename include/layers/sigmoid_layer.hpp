@@ -25,9 +25,9 @@ namespace NeuralNet
         virtual ~SigmoidLayer();
 
         virtual void forward_cpu(const LayerData& prev, LayerData& current);
-        virtual void forward_gpu(const LayerData& prev, LayerData& current);
+        virtual void forward_gpu(const CLLayerData& prev, CLLayerData& current);
         virtual void backward_cpu(LayerData& prev, LayerData& current);
-        virtual void backward_gpu(LayerData& prev, LayerData& current);
+        virtual void backward_gpu(CLLayerData& prev, CLLayerData& current);
 
         virtual std::unique_ptr<LayerData> createLayerData(size_t train_num);
 
@@ -58,7 +58,7 @@ namespace NeuralNet
         float *m_dropout_coeff;
 
         // OpenCL contexts
-        cl::Buffer m_buf_pa, m_buf_w, m_buf_b, m_buf_ca, m_buf_cz, m_buf_do;
+        cl::Buffer m_buf_w, m_buf_b, m_buf_do;
         cl::Kernel m_fwd_kernel;
 
     public:

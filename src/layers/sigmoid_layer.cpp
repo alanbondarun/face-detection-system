@@ -1,4 +1,5 @@
 #include "layers/sigmoid_layer.hpp"
+#include "layers/cl_layer_data.hpp"
 #include "calc/calc-cpu.hpp"
 #include "calc/util-functions.hpp"
 #include "utils/make_unique.hpp"
@@ -36,24 +37,21 @@ namespace NeuralNet
         {
             // initialize buffers
             cl::Context context = CLContext::getInstance().getContext();
-            m_buf_pa = cl::Buffer(context, CL_MEM_READ_WRITE, sizeof(float) * m_prev_d);
             m_buf_w = cl::Buffer(context, CL_MEM_READ_ONLY, sizeof(float) * m_prev_d * m_current_d);
             m_buf_b = cl::Buffer(context, CL_MEM_READ_ONLY, sizeof(float) * m_current_d);
-            m_buf_cz = cl::Buffer(context, CL_MEM_READ_WRITE, sizeof(float) * m_current_d);
-            m_buf_ca = cl::Buffer(context, CL_MEM_READ_WRITE, sizeof(float) * m_current_d);
             m_buf_do = cl::Buffer(context, CL_MEM_READ_ONLY, sizeof(float) * m_current_d);
 
             // create kernel
             m_fwd_kernel = cl::Kernel(CLContext::getInstance().getProgram(), "sigmoid_forward");
 
-            m_fwd_kernel.setArg(0, m_buf_pa);
             m_fwd_kernel.setArg(1, m_buf_w);
             m_fwd_kernel.setArg(2, m_buf_b);
-            m_fwd_kernel.setArg(3, m_buf_cz);
-            m_fwd_kernel.setArg(4, m_buf_ca);
             m_fwd_kernel.setArg(5, m_buf_do);
-            m_fwd_kernel.setArg(6, m_prev_d);
-            m_fwd_kernel.setArg(7, m_prev_d);
+
+            int i_prev_d = static_cast<int>(m_prev_d);
+            int i_cur_d = static_cast<int>(m_current_d);
+            m_fwd_kernel.setArg(6, sizeof(int), &i_prev_d);
+            m_fwd_kernel.setArg(7, sizeof(int), &i_cur_d);
         }
     }
 
@@ -94,28 +92,77 @@ namespace NeuralNet
         }
     }
 
-    void SigmoidLayer::forward_gpu(const LayerData& prev, LayerData& current)
+    void SigmoidLayer::forward_gpu(const CLLayerData& prev, CLLayerData& current)
     {
         refreshDropout();
 
-        auto train_num = current.getTrainNum();
+        int train_num = current.getTrainNum();
         auto prev_a = prev.get(LayerData::DataIndex::ACTIVATION);
         auto cur_z = current.get(LayerData::DataIndex::INTER_VALUE);
         auto cur_a = current.get(LayerData::DataIndex::ACTIVATION);
 
-        m_fwd_kernel.setArg(7, train_num);
+        auto m_buf_pa = prev.getCLBuffer(LayerData::DataIndex::ACTIVATION);
+        auto m_buf_cz = current.getCLBuffer(LayerData::DataIndex::INTER_VALUE);
+        auto m_buf_ca = current.getCLBuffer(LayerData::DataIndex::ACTIVATION);
+        m_fwd_kernel.setArg(0, m_buf_pa);
+        m_fwd_kernel.setArg(3, m_buf_cz);
+        m_fwd_kernel.setArg(4, m_buf_ca);
+        m_fwd_kernel.setArg(8, sizeof(int), &train_num);
 
         cl::CommandQueue queue = CLContext::getInstance().getCommandQueue();
-        queue.enqueueWriteBuffer(m_buf_pa, CL_TRUE, 0, sizeof(float) * m_prev_d, prev_a);
-        queue.enqueueWriteBuffer(m_buf_w, CL_TRUE, 0, sizeof(float) * m_prev_d * m_current_d,
-                m_weight);
-        queue.enqueueWriteBuffer(m_buf_b, CL_TRUE, 0, sizeof(float) * m_current_d, m_bias);
-        queue.enqueueWriteBuffer(m_buf_do, CL_TRUE, 0, sizeof(float) * m_current_d, m_dropout_coeff);
 
-        queue.enqueueNDRangeKernel(m_fwd_kernel, cl::NullRange, cl::NDRange(m_current_d));
+        cl_int err = CL_SUCCESS;
 
-        queue.enqueueReadBuffer(m_buf_cz, CL_TRUE, 0, sizeof(float) * m_current_d, cur_z);
-        queue.enqueueReadBuffer(m_buf_ca, CL_TRUE, 0, sizeof(float) * m_current_d, cur_a);
+        if ((err = queue.enqueueWriteBuffer(m_buf_pa, CL_TRUE, 0, sizeof(float) * m_prev_d, prev_a))
+                != CL_SUCCESS)
+        {
+            std::cout << "Error at CommandQueue::enqueWriteBuffer for m_buf_pa, code: "
+                << err << std::endl;
+        }
+
+        if ((err = queue.enqueueWriteBuffer(m_buf_w, CL_TRUE, 0,
+                sizeof(float) * m_prev_d * m_current_d, m_weight)) != CL_SUCCESS)
+        {
+            std::cout << "Error at CommandQueue::enqueWriteBuffer for m_buf_w, code: "
+                << err << std::endl;
+        }
+
+        if ((err = queue.enqueueWriteBuffer(m_buf_b, CL_TRUE, 0, sizeof(float) * m_current_d, m_bias))
+                != CL_SUCCESS)
+        {
+            std::cout << "Error at CommandQueue::enqueWriteBuffer for m_buf_b, code: "
+                << err << std::endl;
+        }
+
+        if ((err = queue.enqueueWriteBuffer(m_buf_do, CL_TRUE, 0, sizeof(float) * m_current_d,
+                m_dropout_coeff)) != CL_SUCCESS)
+        {
+            std::cout << "Error at CommandQueue::enqueWriteBuffer for m_buf_do, code: "
+                << err << std::endl;
+        }
+
+
+        if ((err = queue.enqueueNDRangeKernel(m_fwd_kernel, cl::NullRange, cl::NDRange(m_current_d),
+                cl::NullRange)) != CL_SUCCESS)
+        {
+            std::cout << "Error at CommandQueue::enqueNDRangeKernel, code: "
+                << err << std::endl;
+        }
+
+
+        if ((err = queue.enqueueReadBuffer(m_buf_cz, CL_TRUE, 0, sizeof(float) * m_current_d,
+                cur_z)) != CL_SUCCESS)
+        {
+            std::cout << "Error at CommandQueue::enqueReadBuffer for m_buf_cz, code: "
+                << err << std::endl;
+        }
+
+        if ((err = queue.enqueueReadBuffer(m_buf_ca, CL_TRUE, 0, sizeof(float) * m_current_d,
+                cur_a)) != CL_SUCCESS)
+        {
+            std::cout << "Error at CommandQueue::enqueReadBuffer for m_buf_ca, code: "
+                << err << std::endl;
+        }
     }
 
     void SigmoidLayer::backward_cpu(LayerData& prev, LayerData& current)
@@ -189,7 +236,7 @@ namespace NeuralNet
         delete [] sprime_z;
     }
 
-    void SigmoidLayer::backward_gpu(LayerData& prev, LayerData& current)
+    void SigmoidLayer::backward_gpu(CLLayerData& prev, CLLayerData& current)
     {
         /* TODO */
         // not implemented yet, just use cpu temporarily
@@ -230,6 +277,13 @@ namespace NeuralNet
 
     std::unique_ptr<LayerData> SigmoidLayer::createLayerData(size_t train_num)
     {
+        if (m_uses_gpu)
+        {
+            return std::make_unique<CLLayerData>(
+                    train_num,
+                    m_current_d
+            );
+        }
         return std::make_unique<LayerData>(
             train_num,
             m_current_d

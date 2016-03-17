@@ -46,8 +46,13 @@ namespace NeuralNet
         context = cl::Context(m_device);
         program = cl::Program(context, sources);
 
-        if (program.build({m_device}) != CL_SUCCESS)
+        try
         {
+            program.build({m_device});
+        }
+        catch (cl::Error e)
+        {
+            std::cerr << "Error at " << e.what() << std::endl;
             throw CLContextException(std::string("error at Program::build: ")
                     + program.getBuildInfo<CL_PROGRAM_BUILD_LOG>(m_device));
         }

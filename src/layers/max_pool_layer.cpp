@@ -1,4 +1,5 @@
 #include "layers/max_pool_layer.hpp"
+#include "layers/cl_layer_data.hpp"
 #include "calc/calc-cpu.hpp"
 #include "utils/make_unique.hpp"
 
@@ -39,7 +40,7 @@ namespace NeuralNet
         }
     }
 
-    void MaxPoolLayer::forward_gpu(const LayerData& prev, LayerData& current)
+    void MaxPoolLayer::forward_gpu(const CLLayerData& prev, CLLayerData& current)
     {
         /* TODO: OpenCL intergration */
         // not implemented yet, just use cpu temporarily
@@ -70,7 +71,7 @@ namespace NeuralNet
         }
     }
 
-    void MaxPoolLayer::backward_gpu(LayerData& prev, LayerData& current)
+    void MaxPoolLayer::backward_gpu(CLLayerData& prev, CLLayerData& current)
     {
         /* TODO: OpenCL intergration */
         // not implemented yet, just use cpu temporarily
@@ -79,6 +80,13 @@ namespace NeuralNet
 
     std::unique_ptr<LayerData> MaxPoolLayer::createLayerData(size_t train_num)
     {
+        if (m_dim.uses_gpu)
+        {
+            return std::make_unique<CLLayerData>(
+                train_num,
+                m_dim.map_num * m_output_width * m_output_height
+            );
+        }
         return std::make_unique<LayerData>(
             train_num,
             m_dim.map_num * m_output_width * m_output_height
