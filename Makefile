@@ -18,6 +18,7 @@ EXTLIB_OBJS := $(addprefix $(OBJ_DIR)/, $(EXTLIB_SUBDIR)/jsoncpp.o)
 NEURAL_NET_OBJS := $(EXTLIB_OBJS) $(addprefix $(OBJ_DIR)/, $(CALC_SUBDIR)/calc-cpu.o \
 	$(CALC_SUBDIR)/util-functions.o \
 	$(LAYER_SUBDIR)/layer_data.o \
+	$(LAYER_SUBDIR)/cl_layer_data.o \
 	$(LAYER_SUBDIR)/sigmoid_layer.o \
 	$(LAYER_SUBDIR)/max_pool_layer.o \
 	$(LAYER_SUBDIR)/conv_layer.o \

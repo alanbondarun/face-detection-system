@@ -14,11 +14,6 @@ namespace NeuralNet
         delete [] data;
     }
 
-    void LayerData::resize(size_t train_num, size_t data_num)
-    {
-        /* TODO */
-    }
-
     float *LayerData::get(LayerData::DataIndex idx) const
     {
         return data + (static_cast<int>(idx) * m_train_num * m_data_num);
