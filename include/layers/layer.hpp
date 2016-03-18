@@ -26,6 +26,7 @@ namespace NeuralNet
                 auto cl_prev = dynamic_cast<const CLLayerData&>(prev);
                 auto cl_current = dynamic_cast<CLLayerData&>(current);
                 forward_gpu(cl_prev, cl_current);
+                current = cl_current;
             }
             else
                 forward_cpu(prev, current);
@@ -39,6 +40,7 @@ namespace NeuralNet
                 auto cl_prev = dynamic_cast<CLLayerData&>(prev);
                 auto cl_current = dynamic_cast<CLLayerData&>(current);
                 backward_gpu(cl_prev, cl_current);
+                current = cl_current;
             }
             else
                 backward_cpu(prev, current);

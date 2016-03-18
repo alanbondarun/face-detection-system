@@ -62,7 +62,6 @@ namespace NeuralNet
 
     void MaxPoolLayer::forward_gpu(const CLLayerData& prev, CLLayerData& current)
     {
-        /* TODO: OpenCL intergration */
         int train_num = current.getTrainNum();
         auto prev_a = prev.get(LayerData::DataIndex::ACTIVATION);
         auto prev_z = prev.get(LayerData::DataIndex::INTER_VALUE);

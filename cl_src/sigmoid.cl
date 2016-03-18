@@ -10,5 +10,17 @@ __kernel void sigmoid_forward(__constant float* prev_a,
         const int cur_d,
         const int train_num)
 {
-    // TODO
+    int idxr = get_global_id(0);
+    int idxc = idxr % cur_d;
+
+    // matrix-vector multiplication
+    cur_z[idxr] = 0;
+    for (int idxp = 0; idxp < prev_d; idxp++)
+    {
+        cur_z[idxr] += weight[idxc*prev_d + idxp] * prev_a[idxp];
+    }
+
+    float tmp_a = cur_z[idxr] + bias[idxc];
+    tmp_a = 1.0 / (1.0 + exp(-tmp_a));
+    cur_a[idxr] = tmp_a * dropout_coeffs[idxc];
 }
