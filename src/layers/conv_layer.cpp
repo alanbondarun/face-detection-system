@@ -3,6 +3,8 @@
 #include "calc/calc-cpu.hpp"
 #include "calc/util-functions.hpp"
 #include "utils/make_unique.hpp"
+#include "utils/cl_exception.hpp"
+#include "cl_context.hpp"
 #include <random>
 #include <cstring>
 #include <cmath>
@@ -59,6 +61,31 @@ namespace NeuralNet
             m_weight[i] = dist_w(rgen);
         for (size_t i = 0; i < num_biases; i++)
             m_bias[i] = 0;
+
+        if (m_set.uses_gpu)
+        {
+            // initialize buffers
+            cl::Context context = CLContext::getInstance().getContext();
+            m_buf_w = cl::Buffer(context, CL_MEM_READ_ONLY, sizeof(float) * num_weights);
+            m_buf_b = cl::Buffer(context, CL_MEM_READ_ONLY, sizeof(float) * num_biases);
+
+            // create kernel
+            m_fwd_kernel = cl::Kernel(CLContext::getInstance().getProgram(), "conv_forward_relu");
+
+            m_fwd_kernel.setArg(3, m_buf_w);
+            m_fwd_kernel.setArg(4, m_buf_b);
+
+            int i_in_w = static_cast<int>(m_set.image_width);
+            int i_in_h = static_cast<int>(m_set.image_height);
+            int i_in_maps = static_cast<int>(m_set.prev_map_num);
+            int i_out_maps = static_cast<int>(m_set.current_map_num);
+            int i_recep = static_cast<int>(m_set.recep_size);
+            m_fwd_kernel.setArg(5, sizeof(int), &i_in_w);
+            m_fwd_kernel.setArg(6, sizeof(int), &i_in_h);
+            m_fwd_kernel.setArg(7, sizeof(int), &i_in_maps);
+            m_fwd_kernel.setArg(8, sizeof(int), &i_out_maps);
+            m_fwd_kernel.setArg(9, sizeof(int), &i_recep);
+        }
     }
 
     ConvLayer::~ConvLayer()
@@ -116,9 +143,48 @@ namespace NeuralNet
 
     void ConvLayer::forward_gpu(const CLLayerData& prev, CLLayerData& current)
     {
-        /* TODO: OpenCL intergration */
-        // not implemented yet, just use cpu temporarily
-        forward_cpu(prev, current);
+        int train_num = current.getTrainNum();
+        auto prev_a = prev.get(LayerData::DataIndex::ACTIVATION);
+        auto cur_a = current.get(LayerData::DataIndex::ACTIVATION);
+        auto cur_z = current.get(LayerData::DataIndex::INTER_VALUE);
+
+        auto m_buf_pa = prev.getCLBuffer(LayerData::DataIndex::ACTIVATION);
+        auto m_buf_cz = current.getCLBuffer(LayerData::DataIndex::INTER_VALUE);
+        auto m_buf_ca = current.getCLBuffer(LayerData::DataIndex::ACTIVATION);
+        m_fwd_kernel.setArg(0, m_buf_pa);
+        m_fwd_kernel.setArg(1, m_buf_cz);
+        m_fwd_kernel.setArg(2, m_buf_ca);
+        m_fwd_kernel.setArg(10, sizeof(int), &train_num);
+
+        const size_t num_pmap = m_set.prev_map_num * m_set.image_width * m_set.image_height;
+        const size_t num_cmap = m_set.current_map_num * m_output_width * m_output_height;
+        const size_t num_weights = m_set.current_map_num * m_set.prev_map_num *
+                m_set.recep_size * m_set.recep_size;
+        const size_t num_biases = m_set.current_map_num * m_output_width *
+                m_output_height;
+
+        auto queue = CLContext::getInstance().getCommandQueue();
+        cl_int err = CL_SUCCESS;
+        err = queue.enqueueWriteBuffer(m_buf_pa, CL_TRUE, 0, sizeof(float) * num_pmap * train_num,
+                prev_a);
+        printError(err, "Error at CommandQueue::enqueueWriteBuffer for m_buf_pa");
+        err = queue.enqueueWriteBuffer(m_buf_w, CL_TRUE, 0, sizeof(float) * num_weights,
+                m_weight);
+        printError(err, "Error at CommandQueue::enqueueWriteBuffer for m_buf_w");
+        err = queue.enqueueWriteBuffer(m_buf_b, CL_TRUE, 0, sizeof(float) * num_biases,
+                m_bias);
+        printError(err, "Error at CommandQueue::enqueueWriteBuffer for m_buf_b");
+
+        err = queue.enqueueNDRangeKernel(m_fwd_kernel, cl::NullRange,
+                cl::NDRange(num_cmap * train_num), cl::NullRange);
+        printError(err, "Error at CommandQueue::enqueNDRangeKernel");
+
+        err = queue.enqueueReadBuffer(m_buf_cz, CL_TRUE, 0, sizeof(float) * num_cmap * train_num,
+                cur_z);
+        printError(err, "Error at CommandQueue::enqueueReadBuffer for m_buf_cz");
+        err = queue.enqueueReadBuffer(m_buf_ca, CL_TRUE, 0, sizeof(float) * num_cmap * train_num,
+                cur_a);
+        printError(err, "Error at CommandQueue::enqueueReadBuffer for m_buf_ca");
     }
 
     void ConvLayer::backward_cpu(LayerData& prev, LayerData& current)

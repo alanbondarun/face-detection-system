@@ -3,6 +3,7 @@
 #include "calc/calc-cpu.hpp"
 #include "calc/util-functions.hpp"
 #include "utils/make_unique.hpp"
+#include "utils/cl_exception.hpp"
 #include "cl_context.hpp"
 #include <cstring>
 #include <random>
@@ -112,57 +113,28 @@ namespace NeuralNet
         cl::CommandQueue queue = CLContext::getInstance().getCommandQueue();
 
         cl_int err = CL_SUCCESS;
+        err = queue.enqueueWriteBuffer(m_buf_pa, CL_TRUE, 0, sizeof(float) * m_prev_d * train_num,
+                prev_a);
+        printError(err, "Error at CommandQueue::enqueWriteBuffer for m_buf_pa");
+        err = queue.enqueueWriteBuffer(m_buf_w, CL_TRUE, 0,
+                sizeof(float) * m_prev_d * m_current_d, m_weight);
+        printError(err, "Error at CommandQueue::enqueWriteBuffer for m_buf_w");
+        err = queue.enqueueWriteBuffer(m_buf_b, CL_TRUE, 0, sizeof(float) * m_current_d, m_bias);
+        printError(err, "Error at CommandQueue::enqueWriteBuffer for m_buf_b");
+        err = queue.enqueueWriteBuffer(m_buf_do, CL_TRUE, 0, sizeof(float) * m_current_d,
+                m_dropout_coeff);
+        printError(err, "Error at CommandQueue::enqueWriteBuffer for m_buf_do");
 
-        if ((err = queue.enqueueWriteBuffer(m_buf_pa, CL_TRUE, 0, sizeof(float) * m_prev_d, prev_a))
-                != CL_SUCCESS)
-        {
-            std::cout << "Error at CommandQueue::enqueWriteBuffer for m_buf_pa, code: "
-                << err << std::endl;
-        }
+        err = queue.enqueueNDRangeKernel(m_fwd_kernel, cl::NullRange,
+                cl::NDRange(m_current_d * train_num), cl::NullRange);
+        printError(err, "Error at CommandQueue::enqueNDRangeKernel");
 
-        if ((err = queue.enqueueWriteBuffer(m_buf_w, CL_TRUE, 0,
-                sizeof(float) * m_prev_d * m_current_d, m_weight)) != CL_SUCCESS)
-        {
-            std::cout << "Error at CommandQueue::enqueWriteBuffer for m_buf_w, code: "
-                << err << std::endl;
-        }
-
-        if ((err = queue.enqueueWriteBuffer(m_buf_b, CL_TRUE, 0, sizeof(float) * m_current_d, m_bias))
-                != CL_SUCCESS)
-        {
-            std::cout << "Error at CommandQueue::enqueWriteBuffer for m_buf_b, code: "
-                << err << std::endl;
-        }
-
-        if ((err = queue.enqueueWriteBuffer(m_buf_do, CL_TRUE, 0, sizeof(float) * m_current_d,
-                m_dropout_coeff)) != CL_SUCCESS)
-        {
-            std::cout << "Error at CommandQueue::enqueWriteBuffer for m_buf_do, code: "
-                << err << std::endl;
-        }
-
-
-        if ((err = queue.enqueueNDRangeKernel(m_fwd_kernel, cl::NullRange, cl::NDRange(m_current_d),
-                cl::NullRange)) != CL_SUCCESS)
-        {
-            std::cout << "Error at CommandQueue::enqueNDRangeKernel, code: "
-                << err << std::endl;
-        }
-
-
-        if ((err = queue.enqueueReadBuffer(m_buf_cz, CL_TRUE, 0, sizeof(float) * m_current_d,
-                cur_z)) != CL_SUCCESS)
-        {
-            std::cout << "Error at CommandQueue::enqueReadBuffer for m_buf_cz, code: "
-                << err << std::endl;
-        }
-
-        if ((err = queue.enqueueReadBuffer(m_buf_ca, CL_TRUE, 0, sizeof(float) * m_current_d,
-                cur_a)) != CL_SUCCESS)
-        {
-            std::cout << "Error at CommandQueue::enqueReadBuffer for m_buf_ca, code: "
-                << err << std::endl;
-        }
+        err = queue.enqueueReadBuffer(m_buf_cz, CL_TRUE, 0, sizeof(float) * m_current_d * train_num,
+                cur_z);
+        printError(err, "Error at CommandQueue::enqueReadBuffer for m_buf_cz");
+        err = queue.enqueueReadBuffer(m_buf_ca, CL_TRUE, 0, sizeof(float) * m_current_d * train_num,
+                cur_a);
+        printError(err, "Error at CommandQueue::enqueReadBuffer for m_buf_ca");
     }
 
     void SigmoidLayer::backward_cpu(LayerData& prev, LayerData& current)

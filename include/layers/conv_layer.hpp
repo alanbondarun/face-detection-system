@@ -7,6 +7,9 @@
 #include <cstdlib>
 #include <memory>
 
+#define __CL_ENABLE_EXCEPTIONS
+#include "CL/cl.hpp"
+
 namespace NeuralNet
 {
     class ConvLayer: public Layer
@@ -59,6 +62,9 @@ namespace NeuralNet
 
         float *m_weight;
         float *m_bias;
+
+        cl::Buffer m_buf_w, m_buf_b;
+        cl::Kernel m_fwd_kernel;
 
     public:
         virtual void setLearnRate(float rate) { m_learn_rate = rate; }

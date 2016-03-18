@@ -17,6 +17,7 @@ TARGETS := $(BUILD_DIR)/led-user $(BUILD_DIR)/test_nn $(BUILD_DIR)/test_load_ima
 EXTLIB_OBJS := $(addprefix $(OBJ_DIR)/, $(EXTLIB_SUBDIR)/jsoncpp.o)
 NEURAL_NET_OBJS := $(EXTLIB_OBJS) $(addprefix $(OBJ_DIR)/, $(CALC_SUBDIR)/calc-cpu.o \
 	$(CALC_SUBDIR)/util-functions.o \
+	$(UTIL_SUBDIR)/cl_exception.o \
 	$(LAYER_SUBDIR)/layer_data.o \
 	$(LAYER_SUBDIR)/cl_layer_data.o \
 	$(LAYER_SUBDIR)/sigmoid_layer.o \

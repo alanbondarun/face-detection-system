@@ -6,6 +6,9 @@
 #include "json/json.h"
 #include <cstdlib>
 
+#define __CL_ENABLE_EXCEPTIONS
+#include "CL/cl.hpp"
+
 namespace NeuralNet
 {
     class MaxPoolLayer: public Layer
@@ -44,6 +47,8 @@ namespace NeuralNet
     private:
         const Dimension m_dim;
         const size_t m_output_width, m_output_height;
+
+        cl::Kernel m_fwd_kernel;
     };
 }
 
