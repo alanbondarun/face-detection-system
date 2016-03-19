@@ -17,14 +17,17 @@ namespace NeuralNet
             END = ERROR
         };
 
-        LayerData(size_t train_num, size_t data_num);
-        ~LayerData();
+        static constexpr size_t DATA_COUNT = static_cast<int>(DataIndex::END)
+                - static_cast<int>(DataIndex::START) + 1;
 
-        /* resize the arrays */
-        void resize(size_t train_num, size_t data_num);
+        LayerData(size_t train_num, size_t data_num);
+        virtual ~LayerData();
+
+        LayerData(const LayerData& other);
+        LayerData& operator=(const LayerData& other);
 
         /* returns the desired array */
-        double *get(DataIndex idx) const;
+        float *get(DataIndex idx) const;
 
         /* returns the dimensions */
         size_t getDataNum() const { return m_data_num; }
@@ -32,9 +35,7 @@ namespace NeuralNet
 
     private:
         size_t m_train_num, m_data_num;
-        double *data;
-        static constexpr size_t DATA_COUNT = static_cast<int>(DataIndex::END)
-                - static_cast<int>(DataIndex::START) + 1;
+        float *data;
     };
 }
 

@@ -16,7 +16,7 @@ struct SearchConfig
     size_t patch;
     size_t stride;
     size_t min_image_width;
-    double shrink_ratio;
+    float shrink_ratio;
     std::string net_config_file;
     std::string test_file;
 };
@@ -98,7 +98,7 @@ int main(int argc, char* argv[])
             config.min_image_width);
     std::cout << "loading image pyramid complete" << std::endl;
 
-    std::vector<double> patch_data;
+    std::vector<float> patch_data;
     for (auto& small_image: image_pyramid)
     {
         auto patch_list = NeuralNet::extractPatches(small_image, config.patch,

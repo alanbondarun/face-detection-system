@@ -7,6 +7,9 @@
 #include <cstdlib>
 #include <memory>
 
+#define __CL_ENABLE_EXCEPTIONS
+#include "CL/cl.hpp"
+
 namespace NeuralNet
 {
     class ConvLayer: public Layer
@@ -19,8 +22,9 @@ namespace NeuralNet
             size_t image_width;
             size_t image_height;
             size_t recep_size;
-            double learn_rate;
+            float learn_rate;
             bool enable_zero_pad;
+            bool uses_gpu;
         };
 
         enum class ActivationFunc
@@ -32,9 +36,9 @@ namespace NeuralNet
         virtual ~ConvLayer();
 
         virtual void forward_cpu(const LayerData& prev, LayerData& current);
-        virtual void forward_gpu(const LayerData& prev, LayerData& current);
+        virtual void forward_gpu(const CLLayerData& prev, CLLayerData& current);
         virtual void backward_cpu(LayerData& prev, LayerData& current);
-        virtual void backward_gpu(LayerData& prev, LayerData& current);
+        virtual void backward_gpu(CLLayerData& prev, CLLayerData& current);
 
         virtual std::unique_ptr<LayerData> createLayerData(size_t train_num);
 
@@ -46,22 +50,25 @@ namespace NeuralNet
 
     private:
         LayerSetting m_set;
-        double m_learn_rate;
+        float m_learn_rate;
         size_t m_output_width, m_output_height;
 
-        std::function<double(double)> f_activation;
-        std::function<double(double)> f_activation_prime;
-        void (*f_convolution)(const double *, const double *, double *,
+        std::function<float(float)> f_activation;
+        std::function<float(float)> f_activation_prime;
+        void (*f_convolution)(const float *, const float *, float *,
                 int, int, int, int);
-        void (*f_convol_back)(const double *, const double *, double *,
+        void (*f_convol_back)(const float *, const float *, float *,
                 int, int, int, int);
 
-        double *m_weight;
-        double *m_bias;
+        float *m_weight;
+        float *m_bias;
+
+        cl::Buffer m_buf_w, m_buf_b;
+        cl::Kernel m_fwd_kernel;
 
     public:
-        virtual void setLearnRate(double rate) { m_learn_rate = rate; }
-        virtual double getLearnRate() const { return m_learn_rate; }
+        virtual void setLearnRate(float rate) { m_learn_rate = rate; }
+        virtual float getLearnRate() const { return m_learn_rate; }
     };
 }
 

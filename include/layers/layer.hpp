@@ -5,6 +5,7 @@
 #include <memory>
 #include <string>
 #include "layers/layer_data.hpp"
+#include "layers/cl_layer_data.hpp"
 #include "json/json.h"
 
 namespace NeuralNet
@@ -18,23 +19,31 @@ namespace NeuralNet
         virtual ~Layer() {}
 
         /* forwarding input of the layer */
-        void forward(const LayerData& prev, LayerData& current)
+        void forward(const LayerData& prev, LayerData& current, bool uses_gpu)
         {
-#ifdef USES_GPU
-            forward_gpu(prev, current);
-#else
-            forward_cpu(prev, current);
-#endif
+            if (uses_gpu)
+            {
+                auto cl_prev = dynamic_cast<const CLLayerData&>(prev);
+                auto cl_current = dynamic_cast<CLLayerData&>(current);
+                forward_gpu(cl_prev, cl_current);
+                current = cl_current;
+            }
+            else
+                forward_cpu(prev, current);
         }
 
         /* backpropagation of the layer */
-        void backward(LayerData& prev, LayerData& current)
+        void backward(LayerData& prev, LayerData& current, bool uses_gpu)
         {
-#ifdef USES_GPU
-            backward_gpu(prev, current);
-#else
-            backward_cpu(prev, current);
-#endif
+            if (uses_gpu)
+            {
+                auto cl_prev = dynamic_cast<CLLayerData&>(prev);
+                auto cl_current = dynamic_cast<CLLayerData&>(current);
+                backward_gpu(cl_prev, cl_current);
+                current = cl_current;
+            }
+            else
+                backward_cpu(prev, current);
         }
 
         /* creation of appropriate layer data for the layer */
@@ -51,8 +60,8 @@ namespace NeuralNet
         virtual size_t getNeuronNum() const = 0;
 
         // learn rate modulation
-        virtual void setLearnRate(double rate) = 0;
-        virtual double getLearnRate() const = 0;
+        virtual void setLearnRate(float rate) = 0;
+        virtual float getLearnRate() const = 0;
 
     protected:
         /**
@@ -60,9 +69,9 @@ namespace NeuralNet
          * need to implement
          */
         virtual void forward_cpu(const LayerData& prev, LayerData& current) = 0;
-        virtual void forward_gpu(const LayerData& prev, LayerData& current) = 0;
+        virtual void forward_gpu(const CLLayerData& prev, CLLayerData& current) = 0;
         virtual void backward_cpu(LayerData& prev, LayerData& current) = 0;
-        virtual void backward_gpu(LayerData& prev, LayerData& current) = 0;
+        virtual void backward_gpu(CLLayerData& prev, CLLayerData& current) = 0;
     };
 }
 

@@ -12,7 +12,7 @@ namespace NeuralNet
      */
     std::vector< std::unique_ptr<Image> > pyramidImage(
             const std::unique_ptr<Image>& original_image,
-            double ratio, size_t min_width);
+            float ratio, size_t min_width);
 
     /**
      * Raster-scan a given image to extract a set of image patches

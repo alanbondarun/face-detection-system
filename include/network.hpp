@@ -33,10 +33,10 @@ namespace NeuralNet
         struct LearnRateSetting
         {
             bool enable;
-            double rate;
+            float rate;
             size_t drop_count;
-            double drop_thresh;
-            double halt_thresh_rate;
+            float drop_thresh;
+            float halt_thresh_rate;
         };
 
         using NodeUPtr = std::unique_ptr<Node>;
@@ -71,23 +71,23 @@ namespace NeuralNet
         void storeIntoFiles();
 
         // insert test data to the network (copy-construct)
-        void registerTestSet(const std::string& name, const std::vector<double>& data,
+        void registerTestSet(const std::string& name, const std::vector<float>& data,
                 const std::vector< std::vector<int> >& categ_list);
 
         // insert test data to the network (move-construct)
-        void registerTestSet(const std::string& name, std::vector<double>&& data,
+        void registerTestSet(const std::string& name, std::vector<float>&& data,
                 std::vector< std::vector<int> >&& categ_list);
 
         // returns classification value for one portion of data
-        std::vector< int > evaluate(const std::vector<double>& data);
+        std::vector< int > evaluate(const std::vector<float>& data);
 
         // returns classification values for a set of data
-        std::vector< std::vector<int> > evaluateAll(const std::vector<double>& data);
+        std::vector< std::vector<int> > evaluateAll(const std::vector<float>& data);
 
         // trains with m_train_size number of data
         // category_list: list of (list of desired output data for each input data)
         //    for each output layer
-        void train(const std::vector<double>& data,
+        void train(const std::vector<float>& data,
             const std::vector< std::vector<int> >& category_list);
 
     private:
@@ -104,7 +104,7 @@ namespace NeuralNet
         void addLayer(const Json::Value& jsonLayer, SettingMapType& prevSetting);
 
         /* helper function for propagation */
-        void feedForward(const std::vector<double>& data,
+        void feedForward(const std::vector<float>& data,
                 const std::vector<size_t>& list_idx);
         void backPropagate();
 
@@ -119,10 +119,10 @@ namespace NeuralNet
         void calcOutputErrors(
                 const std::vector< std::vector<int> >& category_list,
                 const std::vector< size_t >& batch_idxes,
-                std::vector<double>& error_vals,
+                std::vector<float>& error_vals,
                 size_t batch_num);
 
-        void dropLearnRate(const std::vector<double>& total_errors);
+        void dropLearnRate(const std::vector<float>& total_errors);
 
         /* dimensions */
         InputType m_in_type;
@@ -133,8 +133,9 @@ namespace NeuralNet
         } m_in_dim;
         size_t m_unit_size, m_train_size, m_batch_size, m_epoch_num;
         size_t m_max_eval_patch;
-        double m_learn_rate;
+        float m_learn_rate;
         LearnRateSetting m_learn_rate_set;
+        bool m_uses_gpu;
 
         std::vector<NodeID> m_start_idxes;
         std::vector<NodeID> m_leaf_idx;

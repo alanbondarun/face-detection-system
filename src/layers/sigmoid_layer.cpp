@@ -1,7 +1,10 @@
 #include "layers/sigmoid_layer.hpp"
+#include "layers/cl_layer_data.hpp"
 #include "calc/calc-cpu.hpp"
 #include "calc/util-functions.hpp"
 #include "utils/make_unique.hpp"
+#include "utils/cl_exception.hpp"
+#include "cl_context.hpp"
 #include <cstring>
 #include <random>
 #include <cmath>
@@ -12,30 +15,50 @@ namespace NeuralNet
         : m_prev_d(set.prev_neurons), m_current_d(set.current_neurons),
         m_learn_rate(set.learn_rate),
         m_uses_dropout(set.dropout_enable), m_dropout_enabled(false),
-        m_dropout_rate(set.dropout_rate)
+        m_dropout_rate(set.dropout_rate),
+        m_uses_gpu(set.uses_gpu)
     {
-        m_weight = new double[m_current_d * m_prev_d];
-        m_bias = new double[m_current_d];
+        m_weight = new float[m_current_d * m_prev_d];
+        m_bias = new float[m_current_d];
 
-        if (m_uses_dropout)
-            m_dropout_coeff = new double[m_current_d];
+        m_dropout_coeff = new float[m_current_d];
 
         /* weight and bias initializaion */
         std::random_device rd;
         std::mt19937 rgen(rd());
-        std::normal_distribution<double> dist_w(0.0, std::sqrt(2.0 / (m_prev_d)));
-        std::normal_distribution<double> dist_b(0.0, std::sqrt(2.0 / (m_prev_d)));
+        std::normal_distribution<float> dist_w(0.0, std::sqrt(2.0 / (m_prev_d)));
+        std::normal_distribution<float> dist_b(0.0, std::sqrt(2.0 / (m_prev_d)));
 
         for (size_t i = 0; i < m_current_d * m_prev_d; i++)
             m_weight[i] = dist_w(rgen);
         for (size_t i = 0; i < m_current_d; i++)
             m_bias[i] = dist_b(rgen);
+
+        if (m_uses_gpu)
+        {
+            // initialize buffers
+            cl::Context context = CLContext::getInstance().getContext();
+            m_buf_w = cl::Buffer(context, CL_MEM_READ_ONLY, sizeof(float) * m_prev_d * m_current_d);
+            m_buf_b = cl::Buffer(context, CL_MEM_READ_ONLY, sizeof(float) * m_current_d);
+            m_buf_do = cl::Buffer(context, CL_MEM_READ_ONLY, sizeof(float) * m_current_d);
+
+            // create kernel
+            m_fwd_kernel = cl::Kernel(CLContext::getInstance().getProgram(), "sigmoid_forward");
+
+            m_fwd_kernel.setArg(1, m_buf_w);
+            m_fwd_kernel.setArg(2, m_buf_b);
+            m_fwd_kernel.setArg(5, m_buf_do);
+
+            int i_prev_d = static_cast<int>(m_prev_d);
+            int i_cur_d = static_cast<int>(m_current_d);
+            m_fwd_kernel.setArg(6, sizeof(int), &i_prev_d);
+            m_fwd_kernel.setArg(7, sizeof(int), &i_cur_d);
+        }
     }
 
     SigmoidLayer::~SigmoidLayer()
     {
-        if (m_uses_dropout)
-            delete [] m_dropout_coeff;
+        delete [] m_dropout_coeff;
 
         delete [] m_bias;
         delete [] m_weight;
@@ -59,40 +82,59 @@ namespace NeuralNet
         }
         apply_vec(cur_a, cur_a, m_current_d * m_train_num, ActivationFuncs::f_sigmoid);
 
+        refreshDropout();
         if (m_uses_dropout)
         {
-            // dropout is applied only to the activation value of the dropout-enabled layer
-            // in the forwarding phase
-            if (m_dropout_enabled)
+            for (size_t m = 0; m < m_train_num; m++)
             {
-                // if this layer uses dropout, select neurons which does not participate in training
-                // by setting their activation value to zero.
-                std::random_device rd;
-                std::mt19937 rgen(rd());
-                std::uniform_real_distribution<> dis(0, 1);
-                const double dropout_rate = m_dropout_rate;
-
-                apply_vec(m_dropout_coeff, m_dropout_coeff, m_current_d,
-                        [dropout_rate, &rgen, &dis](double in) -> double {
-                            return (dis(rgen) <= dropout_rate) ? 1:0;
-                        });
-                for (size_t m = 0; m < m_train_num; m++)
-                {
-                    pmul_vec(cur_a + (m_current_d*m), m_dropout_coeff,
-                            cur_a + (m_current_d*m), m_current_d);
-                }
-            }
-            else
-            {
-                // otherwise, just multiply the dropout rate to every activation value
-                const_mul_vec(cur_a, m_dropout_rate, m_train_num * m_current_d);
+                pmul_vec(cur_a + (m_current_d*m), m_dropout_coeff,
+                        cur_a + (m_current_d*m), m_current_d);
             }
         }
     }
 
-    void SigmoidLayer::forward_gpu(const LayerData& prev, LayerData& current)
+    void SigmoidLayer::forward_gpu(const CLLayerData& prev, CLLayerData& current)
     {
-        /* TODO */
+        refreshDropout();
+
+        int train_num = current.getTrainNum();
+        auto prev_a = prev.get(LayerData::DataIndex::ACTIVATION);
+        auto cur_z = current.get(LayerData::DataIndex::INTER_VALUE);
+        auto cur_a = current.get(LayerData::DataIndex::ACTIVATION);
+
+        auto m_buf_pa = prev.getCLBuffer(LayerData::DataIndex::ACTIVATION);
+        auto m_buf_cz = current.getCLBuffer(LayerData::DataIndex::INTER_VALUE);
+        auto m_buf_ca = current.getCLBuffer(LayerData::DataIndex::ACTIVATION);
+        m_fwd_kernel.setArg(0, m_buf_pa);
+        m_fwd_kernel.setArg(3, m_buf_cz);
+        m_fwd_kernel.setArg(4, m_buf_ca);
+        m_fwd_kernel.setArg(8, sizeof(int), &train_num);
+
+        cl::CommandQueue queue = CLContext::getInstance().getCommandQueue();
+
+        cl_int err = CL_SUCCESS;
+        err = queue.enqueueWriteBuffer(m_buf_pa, CL_TRUE, 0, sizeof(float) * m_prev_d * train_num,
+                prev_a);
+        printError(err, "Error at CommandQueue::enqueWriteBuffer for m_buf_pa");
+        err = queue.enqueueWriteBuffer(m_buf_w, CL_TRUE, 0,
+                sizeof(float) * m_prev_d * m_current_d, m_weight);
+        printError(err, "Error at CommandQueue::enqueWriteBuffer for m_buf_w");
+        err = queue.enqueueWriteBuffer(m_buf_b, CL_TRUE, 0, sizeof(float) * m_current_d, m_bias);
+        printError(err, "Error at CommandQueue::enqueWriteBuffer for m_buf_b");
+        err = queue.enqueueWriteBuffer(m_buf_do, CL_TRUE, 0, sizeof(float) * m_current_d,
+                m_dropout_coeff);
+        printError(err, "Error at CommandQueue::enqueWriteBuffer for m_buf_do");
+
+        err = queue.enqueueNDRangeKernel(m_fwd_kernel, cl::NullRange,
+                cl::NDRange(m_current_d * train_num), cl::NullRange);
+        printError(err, "Error at CommandQueue::enqueNDRangeKernel");
+
+        err = queue.enqueueReadBuffer(m_buf_cz, CL_TRUE, 0, sizeof(float) * m_current_d * train_num,
+                cur_z);
+        printError(err, "Error at CommandQueue::enqueReadBuffer for m_buf_cz");
+        err = queue.enqueueReadBuffer(m_buf_ca, CL_TRUE, 0, sizeof(float) * m_current_d * train_num,
+                cur_a);
+        printError(err, "Error at CommandQueue::enqueReadBuffer for m_buf_ca");
     }
 
     void SigmoidLayer::backward_cpu(LayerData& prev, LayerData& current)
@@ -125,10 +167,10 @@ namespace NeuralNet
         }
 
         /* calculate error value for previous layer */
-        double *sprime_z = new double[m_prev_d * m_train_num];
+        float *sprime_z = new float[m_prev_d * m_train_num];
         apply_vec(prev_z, sprime_z, m_prev_d * m_train_num, ActivationFuncs::f_sigmoid_prime);
 
-        double *temp_w = new double[m_prev_d * m_current_d];
+        float *temp_w = new float[m_prev_d * m_current_d];
         transpose_mat(m_weight, temp_w, m_current_d, m_prev_d);
 
         for (int i=0; i<m_train_num; i++)
@@ -138,24 +180,24 @@ namespace NeuralNet
         pmul_vec(prev_e, sprime_z, prev_e, m_prev_d * m_train_num);
 
         /* calculate delta_b and update current bias */
-        double *delta_b = new double[m_current_d];
+        float *delta_b = new float[m_current_d];
 
         sum_vec(cur_e, delta_b, m_current_d, m_train_num);
-        apply_vec(delta_b, delta_b, m_current_d, [train_num, learn_rate](double in) -> double {
+        apply_vec(delta_b, delta_b, m_current_d, [train_num, learn_rate](float in) -> float {
             return -in*learn_rate/train_num;
         });
         add_vec(m_bias, delta_b, m_bias, m_current_d);
 
         /* calculate delta_w and update current weight */
-        double *delta_w = new double[m_prev_d * m_current_d];
-        memset(delta_w, 0, sizeof(double) * m_prev_d * m_current_d);
+        float *delta_w = new float[m_prev_d * m_current_d];
+        memset(delta_w, 0, sizeof(float) * m_prev_d * m_current_d);
 
         for (int i=0; i<m_train_num; i++)
         {
             vec_outer_prod(cur_e, prev_a, temp_w, m_current_d, m_prev_d);
             add_vec(delta_w, temp_w, delta_w, m_prev_d * m_current_d);
         }
-        apply_vec(delta_w, delta_w, m_prev_d * m_current_d, [train_num, learn_rate](double in) -> double {
+        apply_vec(delta_w, delta_w, m_prev_d * m_current_d, [train_num, learn_rate](float in) -> float {
             return -in*learn_rate/train_num;
         });
         add_vec(m_weight, delta_w, m_weight, m_prev_d * m_current_d);
@@ -166,13 +208,54 @@ namespace NeuralNet
         delete [] sprime_z;
     }
 
-    void SigmoidLayer::backward_gpu(LayerData& prev, LayerData& current)
+    void SigmoidLayer::backward_gpu(CLLayerData& prev, CLLayerData& current)
     {
         /* TODO */
+        // not implemented yet, just use cpu temporarily
+        backward_cpu(prev, current);
+    }
+
+    void SigmoidLayer::refreshDropout()
+    {
+        if (m_uses_dropout)
+        {
+            // dropout is applied only to the activation value of the dropout-enabled layer
+            // in the forwarding phase
+            if (m_dropout_enabled)
+            {
+                // if this layer uses dropout, select neurons which does not participate in training
+                // by setting their activation value to zero.
+                std::random_device rd;
+                std::mt19937 rgen(rd());
+                std::uniform_real_distribution<> dis(0, 1);
+                const float dropout_rate = m_dropout_rate;
+
+                apply_vec(m_dropout_coeff, m_dropout_coeff, m_current_d,
+                        [dropout_rate, &rgen, &dis](float in) -> float {
+                            return (dis(rgen) <= dropout_rate) ? 1:0;
+                        });
+            }
+            else
+            {
+                // otherwise, just set the dropout coeff to the dropout rate
+                set_vec(m_dropout_coeff, m_dropout_rate, m_current_d);
+            }
+        }
+        else
+        {
+            set_vec(m_dropout_coeff, 1.0, m_current_d);
+        }
     }
 
     std::unique_ptr<LayerData> SigmoidLayer::createLayerData(size_t train_num)
     {
+        if (m_uses_gpu)
+        {
+            return std::make_unique<CLLayerData>(
+                    train_num,
+                    m_current_d
+            );
+        }
         return std::make_unique<LayerData>(
             train_num,
             m_current_d

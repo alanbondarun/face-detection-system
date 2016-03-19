@@ -14,10 +14,10 @@ namespace NeuralNet
     Image::Image(size_t _width, size_t _height, size_t _channels)
         : width(_width), height(_height), channel_num(_channels)
     {
-        value = new double*[channel_num];
+        value = new float*[channel_num];
         for (size_t i = 0; i < channel_num; i++)
         {
-            value[i] = new double[width * height];
+            value[i] = new float[width * height];
         }
     }
 
@@ -33,10 +33,10 @@ namespace NeuralNet
     Image::Image(const Image& other)
         : width(other.width), height(other.height), channel_num(other.channel_num)
     {
-        value = new double*[channel_num];
+        value = new float*[channel_num];
         for (size_t i = 0; i < channel_num; i++)
         {
-            value[i] = new double[width * height];
+            value[i] = new float[width * height];
 
             for (size_t j = 0; j < width * height; j++)
                 value[i][j] = other.value[i][j];
@@ -136,16 +136,16 @@ namespace NeuralNet
             {
                 for (int i = 0; i < w; i++)
                 {
-                    double posx = static_cast<double>(i * orig_w) / w;
-                    double posy = static_cast<double>(j * orig_h) / h;
+                    float posx = static_cast<float>(i * orig_w) / w;
+                    float posy = static_cast<float>(j * orig_h) / h;
 
                     int iposx = static_cast<int>(posx);
                     int iposy = static_cast<int>(posy);
 
-                    double dposx = posx - static_cast<double>(iposx);
-                    double dposy = posy - static_cast<double>(iposy);
+                    float dposx = posx - static_cast<float>(iposx);
+                    float dposy = posy - static_cast<float>(iposy);
 
-                    double val = 0;
+                    float val = 0;
                     if (iposx + 1 >= orig_w)
                     {
                         if (iposy + 1 >= orig_h)
@@ -234,7 +234,7 @@ namespace NeuralNet
         auto res_img = std::make_unique<Image>(w, h, 1);
         auto valptr = res_img->getValues(0);
 
-        double ch_coeff[] = {0.2125, 0.7154, 0.0721};
+        float ch_coeff[] = {0.2125, 0.7154, 0.0721};
         for (size_t y = 0; y < h; y++)
         {
             for (size_t x = 0; x < w; x++)
@@ -288,11 +288,11 @@ namespace NeuralNet
             {
                 int idx = static_cast<int>((image->getValues(0))[j*w + i] * level);
                 if (idx < 0)
-                    new_data_ptr[j*w + i] = static_cast<double>(val_cdf[0]) / (w*h);
+                    new_data_ptr[j*w + i] = static_cast<float>(val_cdf[0]) / (w*h);
                 else if (idx > level)
-                    new_data_ptr[j*w + i] = static_cast<double>(val_cdf[level]) / (w*h);
+                    new_data_ptr[j*w + i] = static_cast<float>(val_cdf[level]) / (w*h);
                 else
-                    new_data_ptr[j*w + i] = static_cast<double>(val_cdf[idx]) / (w*h);
+                    new_data_ptr[j*w + i] = static_cast<float>(val_cdf[idx]) / (w*h);
             }
         }
         return newImage;
@@ -309,9 +309,9 @@ namespace NeuralNet
         const auto h = image->getHeight();
 
         // least square fit to linear plane for light compensation
-        double xsum_orig = 0;
-        double ysum_orig = 0;
-        double csum_orig = 0;
+        float xsum_orig = 0;
+        float ysum_orig = 0;
+        float csum_orig = 0;
         for (size_t j = 0; j < h; j++)
         {
             for (size_t i = 0; i < w; i++)
@@ -323,8 +323,8 @@ namespace NeuralNet
         }
         Eigen::Vector3d vsum(xsum_orig, ysum_orig, csum_orig);
 
-        double x2sum = 0, y2sum = 0, xysum = 0, xsum = 0, ysum = 0;
-        double csum = w*h;
+        float x2sum = 0, y2sum = 0, xysum = 0, xsum = 0, ysum = 0;
+        float csum = w*h;
         for (size_t j = 0; j < h; j++)
         {
             for (size_t i = 0; i < w; i++)
@@ -355,13 +355,13 @@ namespace NeuralNet
         return newImage;
     }
 
-    double getVariance(const std::unique_ptr<Image>& image)
+    float getVariance(const std::unique_ptr<Image>& image)
     {
         const auto orig_data_ptr = image->getValues(0);
         const auto w = image->getWidth();
         const auto h = image->getHeight();
 
-        double current_mean = 0;
+        float current_mean = 0;
         for (size_t j = 0; j < h; j++)
         {
             for (size_t i = 0; i < w; i++)
@@ -371,7 +371,7 @@ namespace NeuralNet
         }
         current_mean /= (w*h);
 
-        double current_var = 0;
+        float current_var = 0;
         for (size_t j = 0; j < h; j++)
         {
             for (size_t i = 0; i < w; i++)
@@ -383,7 +383,7 @@ namespace NeuralNet
     }
 
     std::unique_ptr<Image> intensityPatch(const std::unique_ptr<Image>& image,
-            double mean, double stdev)
+            float mean, float stdev)
     {
         if (image->getChannelNum() != 1)
             return std::unique_ptr<Image>();
@@ -392,7 +392,7 @@ namespace NeuralNet
         const auto w = image->getWidth();
         const auto h = image->getHeight();
 
-        double current_mean = 0;
+        float current_mean = 0;
         for (size_t j = 0; j < h; j++)
         {
             for (size_t i = 0; i < w; i++)
@@ -402,7 +402,7 @@ namespace NeuralNet
         }
         current_mean /= (w*h);
 
-        double current_var = getVariance(image);
+        float current_var = getVariance(image);
         if (std::isfinite(current_var) && !std::isnormal(current_var))
         {
             // if the sum of squares of errors is equal to zero or is subnormal,
@@ -419,7 +419,7 @@ namespace NeuralNet
             return newImage;
         }
 
-        double alpha = stdev * std::sqrt(1.0 / current_var);
+        float alpha = stdev * std::sqrt(1.0 / current_var);
 
         auto newImage = std::make_unique<Image>(w, h, 1);
         for (size_t j = 0; j < h; j++)
@@ -469,11 +469,11 @@ namespace NeuralNet
         {
             for (size_t x = 0; x < img_w; x++)
             {
-                (img_ptr->getValues(0))[y * img_w + x] = static_cast<double>(pixels[y][x].r)
+                (img_ptr->getValues(0))[y * img_w + x] = static_cast<float>(pixels[y][x].r)
                         / max_pval;
-                (img_ptr->getValues(1))[y * img_w + x] = static_cast<double>(pixels[y][x].g)
+                (img_ptr->getValues(1))[y * img_w + x] = static_cast<float>(pixels[y][x].g)
                         / max_pval;
-                (img_ptr->getValues(2))[y * img_w + x] = static_cast<double>(pixels[y][x].b)
+                (img_ptr->getValues(2))[y * img_w + x] = static_cast<float>(pixels[y][x].b)
                         / max_pval;
             }
         }
@@ -508,11 +508,11 @@ namespace NeuralNet
         {
             for (size_t x = 0; x < img_w; x++)
             {
-                (img_ptr->getValues(0))[y * img_w + x] = static_cast<double>(pixels[y][x])
+                (img_ptr->getValues(0))[y * img_w + x] = static_cast<float>(pixels[y][x])
                         / max_pval;
-                (img_ptr->getValues(1))[y * img_w + x] = static_cast<double>(pixels[y][x])
+                (img_ptr->getValues(1))[y * img_w + x] = static_cast<float>(pixels[y][x])
                         / max_pval;
-                (img_ptr->getValues(2))[y * img_w + x] = static_cast<double>(pixels[y][x])
+                (img_ptr->getValues(2))[y * img_w + x] = static_cast<float>(pixels[y][x])
                         / max_pval;
             }
         }
@@ -549,7 +549,7 @@ namespace NeuralNet
             {
                 if (img_ptr->getChannelNum() >= 3)
                 {
-                    double vclip[3];
+                    float vclip[3];
                     for (size_t c = 0; c < 3; c++)
                     {
                         vclip[c] = (img_ptr->getValues(c))[y*w + x];
@@ -564,7 +564,7 @@ namespace NeuralNet
                 }
                 else
                 {
-                    double vclip = (img_ptr->getValues(0))[y*w + x];
+                    float vclip = (img_ptr->getValues(0))[y*w + x];
                     if (vclip < 0)
                         vclip = 0;
                     if (vclip > 1)
