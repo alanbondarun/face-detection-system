@@ -69,8 +69,16 @@ namespace NeuralNet
             m_buf_w = cl::Buffer(context, CL_MEM_READ_ONLY, sizeof(float) * num_weights);
             m_buf_b = cl::Buffer(context, CL_MEM_READ_ONLY, sizeof(float) * num_biases);
 
-            // create kernel
-            m_fwd_kernel = cl::Kernel(CLContext::getInstance().getProgram(), "conv_forward_relu");
+            // create kernel (TODO: non-ReLU activation function?)
+            if (m_set.enable_zero_pad)
+            {
+                m_fwd_kernel = cl::Kernel(CLContext::getInstance().getProgram(),
+                    "conv_forward_relu_zeropad");
+            }
+            else
+            {
+                // TODO: non-zeropad case?
+            }
 
             m_fwd_kernel.setArg(3, m_buf_w);
             m_fwd_kernel.setArg(4, m_buf_b);

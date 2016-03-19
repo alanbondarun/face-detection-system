@@ -215,7 +215,34 @@ namespace NeuralNet
                 pmres--;
             }
         }
+    }
 
+    void inflate_mats(const float *m_in, float *m_res, size_t dim_w, size_t dim_h,
+            size_t pad, size_t num_m)
+    {
+        const size_t out_w = dim_w + pad*2;
+        const size_t out_h = dim_h + pad*2;
+
+        for (size_t i=0; i<num_m; i++)
+        {
+            size_t in_off = dim_w * dim_h * i;
+            size_t res_off = out_w * out_h * i;
+
+            for (size_t y = 0; y < out_h; y++)
+            {
+                for (size_t x = 0; x < out_w; x++)
+                {
+                    if (x>=pad && x<pad+dim_w && y>=pad && y<pad+dim_h)
+                    {
+                        m_res[y*out_w + x + res_off] = m_in[(y-pad)*dim_w + (x-pad) + in_off];
+                    }
+                    else
+                    {
+                        m_res[y*out_w + x + res_off] = 0;
+                    }
+                }
+            }
+        }
     }
 
     void convolution_mat(const float *m_in, const float *m_conv, float *m_res,

@@ -47,6 +47,9 @@ namespace NeuralNet
     /* flip (rotate 180 deg) a matrix */
     void flip_mat(const float *m, float *mres, size_t dim_w, size_t dim_h);
 
+    void inflate_mats(const float *m_in, float *m_res, size_t dim_w, size_t dim_h,
+            size_t pad, size_t num_m);
+
     struct MatrixRange
     {
         int x, y, w, h;
