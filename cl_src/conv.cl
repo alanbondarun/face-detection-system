@@ -25,16 +25,17 @@ __kernel void conv_forward_relu_zeropad(__constant float* prev_a,
     int map_off = out_m * in_maps * recep_size * recep_size;
     for (int idxpm = 0; idxpm < in_maps; idxpm++)
     {
-        for (int conv_y = 0; conv_y < recep_size; conv_y++)
+        int min_cx = max(0, recep_hw - out_x);
+        int max_cx = min(recep_size, in_width + recep_hw - out_x);
+        int min_cy = max(0, recep_hw - out_y);
+        int max_cy = min(recep_size, in_height + recep_hw - out_y);
+        for (int conv_y = min_cy; conv_y < max_cy; conv_y++)
         {
-            for (int conv_x = 0; conv_x < recep_size; conv_x++)
+            for (int conv_x = min_cx; conv_x < max_cx; conv_x++)
             {
                 int prev_x = out_x + conv_x - recep_hw;
                 int prev_y = out_y + conv_y - recep_hw;
-                float enable_coeff = (float)((prev_x >= 0) && (prev_y >= 0) &&
-                        (prev_x < in_width) && (prev_y < in_height));
-                cur_z[g_idx] += (enable_coeff *
-                        prev_a[pa_off + prev_y * in_width + prev_x] *
+                cur_z[g_idx] += (prev_a[pa_off + prev_y * in_width + prev_x] *
                         weight[map_off + (recep_size - 1 - conv_y) * recep_size +
                             (recep_size - 1 - conv_x)]);
             }
@@ -44,7 +45,7 @@ __kernel void conv_forward_relu_zeropad(__constant float* prev_a,
         map_off += (recep_size * recep_size);
     }
 
-    cur_z[g_idx] += bias[g_idx];
+    cur_z[g_idx] += bias[g_idx % (in_width * in_height * out_maps)];
     
     float tmp_z = fabs(cur_z[g_idx]);
     cur_a[g_idx] = (cur_z[g_idx] + tmp_z) / 2.0;

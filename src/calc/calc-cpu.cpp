@@ -192,7 +192,7 @@ namespace NeuralNet
                         }
                     }
                 }
-                me_res[max_x * dim_w + max_y] = me[(i/delta_h) * ratio_w + (j/delta_w)];
+                me_res[max_y * dim_w + max_x] = me[(i/delta_h) * ratio_w + (j/delta_w)];
             }
         }
     }
