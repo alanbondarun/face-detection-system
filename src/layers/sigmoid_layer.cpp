@@ -34,6 +34,17 @@ namespace NeuralNet
         for (size_t i = 0; i < m_current_d; i++)
             m_bias[i] = dist_b(rgen);
 
+        // dropout coefficient init
+        m_dropout_enabled = false;
+        if (m_uses_dropout)
+        {
+            set_vec(m_dropout_coeff, m_dropout_rate, m_current_d);
+        }
+        else
+        {
+            set_vec(m_dropout_coeff, 1.0, m_current_d);
+        }
+
         if (m_uses_gpu)
         {
             // initialize buffers
@@ -53,6 +64,9 @@ namespace NeuralNet
             int i_cur_d = static_cast<int>(m_current_d);
             m_fwd_kernel.setArg(6, sizeof(int), &i_prev_d);
             m_fwd_kernel.setArg(7, sizeof(int), &i_cur_d);
+
+            refreshCLLayerInfo();
+            updateDOBuffer();
         }
     }
 
@@ -83,6 +97,7 @@ namespace NeuralNet
         apply_vec(cur_a, cur_a, m_current_d * m_train_num, ActivationFuncs::f_sigmoid);
 
         refreshDropout();
+
         if (m_uses_dropout)
         {
             for (size_t m = 0; m < m_train_num; m++)
@@ -111,16 +126,7 @@ namespace NeuralNet
         m_fwd_kernel.setArg(8, sizeof(int), &train_num);
 
         cl::CommandQueue queue = CLContext::getInstance().getCommandQueue();
-
         cl_int err = CL_SUCCESS;
-        err = queue.enqueueWriteBuffer(m_buf_w, CL_TRUE, 0,
-                sizeof(float) * m_prev_d * m_current_d, m_weight);
-        printError(err, "Error at CommandQueue::enqueWriteBuffer for m_buf_w");
-        err = queue.enqueueWriteBuffer(m_buf_b, CL_TRUE, 0, sizeof(float) * m_current_d, m_bias);
-        printError(err, "Error at CommandQueue::enqueWriteBuffer for m_buf_b");
-        err = queue.enqueueWriteBuffer(m_buf_do, CL_TRUE, 0, sizeof(float) * m_current_d,
-                m_dropout_coeff);
-        printError(err, "Error at CommandQueue::enqueWriteBuffer for m_buf_do");
 
         err = queue.enqueueNDRangeKernel(m_fwd_kernel, cl::NullRange,
                 cl::NDRange(m_current_d * train_num), cl::NullRange);
@@ -203,37 +209,74 @@ namespace NeuralNet
         /* TODO */
         // not implemented yet, just use cpu temporarily
         backward_cpu(prev, current);
+        refreshCLLayerInfo();
+    }
+
+    void SigmoidLayer::setDropout(bool enable)
+    {
+        // change dropout coefficients according to the settings
+        if (m_uses_dropout)
+        {
+            if (enable != m_dropout_enabled)
+            {
+                m_dropout_enabled = enable;
+                if (enable)
+                {
+                    refreshDropout();
+                }
+                else
+                {
+                    set_vec(m_dropout_coeff, m_dropout_rate, m_current_d);
+                    updateDOBuffer();
+                }
+            }
+        }
     }
 
     void SigmoidLayer::refreshDropout()
     {
-        if (m_uses_dropout)
+        if (m_uses_dropout && m_dropout_enabled)
         {
-            // dropout is applied only to the activation value of the dropout-enabled layer
-            // in the forwarding phase
-            if (m_dropout_enabled)
-            {
-                // if this layer uses dropout, select neurons which does not participate in training
-                // by setting their activation value to zero.
-                std::random_device rd;
-                std::mt19937 rgen(rd());
-                std::uniform_real_distribution<> dis(0, 1);
-                const float dropout_rate = m_dropout_rate;
+            std::random_device rd;
+            std::mt19937 rgen(rd());
+            std::uniform_real_distribution<> dis(0, 1);
+            const float dropout_rate = m_dropout_rate;
 
-                apply_vec(m_dropout_coeff, m_dropout_coeff, m_current_d,
-                        [dropout_rate, &rgen, &dis](float in) -> float {
-                            return (dis(rgen) <= dropout_rate) ? 1:0;
-                        });
-            }
-            else
-            {
-                // otherwise, just set the dropout coeff to the dropout rate
-                set_vec(m_dropout_coeff, m_dropout_rate, m_current_d);
-            }
+            // if this layer uses dropout, select neurons which does not participate in training
+            // by setting their activation value to zero.
+            apply_vec(m_dropout_coeff, m_dropout_coeff, m_current_d,
+                    [dropout_rate, &rgen, &dis](float in) -> float {
+                        return (dis(rgen) <= dropout_rate) ? 1:0;
+                    });
+
+            updateDOBuffer();
         }
-        else
+    }
+
+    void SigmoidLayer::updateDOBuffer()
+    {
+        if (m_uses_gpu)
         {
-            set_vec(m_dropout_coeff, 1.0, m_current_d);
+            cl::CommandQueue queue = CLContext::getInstance().getCommandQueue();
+            cl_int err = CL_SUCCESS;
+            err = queue.enqueueWriteBuffer(m_buf_do, CL_TRUE, 0, sizeof(float) * m_current_d,
+                    m_dropout_coeff);
+            printError(err, "Error at CommandQueue::enqueWriteBuffer for m_buf_do");
+        }
+    }
+
+    void SigmoidLayer::refreshCLLayerInfo()
+    {
+        if (m_uses_gpu)
+        {
+            cl::CommandQueue queue = CLContext::getInstance().getCommandQueue();
+            cl_int err = CL_SUCCESS;
+            err = queue.enqueueWriteBuffer(m_buf_w, CL_TRUE, 0,
+                    sizeof(float) * m_prev_d * m_current_d, m_weight);
+            printError(err, "Error at CommandQueue::enqueWriteBuffer for m_buf_w");
+            err = queue.enqueueWriteBuffer(m_buf_b, CL_TRUE, 0, sizeof(float) * m_current_d,
+                    m_bias);
+            printError(err, "Error at CommandQueue::enqueWriteBuffer for m_buf_b");
         }
     }
 
@@ -278,6 +321,8 @@ namespace NeuralNet
             throw Json::LogicError("invalid number of bias values");
         for (int i = 0; i < m_current_d; i++)
             m_bias[i] = biases[i].asDouble();
+
+        refreshCLLayerInfo();
     }
 
     Json::Value SigmoidLayer::exportLayer()

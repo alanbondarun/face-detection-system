@@ -93,6 +93,8 @@ namespace NeuralNet
             m_fwd_kernel.setArg(7, sizeof(int), &i_in_maps);
             m_fwd_kernel.setArg(8, sizeof(int), &i_out_maps);
             m_fwd_kernel.setArg(9, sizeof(int), &i_recep);
+
+            refreshCLLayerInfo();
         }
     }
 
@@ -164,21 +166,10 @@ namespace NeuralNet
         m_fwd_kernel.setArg(2, m_buf_ca);
         m_fwd_kernel.setArg(10, sizeof(int), &train_num);
 
-        const size_t num_pmap = m_set.prev_map_num * m_set.image_width * m_set.image_height;
         const size_t num_cmap = m_set.current_map_num * m_output_width * m_output_height;
-        const size_t num_weights = m_set.current_map_num * m_set.prev_map_num *
-                m_set.recep_size * m_set.recep_size;
-        const size_t num_biases = m_set.current_map_num * m_output_width *
-                m_output_height;
 
         auto queue = CLContext::getInstance().getCommandQueue();
         cl_int err = CL_SUCCESS;
-        err = queue.enqueueWriteBuffer(m_buf_w, CL_TRUE, 0, sizeof(float) * num_weights,
-                m_weight);
-        printError(err, "Error at CommandQueue::enqueueWriteBuffer for m_buf_w");
-        err = queue.enqueueWriteBuffer(m_buf_b, CL_TRUE, 0, sizeof(float) * num_biases,
-                m_bias);
-        printError(err, "Error at CommandQueue::enqueueWriteBuffer for m_buf_b");
 
         err = queue.enqueueNDRangeKernel(m_fwd_kernel, cl::NullRange,
                 cl::NDRange(num_cmap * train_num), cl::NullRange);
@@ -302,6 +293,28 @@ namespace NeuralNet
         /* TODO: OpenCL intergration */
         // not implemented yet, just use cpu temporarily
         backward_cpu(prev, current);
+
+        refreshCLLayerInfo();
+    }
+
+    void ConvLayer::refreshCLLayerInfo()
+    {
+        if (m_set.uses_gpu)
+        {
+            const size_t num_weights = m_set.current_map_num * m_set.prev_map_num *
+                    m_set.recep_size * m_set.recep_size;
+            const size_t num_biases = m_set.current_map_num * m_output_width *
+                    m_output_height;
+
+            auto queue = CLContext::getInstance().getCommandQueue();
+            cl_int err = CL_SUCCESS;
+            err = queue.enqueueWriteBuffer(m_buf_w, CL_TRUE, 0, sizeof(float) * num_weights,
+                    m_weight);
+            printError(err, "Error at CommandQueue::enqueueWriteBuffer for m_buf_w");
+            err = queue.enqueueWriteBuffer(m_buf_b, CL_TRUE, 0, sizeof(float) * num_biases,
+                    m_bias);
+            printError(err, "Error at CommandQueue::enqueueWriteBuffer for m_buf_b");
+        }
     }
 
     std::unique_ptr<LayerData> ConvLayer::createLayerData(size_t train_num)
@@ -367,6 +380,8 @@ namespace NeuralNet
                 bias_offset++;
             }
         }
+
+        refreshCLLayerInfo();
     }
 
     Json::Value ConvLayer::exportLayer()

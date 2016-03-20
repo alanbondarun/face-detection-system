@@ -49,6 +49,8 @@ namespace NeuralNet
         virtual size_t getNeuronNum() const;
 
     private:
+        void refreshCLLayerInfo();
+
         LayerSetting m_set;
         float m_learn_rate;
         size_t m_output_width, m_output_height;

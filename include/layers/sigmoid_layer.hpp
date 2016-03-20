@@ -37,13 +37,16 @@ namespace NeuralNet
         virtual std::string what() { return "sigmoid"; }
         virtual size_t getNeuronNum() const;
 
-        void setDropout(bool enable) { m_dropout_enabled = enable; }
+        void setDropout(bool enable);
 
         static const std::function<float(float)> f_sigmoid;
         static const std::function<float(float)> f_sigmoid_prime;
 
     private:
+        void refreshCLLayerInfo();
+
         void refreshDropout();
+        void updateDOBuffer();
 
         const size_t m_prev_d, m_current_d;
         float m_learn_rate;
