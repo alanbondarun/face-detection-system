@@ -430,6 +430,14 @@ namespace NeuralNet
         return oned_retval;
     }
 
+    void Network::evaluateTestSets()
+    {
+        for (auto& test_set: m_list_testset)
+        {
+            testTestSet(test_set);
+        }
+    }
+
     void Network::feedForward(const std::vector<float>& data,
             const std::vector<size_t>& list_idx)
     {
@@ -683,10 +691,7 @@ namespace NeuralNet
 
             total_errors.push_back(total_error);
             
-            for (auto& test_set: m_list_testset)
-            {
-                testTestSet(test_set);
-            }
+            evaluateTestSets();
 
             dropLearnRate(total_errors);
             if (m_learn_rate <= m_learn_rate_set.halt_thresh_rate)

@@ -10,6 +10,8 @@
 #include <random>
 #include <cstring>
 #include <cstdio>
+#include <chrono>
+#include <ctime>
 
 bool load_test(Json::Value& value)
 {
@@ -248,20 +250,6 @@ bool load_non_faces(std::vector<float>& data, std::vector< std::vector<int> >& c
     return true;
 }
 
-int eval_faces(NeuralNet::Network& network,
-        const std::vector<float>& eval_data, int correct)
-{
-    auto res = network.evaluateAll(eval_data);
-
-    int count = 0;
-    for (auto& res_val: res[0])
-    {
-        if (res_val == correct)
-            count++;
-    }
-    return count;
-}
-
 int main(int argc, char* argv[])
 {
     const size_t imageCount = 28;
@@ -358,6 +346,32 @@ int main(int argc, char* argv[])
     nonFaceImages.clear();
     std::cout << "loading evaluation images (non-face) finished" << std::endl;
 
+    // put test sets into the network
+    std::vector< std::vector<int> > clist1;
+    clist1.emplace_back(test_lfw, 0);
+    network.registerTestSet("LFW", std::move(lfwTestData), std::move(clist1));
+
+    std::vector< std::vector<int> > clist2;
+    clist2.emplace_back(test_nonface, 1);
+    network.registerTestSet("non-face", std::move(nonFaceTestData),
+            std::move(clist2));
+
+    std::vector< std::vector<int> > clist3;
+    clist3.emplace_back(test_fddb, 0);
+    network.registerTestSet("FDDB", std::move(fddbTestData), std::move(clist3));
+
+    std::vector< std::vector<int> > clist4;
+    std::vector<int> clist4_temp;
+    for (size_t i = 0; i < 14; i++)
+        clist4_temp.push_back(0);
+    for (size_t i = 0; i < 14; i++)
+        clist4_temp.push_back(1);
+    clist4.push_back(clist4_temp);
+    network.registerTestSet("original", std::move(originalImgData),
+            std::move(clist4));
+
+    std::chrono::time_point<std::chrono::system_clock> time_point_start, time_point_finish;
+
     if (do_train)
     {
         std::vector<float> data;
@@ -378,61 +392,28 @@ int main(int argc, char* argv[])
         }
         std::cout << "loading non-face images (for training) finished" << std::endl;
 
-        // put test sets into the network
-        std::vector< std::vector<int> > clist1;
-        clist1.emplace_back(test_lfw, 0);
-        network.registerTestSet("LFW", std::move(lfwTestData), std::move(clist1));
-
-        std::vector< std::vector<int> > clist2;
-        clist2.emplace_back(test_nonface, 1);
-        network.registerTestSet("non-face", std::move(nonFaceTestData),
-                std::move(clist2));
-
-        std::vector< std::vector<int> > clist3;
-        clist3.emplace_back(test_fddb, 0);
-        network.registerTestSet("FDDB", std::move(fddbTestData), std::move(clist3));
-
-        std::vector< std::vector<int> > clist4;
-        std::vector<int> clist4_temp;
-        for (size_t i = 0; i < 14; i++)
-            clist4_temp.push_back(0);
-        for (size_t i = 0; i < 14; i++)
-            clist4_temp.push_back(1);
-        clist4.push_back(clist4_temp);
-        network.registerTestSet("original", std::move(originalImgData),
-                std::move(clist4));
+        std::cout << "training begin, timer start" << std::endl;
+        time_point_start = std::chrono::system_clock::now();
 
         // actual training goes here
         network.train(data, category);
+
+        time_point_finish = std::chrono::system_clock::now();
+        std::cout << "timer finished" << std::endl;
     }
     else
     {
         network.loadFromFiles();
 
-        std::cout << "(0 = face, 1 = non-face)" << std::endl;
+        std::cout << "network weight/bias load complete, timer start" << std::endl;
+        time_point_start = std::chrono::system_clock::now();
 
-        // evaluation with other images
-        size_t correct = 0;
-        auto res_original = network.evaluateAll(originalImgData);
+        network.evaluateTestSets();
 
-        for (size_t i = 0; i < imageCount; i++)
-        {
-            std::cout << "image #" << (i+1) << ":";
-            for (auto& category_val: res_original)
-                std::cout << " " << category_val[i];
-            std::cout << std::endl;
-            if (i<14 && res_original[0][i]==0)
-                correct++;
-            if (14<=i && res_original[0][i]==1)
-                correct++;
-        }
-        std::cout << "correct answers: " << correct << std::endl;
-
-        size_t t1 = eval_faces(network, lfwTestData, 0);
-        size_t t2 = eval_faces(network, nonFaceTestData, 1);
-        size_t t3 = eval_faces(network, fddbTestData, 0);
-        std::cout << "test with LFW: " << t1 << "/" << test_lfw << std::endl;
-        std::cout << "test with non-face: " << t2 << "/" << test_nonface << std::endl;
-        std::cout << "test with FDDB: " << t3 << "/" << test_fddb << std::endl;
+        time_point_finish = std::chrono::system_clock::now();
+        std::cout << "timer finished" << std::endl;
     }
+
+    std::chrono::duration<double> elapsed_seconds = time_point_finish - time_point_start;
+    std::cout << "elapsed time: " << elapsed_seconds.count() << "s" << std::endl;
 }
