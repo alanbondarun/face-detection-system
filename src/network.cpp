@@ -403,7 +403,6 @@ namespace NeuralNet
 
             // return value generation
             for (size_t i = 0; i < m_leaf_idx.size(); i++)
-            for (auto& leaf_id: m_leaf_idx)
             {
                 auto category_list = getCategory(*(node_map[m_leaf_idx[i]]->data));
                 retval[i].insert(retval[i].end(), category_list.begin(),

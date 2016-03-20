@@ -31,11 +31,7 @@ __kernel void max_pool_forward(__constant float* prev_z,
     {
         for (int x = out_x * delta_w; x < out_x * delta_w + pool_width; x++)
         {
-            int in_idx = (y * in_width + x) + map_off;
-            if (maxv < prev_z[in_idx])
-            {
-                maxv = prev_z[in_idx];
-            }
+            maxv = fmax(maxv, prev_z[(y * in_width + x) + map_off]);
         }
     }
     cur_z[g_idx] = maxv;
@@ -46,11 +42,7 @@ __kernel void max_pool_forward(__constant float* prev_z,
     {
         for (int x = out_x * delta_w; x < out_x * delta_w + pool_width; x++)
         {
-            int in_idx = (y * in_width + x) + map_off;
-            if (maxv < prev_a[in_idx])
-            {
-                maxv = prev_a[in_idx];
-            }
+            maxv = fmax(maxv, prev_a[(y * in_width + x) + map_off]);
         }
     }
     cur_a[g_idx] = maxv;
