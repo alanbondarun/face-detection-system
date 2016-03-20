@@ -15,6 +15,9 @@ namespace NeuralNet
         CLLayerData(size_t train_num, size_t data_num);
         virtual ~CLLayerData();
 
+        void loadToCLBuffer(DataIndex idx);
+        void getFromCLBuffer(DataIndex idx);
+
         cl::Buffer getCLBuffer(LayerData::DataIndex idx) const;
 
     private:

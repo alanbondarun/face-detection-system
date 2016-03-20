@@ -173,9 +173,6 @@ namespace NeuralNet
 
         auto queue = CLContext::getInstance().getCommandQueue();
         cl_int err = CL_SUCCESS;
-        err = queue.enqueueWriteBuffer(m_buf_pa, CL_TRUE, 0, sizeof(float) * num_pmap * train_num,
-                prev_a);
-        printError(err, "Error at CommandQueue::enqueueWriteBuffer for m_buf_pa");
         err = queue.enqueueWriteBuffer(m_buf_w, CL_TRUE, 0, sizeof(float) * num_weights,
                 m_weight);
         printError(err, "Error at CommandQueue::enqueueWriteBuffer for m_buf_w");
@@ -186,13 +183,6 @@ namespace NeuralNet
         err = queue.enqueueNDRangeKernel(m_fwd_kernel, cl::NullRange,
                 cl::NDRange(num_cmap * train_num), cl::NullRange);
         printError(err, "Error at CommandQueue::enqueNDRangeKernel");
-
-        err = queue.enqueueReadBuffer(m_buf_cz, CL_TRUE, 0, sizeof(float) * num_cmap * train_num,
-                cur_z);
-        printError(err, "Error at CommandQueue::enqueueReadBuffer for m_buf_cz");
-        err = queue.enqueueReadBuffer(m_buf_ca, CL_TRUE, 0, sizeof(float) * num_cmap * train_num,
-                cur_a);
-        printError(err, "Error at CommandQueue::enqueueReadBuffer for m_buf_ca");
     }
 
     void ConvLayer::backward_cpu(LayerData& prev, LayerData& current)

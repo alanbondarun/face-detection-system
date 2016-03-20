@@ -1,4 +1,5 @@
 #include "layers/cl_layer_data.hpp"
+#include "utils/cl_exception.hpp"
 #include "cl_context.hpp"
 
 namespace NeuralNet
@@ -16,6 +17,28 @@ namespace NeuralNet
 
     CLLayerData::~CLLayerData()
     {
+    }
+
+    void CLLayerData::loadToCLBuffer(DataIndex idx)
+    {
+        cl::CommandQueue queue = CLContext::getInstance().getCommandQueue();
+        cl_int err = queue.enqueueWriteBuffer(m_buffers[static_cast<int>(idx)],
+                CL_TRUE,
+                0,
+                sizeof(float) * getDataNum() * getTrainNum(),
+                get(idx));
+        printError(err, "Error at CommandQueue::enqueueWriteBuffer in CLLayerData::loadToCLBuffer");
+    }
+
+    void CLLayerData::getFromCLBuffer(DataIndex idx)
+    {
+        cl::CommandQueue queue = CLContext::getInstance().getCommandQueue();
+        cl_int err = queue.enqueueReadBuffer(m_buffers[static_cast<int>(idx)],
+                CL_TRUE,
+                0,
+                sizeof(float) * getDataNum() * getTrainNum(),
+                get(idx));
+        printError(err, "Error at CommandQueue::enqueueReadBuffer in CLLayerData::loadToCLBuffer");
     }
 
     cl::Buffer CLLayerData::getCLBuffer(LayerData::DataIndex idx) const

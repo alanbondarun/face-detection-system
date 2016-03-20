@@ -404,6 +404,12 @@ namespace NeuralNet
             // return value generation
             for (size_t i = 0; i < m_leaf_idx.size(); i++)
             {
+                auto* cl_data_ptr = dynamic_cast<CLLayerData *>(node_map[m_leaf_idx[i]]->data.get());
+                if (cl_data_ptr)
+                {
+                    cl_data_ptr->getFromCLBuffer(LayerData::DataIndex::ACTIVATION);
+                }
+
                 auto category_list = getCategory(*(node_map[m_leaf_idx[i]]->data));
                 retval[i].insert(retval[i].end(), category_list.begin(),
                         category_list.end());
@@ -447,6 +453,12 @@ namespace NeuralNet
             copy_vec(data.data() + (data_idx * m_unit_size),
                     m_input_data->get(LayerData::DataIndex::ACTIVATION) + i * m_unit_size,
                     m_unit_size);
+        }
+
+        auto* cl_data_ptr = dynamic_cast<CLLayerData *>(m_input_data.get());
+        if (cl_data_ptr)
+        {
+            cl_data_ptr->loadToCLBuffer(LayerData::DataIndex::ACTIVATION);
         }
 
         // forward the input
@@ -672,6 +684,17 @@ namespace NeuralNet
                 }
 
                 feedForward(data, batch_idxes);
+
+                for (auto& node_pair: node_map)
+                {
+                    auto* cl_layer_data = dynamic_cast<CLLayerData *>(node_pair.second->data.get());
+                    if (cl_layer_data)
+                    {
+                        cl_layer_data->getFromCLBuffer(LayerData::DataIndex::ACTIVATION);
+                        cl_layer_data->getFromCLBuffer(LayerData::DataIndex::INTER_VALUE);
+                    }
+                }
+
                 calcOutputErrors(category_list, batch_idxes, error_vals, batch_num);
                 backPropagate();
             }

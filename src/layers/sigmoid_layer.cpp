@@ -113,9 +113,6 @@ namespace NeuralNet
         cl::CommandQueue queue = CLContext::getInstance().getCommandQueue();
 
         cl_int err = CL_SUCCESS;
-        err = queue.enqueueWriteBuffer(m_buf_pa, CL_TRUE, 0, sizeof(float) * m_prev_d * train_num,
-                prev_a);
-        printError(err, "Error at CommandQueue::enqueWriteBuffer for m_buf_pa");
         err = queue.enqueueWriteBuffer(m_buf_w, CL_TRUE, 0,
                 sizeof(float) * m_prev_d * m_current_d, m_weight);
         printError(err, "Error at CommandQueue::enqueWriteBuffer for m_buf_w");
@@ -128,13 +125,6 @@ namespace NeuralNet
         err = queue.enqueueNDRangeKernel(m_fwd_kernel, cl::NullRange,
                 cl::NDRange(m_current_d * train_num), cl::NullRange);
         printError(err, "Error at CommandQueue::enqueNDRangeKernel");
-
-        err = queue.enqueueReadBuffer(m_buf_cz, CL_TRUE, 0, sizeof(float) * m_current_d * train_num,
-                cur_z);
-        printError(err, "Error at CommandQueue::enqueReadBuffer for m_buf_cz");
-        err = queue.enqueueReadBuffer(m_buf_ca, CL_TRUE, 0, sizeof(float) * m_current_d * train_num,
-                cur_a);
-        printError(err, "Error at CommandQueue::enqueReadBuffer for m_buf_ca");
     }
 
     void SigmoidLayer::backward_cpu(LayerData& prev, LayerData& current)
