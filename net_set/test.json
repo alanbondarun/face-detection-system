@@ -7,11 +7,11 @@
             "channel_num": 1
         }
     },
-    "uses_gpu": false,
+    "uses_gpu": true,
     "train_num": 7000,
     "batch_size": 1,
     "epoch_num": 30,
-    "max_eval_patch": 100,
+    "max_eval_patch": 128,
     "learn_rate": 0.01,
     "learn_rate_drop": {
         "enable": true,

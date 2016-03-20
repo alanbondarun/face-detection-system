@@ -656,23 +656,23 @@ namespace NeuralNet
         std::random_device rd;
         std::mt19937 rgen(rd());
 
-        // enable dropout of sigmoid layers for training
-        for (auto& node_pair: node_map)
-        {
-            auto* layer_ptr = node_pair.second->layer.get();
-            auto* sigmoid_ptr = dynamic_cast<SigmoidLayer *>(layer_ptr);
-            if (sigmoid_ptr)
-            {
-                sigmoid_ptr->setDropout(true);
-            }
-        }
-
         std::vector<float> total_errors;
 
         for (size_t epoch = 0; epoch < m_epoch_num; epoch++)
         {
             prepareLayerData(m_batch_size);
             std::shuffle(data_idxes.begin(), data_idxes.end(), rgen);
+
+            // enable dropout of sigmoid layers for training
+            for (auto& node_pair: node_map)
+            {
+                auto* layer_ptr = node_pair.second->layer.get();
+                auto* sigmoid_ptr = dynamic_cast<SigmoidLayer *>(layer_ptr);
+                if (sigmoid_ptr)
+                {
+                    sigmoid_ptr->setDropout(true);
+                }
+            }
 
             std::vector<float> error_vals(m_train_size, 0);
 
