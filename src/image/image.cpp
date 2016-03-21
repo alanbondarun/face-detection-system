@@ -68,6 +68,25 @@ namespace NeuralNet
         return *this;
     }
 
+    std::vector<float> Image::getPaddedMixedValues(const size_t out_channels, const float pad_val)
+    {
+        std::vector<float> vmix;
+        for (size_t j = 0; j < height; j++)
+        {
+            for (size_t i = 0; i < width; i++)
+            {
+                for (size_t c = 0; c < std::max(channel_num, out_channels); c++)
+                {
+                    if (c < channel_num)
+                        vmix.push_back(value[c][j*width + i]);
+                    else
+                        vmix.push_back(pad_val);
+                }
+            }
+        }
+        return vmix;
+    }
+
     std::unique_ptr<Image> loadBitmapImage(const char* filepath)
     {
         FILE* fp = fopen(filepath, "r");

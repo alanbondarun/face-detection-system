@@ -87,6 +87,9 @@ namespace NeuralNet
         void train(const std::vector<float>& data,
             const std::vector< std::vector<int> >& category_list);
 
+        // returns classification values for a set of data
+        std::vector< std::vector<int> > evaluateAll(const std::vector<float>& data);
+
     private:
         void insertLayerSetting(SettingMapType& prevSetting,
                 std::unique_ptr<LayerFactory::LayerSetting>& set,
@@ -96,9 +99,6 @@ namespace NeuralNet
 
         // returns classification value for one portion of data
         std::vector< int > evaluate(const std::vector<float>& data);
-
-        // returns classification values for a set of data
-        std::vector< std::vector<int> > evaluateAll(const std::vector<float>& data);
 
         void testTestSet(const TestSet& testset);
 

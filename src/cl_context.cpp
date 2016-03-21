@@ -63,10 +63,11 @@ namespace NeuralNet
     std::string CLContext::loadSources()
     {
         std::vector<std::string> src_file_list = {
-            "../cl_src/helper.cl",
             "../cl_src/sigmoid.cl",
             "../cl_src/conv.cl",
-            "../cl_src/maxpool.cl"
+            "../cl_src/maxpool.cl",
+            "../cl_src/image.cl",
+            "../cl_src/pyramid.cl",
         };
         std::string sources;
 

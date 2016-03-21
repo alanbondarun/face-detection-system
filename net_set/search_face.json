@@ -6,5 +6,6 @@
     "shrink_ratio": 0.89,
     "min_image_width": 128,
     "net_config_file": "../net_set/test.json",
-    "test_file": "test3.bmp"
+    "test_file": "test3.bmp",
+    "uses_gpu": true
 }

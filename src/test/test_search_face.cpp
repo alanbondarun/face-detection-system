@@ -2,12 +2,18 @@
 #include <fstream>
 #include <sstream>
 #include <string>
+#include <vector>
 #include "netpbm/pm.h"
 #include "utils/make_unique.hpp"
+#include "utils/cl_exception.hpp"
 #include "json/json.h"
 #include "image/image.hpp"
 #include "image/image_util.hpp"
 #include "network.hpp"
+
+#define __CL_ENABLE_EXCEPTIONS
+#include "CL/cl.hpp"
+#include "cl_context.hpp"
 
 struct SearchConfig
 {
@@ -19,6 +25,7 @@ struct SearchConfig
     float shrink_ratio;
     std::string net_config_file;
     std::string test_file;
+    bool uses_gpu;
 };
 
 bool loadConfig(SearchConfig& config, const std::string& filepath)
@@ -48,6 +55,7 @@ bool loadConfig(SearchConfig& config, const std::string& filepath)
         config.shrink_ratio = value["shrink_ratio"].asDouble();
         config.net_config_file = value["net_config_file"].asString();
         config.test_file = value["test_file"].asString();
+        config.uses_gpu = value["uses_gpu"].asBool();
     }
     catch (Json::Exception e)
     {
@@ -77,6 +85,102 @@ std::unique_ptr<NeuralNet::Network> loadNetwork(const std::string& filepath)
     return std::make_unique<NeuralNet::Network>(value);
 }
 
+void clGetPatches(const SearchConfig& config, const std::unique_ptr<NeuralNet::Image>& input_img,
+        std::vector<float>& patch_data)
+{
+    const cl::ImageFormat img_fmt{CL_RGBA, CL_FLOAT};
+    const cl::ImageFormat gray_img_fmt{CL_INTENSITY, CL_FLOAT};
+    auto context = NeuralNet::CLContext::getInstance().getContext();
+    auto queue = NeuralNet::CLContext::getInstance().getCommandQueue();
+    auto program = NeuralNet::CLContext::getInstance().getProgram();
+    cl_int err;
+
+    auto img_w = input_img->getWidth();
+    auto img_h = input_img->getHeight();
+
+    auto img_mixed_vals = input_img->getPaddedMixedValues(4, 1.0);
+    cl::Image2D in_img_buf(context, CL_MEM_READ_ONLY, img_fmt,
+            img_w, img_h, img_w * 4 * sizeof(float),
+            img_mixed_vals.data(), &err);
+    NeuralNet::printError(err, "in_img_buf");
+
+    // phase 1) grayscaling the input image
+    cl::Image2D gray_img_buf(context, CL_MEM_READ_WRITE, gray_img_fmt,
+            img_w, img_h, 0, nullptr, &err);
+    NeuralNet::printError(err, "gray_img_buf");
+
+    cl::Kernel grayscale_image_kernel(program, "grayscale_img");
+    grayscale_image_kernel.setArg(0, in_img_buf);
+    grayscale_image_kernel.setArg(1, gray_img_buf);
+
+    cl::size_t<3> in_offset, in_region;
+    in_region[0] = input_img->getWidth();
+    in_region[1] = input_img->getHeight();
+    in_region[2] = 1;
+
+    err = queue.enqueueWriteImage(in_img_buf, CL_TRUE, in_offset, in_region,
+            img_w * 4 * sizeof(float), 0,
+            img_mixed_vals.data());
+    NeuralNet::printError(err, "enqueueReadImage");
+
+    err = queue.enqueueNDRangeKernel(grayscale_image_kernel, cl::NullRange,
+            cl::NDRange(img_w, img_h), cl::NullRange);
+    NeuralNet::printError(err, "grayscale_img kernel execution");
+
+    // phase 2) creating image pyramid
+    cl::Kernel shrink_image_kernel(program, "shrink_image");
+    shrink_image_kernel.setArg(0, gray_img_buf);
+
+    std::vector<cl::Image2D> pyrm_imgs;
+    float sratio = 1.0;
+    while (input_img->getWidth() * sratio >= config.min_image_width)
+    {
+        int shrink_width = input_img->getWidth() * sratio;
+        int shrink_height = (shrink_width * input_img->getHeight()) / input_img->getWidth();
+
+        pyrm_imgs.emplace_back(context, CL_MEM_READ_WRITE, gray_img_fmt, shrink_width, shrink_height);
+        shrink_image_kernel.setArg(1, pyrm_imgs.back());
+
+        err = queue.enqueueNDRangeKernel(shrink_image_kernel, cl::NullRange,
+                cl::NDRange(shrink_width, shrink_height), cl::NullRange);
+        NeuralNet::printError(err, "enqueueNDRangeKernel");
+
+        sratio *= config.shrink_ratio;
+    }
+
+    // phase 3) create image patches
+    cl::Kernel extract_patch_kernel(program, "extract_image_patches");
+    for (auto& pyrm_img_buf: pyrm_imgs)
+    {
+        int img_w = pyrm_img_buf.getImageInfo<CL_IMAGE_WIDTH>();
+        int img_h = pyrm_img_buf.getImageInfo<CL_IMAGE_HEIGHT>();
+        int npatch = ((img_w - config.patch) / config.stride + 1) *
+            ((img_h - config.patch) / config.stride + 1) *
+            config.patch * config.patch;
+        int i_patch = static_cast<int>(config.patch);
+        int i_stride = static_cast<int>(config.stride);
+
+        cl::Buffer patch_buf(context, CL_MEM_READ_WRITE, sizeof(float) * npatch);
+
+        extract_patch_kernel.setArg(0, pyrm_img_buf);
+        extract_patch_kernel.setArg(1, patch_buf);
+        extract_patch_kernel.setArg(2, sizeof(int), &i_patch);
+        extract_patch_kernel.setArg(3, sizeof(int), &i_patch);
+        extract_patch_kernel.setArg(4, sizeof(int), &i_stride);
+
+        err = queue.enqueueNDRangeKernel(extract_patch_kernel, cl::NullRange,
+                cl::NDRange(npatch), cl::NullRange);
+        NeuralNet::printError(err, "enqueNDRangeKernel");
+
+        std::vector<float> patch_list(npatch);
+        err = queue.enqueueReadBuffer(patch_buf, CL_TRUE, 0, sizeof(float) * npatch,
+                patch_list.data());
+        NeuralNet::printError(err, "enqueueReadData");
+
+        patch_data.insert(patch_data.end(), patch_list.begin(), patch_list.end());
+    }
+}
+
 int main(int argc, char* argv[])
 {
     pm_init(argv[0], 0);
@@ -94,26 +198,33 @@ int main(int argc, char* argv[])
     std::cout << "loading test image complete" << std::endl;
     
     // load image patches from the given image
-    auto image_pyramid = NeuralNet::pyramidImage(image, config.shrink_ratio,
-            config.min_image_width);
-    std::cout << "loading image pyramid complete" << std::endl;
-
     std::vector<float> patch_data;
-    for (auto& small_image: image_pyramid)
+    if (config.uses_gpu)
     {
-        auto patch_list = NeuralNet::extractPatches(small_image, config.patch,
-                config.patch, config.stride);
-        for (auto& patch_ptr: patch_list)
-        {
-            // TODO: patch postprocessing?
-            
-            auto gray_patch_ptr = NeuralNet::grayscaleImage(patch_ptr);
-            auto gray_data = gray_patch_ptr->getValues(0);
+        clGetPatches(config, image, patch_data);
+    }
+    else
+    {
+        auto image_pyramid = NeuralNet::pyramidImage(image, config.shrink_ratio,
+                config.min_image_width);
+        std::cout << "loading image pyramid complete" << std::endl;
 
-            for (size_t i = 0;
-                    i < gray_patch_ptr->getWidth() * gray_patch_ptr->getHeight(); i++)
+        for (auto& small_image: image_pyramid)
+        {
+            auto patch_list = NeuralNet::extractPatches(small_image, config.patch,
+                    config.patch, config.stride);
+            for (auto& patch_ptr: patch_list)
             {
-                patch_data.push_back(gray_data[i]);
+                // TODO: patch postprocessing?
+                
+                auto gray_patch_ptr = NeuralNet::grayscaleImage(patch_ptr);
+                auto gray_data = gray_patch_ptr->getValues(0);
+
+                for (size_t i = 0;
+                        i < gray_patch_ptr->getWidth() * gray_patch_ptr->getHeight(); i++)
+                {
+                    patch_data.push_back(gray_data[i]);
+                }
             }
         }
     }

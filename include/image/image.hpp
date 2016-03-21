@@ -5,6 +5,7 @@
 #include <string>
 #include <utility>
 #include <memory>
+#include <vector>
 
 namespace NeuralNet
 {
@@ -27,6 +28,7 @@ namespace NeuralNet
         size_t getHeight() const { return height; }
         size_t getChannelNum() const { return channel_num; }
         float* getValues(size_t channel) const { return value[channel]; }
+        std::vector<float> getPaddedMixedValues(const size_t out_channels, const float pad_val);
     private:
         size_t width, height, channel_num;
         float** value;
