@@ -17,7 +17,7 @@ namespace NeuralNet
             img_list.push_back(std::move(shrinkImage(original_image, current_width)));
 
             bratio *= ratio;
-            current_width = static_cast<unsigned int>(current_width * bratio);
+            current_width = static_cast<unsigned int>(ow * bratio);
         }
 
         return img_list;
