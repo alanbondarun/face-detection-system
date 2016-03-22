@@ -31,25 +31,28 @@ __kernel void extract_image_patches(__read_only image2d_t img_in,
         __global float* patch_array,
         const int patch_width,
         const int patch_height,
-        const int gap)
+        const int gap,
+        const int channel_width)
 {
     const int idx = get_global_id(0);
     const int2 in_dim = get_image_dim(img_in);
 
     const int rown = (in_dim.x - patch_width) / gap + 1;
 
-    const int gn = idx / (patch_width * patch_height);
+    const int gn = idx / (patch_width * patch_height * channel_width);
     const int gx = gn % rown;
     const int gy = gn / rown;
 
-    const int lnn = idx % (patch_width * patch_height);
+    const int lnn = (idx / channel_width) % (patch_width * patch_height);
     const int lx = lnn % patch_width;
     const int ly = lnn / patch_width;
+
+    const int ic = idx % channel_width;
 
     __constant sampler_t sampler = CLK_NORMALIZED_COORDS_FALSE |
             CLK_ADDRESS_CLAMP_TO_EDGE |
             CLK_FILTER_NEAREST;
 
     float4 val = read_imagef(img_in, sampler, (int2)(gx * gap + lx, gy * gap + ly));
-    patch_array[idx] = val.x;
+    patch_array[idx] = val[ic];
 }
