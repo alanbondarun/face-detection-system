@@ -29,6 +29,9 @@ namespace NeuralNet
         size_t getChannelNum() const { return channel_num; }
         float* getValues(size_t channel) const { return value[channel]; }
         std::vector<float> getPaddedMixedValues(const size_t out_channels, const float pad_val);
+
+        static const float lum_value_rgb[3];
+
     private:
         size_t width, height, channel_num;
         float** value;
@@ -83,8 +86,9 @@ namespace NeuralNet
             float mean, float stdev);
 
     /**
-     * Calculate the variance of pixel values from a grayscale image
+     * Calculate the mean and variance of pixel values from a grayscale image
      */
+    float getMean(const std::unique_ptr<Image>& image);
     float getVariance(const std::unique_ptr<Image>& image);
 
     /**

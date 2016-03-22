@@ -117,7 +117,7 @@ bool load_fddb(std::vector< std::unique_ptr<NeuralNet::Image> >& images,
                         majsize,
                         majsize);
             auto fit_ptr = NeuralNet::fitImageTo(crop_ptr, patch_size, patch_size);
-            images.push_back(std::move(fit_ptr));
+            images.push_back(NeuralNet::intensityPatch(fit_ptr));
             actual_count++;
         }
         loaded_image += actual_count;
@@ -211,7 +211,7 @@ bool load_nonface_patch(std::vector< std::unique_ptr<NeuralNet::Image> >& images
             if (NeuralNet::getVariance(grayImage) <= var_thresh)
                 continue;
 
-            images.push_back(std::move(cropImage));
+            images.push_back(NeuralNet::intensityPatch(cropImage));
             added_patch++;
         }
         loaded_patch += added_patch;
@@ -287,7 +287,8 @@ int main(int argc, char* argv[])
     {
         std::ostringstream oss;
         oss << "eval-image/" << i << ".bmp";
-        imageList.push_back(NeuralNet::loadBitmapImage(oss.str().c_str()));
+        imageList.push_back(NeuralNet::intensityPatch(
+                NeuralNet::loadBitmapImage(oss.str().c_str())));
     }
 
     auto originalImgData = getRawDataFromImages(imageList);
@@ -327,7 +328,8 @@ int main(int argc, char* argv[])
         file_name.append(person_name);
         file_name.append("_0001.ppm");
 
-        lfwTestImages.push_back(NeuralNet::loadPPMImage(file_name.c_str()));
+        lfwTestImages.push_back(NeuralNet::intensityPatch(
+                NeuralNet::loadPPMImage(file_name.c_str())));
     }
 
     auto lfwTestData = getRawDataFromImages(lfwTestImages);

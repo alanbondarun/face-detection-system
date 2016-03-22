@@ -11,6 +11,8 @@
 
 namespace NeuralNet
 {
+    const float Image::lum_value_rgb[] = {0.2125, 0.7154, 0.0721};
+
     Image::Image(size_t _width, size_t _height, size_t _channels)
         : width(_width), height(_height), channel_num(_channels)
     {
@@ -253,7 +255,6 @@ namespace NeuralNet
         auto res_img = std::make_unique<Image>(w, h, 1);
         auto valptr = res_img->getValues(0);
 
-        float ch_coeff[] = {0.2125, 0.7154, 0.0721};
         for (size_t y = 0; y < h; y++)
         {
             for (size_t x = 0; x < w; x++)
@@ -261,7 +262,7 @@ namespace NeuralNet
                 valptr[y*w + x] = 0;
                 for (size_t c = 0; c < 3; c++)
                 {
-                    valptr[y*w + x] += ch_coeff[c] * (image->getValues(c)[y*w + x]);
+                    valptr[y*w + x] += Image::lum_value_rgb[c] * (image->getValues(c)[y*w + x]);
                 }
             }
         }
@@ -374,7 +375,7 @@ namespace NeuralNet
         return newImage;
     }
 
-    float getVariance(const std::unique_ptr<Image>& image)
+    float getMean(const std::unique_ptr<Image>& image)
     {
         const auto orig_data_ptr = image->getValues(0);
         const auto w = image->getWidth();
@@ -388,7 +389,16 @@ namespace NeuralNet
                 current_mean += orig_data_ptr[j*w + i];
             }
         }
-        current_mean /= (w*h);
+        return (current_mean / (w*h));
+    }
+
+    float getVariance(const std::unique_ptr<Image>& image)
+    {
+        const auto orig_data_ptr = image->getValues(0);
+        const auto w = image->getWidth();
+        const auto h = image->getHeight();
+
+        auto current_mean = getMean(image);
 
         float current_var = 0;
         for (size_t j = 0; j < h; j++)
@@ -404,41 +414,69 @@ namespace NeuralNet
     std::unique_ptr<Image> intensityPatch(const std::unique_ptr<Image>& image,
             float mean, float stdev)
     {
-        if (image->getChannelNum() != 1)
+        const auto channel_num = image->getChannelNum();
+        if (channel_num != 1 && channel_num != 3)
             return std::unique_ptr<Image>();
 
-        const auto orig_data_ptr = image->getValues(0);
-        const auto w = image->getWidth();
-        const auto h = image->getHeight();
-
-        float current_mean = 0;
-        for (size_t j = 0; j < h; j++)
+        std::unique_ptr<Image> gray_image;
+        if (channel_num == 1)
         {
-            for (size_t i = 0; i < w; i++)
-            {
-                current_mean += orig_data_ptr[j*w + i];
-            }
+            // copy from the original image
+            gray_image = std::make_unique<Image>(*image);
         }
-        current_mean /= (w*h);
+        else
+        {
+            gray_image = grayscaleImage(image);
+        }
 
-        float current_var = getVariance(image);
+        const auto orig_data_ptr = gray_image->getValues(0);
+        const auto w = gray_image->getWidth();
+        const auto h = gray_image->getHeight();
+
+        const auto current_mean = getMean(gray_image);
+        const auto current_var = getVariance(gray_image);
+
         if (std::isfinite(current_var) && !std::isnormal(current_var))
         {
             // if the sum of squares of errors is equal to zero or is subnormal,
-            // then just fill the result image with (0.5) in order to aviod
-            // divide-by-zero exception
-            auto newImage = std::make_unique<Image>(w, h, 1);
+            // then just fill the result image with the given MEAN value in order
+            // to aviod divide-by-zero exception
+            auto newImage = std::make_unique<Image>(w, h, channel_num);
             for (size_t j = 0; j < h; j++)
             {
                 for (size_t i = 0; i < w; i++)
                 {
-                    (newImage->getValues(0))[j*w + i] = 0.5;
+                    for (size_t c = 0; c < channel_num; c++)
+                    {
+                        (newImage->getValues(c))[j*w + i] = mean;
+                    }
                 }
             }
             return newImage;
         }
 
         float alpha = stdev * std::sqrt(1.0 / current_var);
+
+        if (channel_num == 3)
+        {
+            // deal with RGB images
+            auto newImage = std::make_unique<Image>(w, h, channel_num);
+            for (size_t j = 0; j < h; j++)
+            {
+                for (size_t i = 0; i < w; i++)
+                {
+                    float lum_ratio = (alpha * (orig_data_ptr[j*w + i] - current_mean) + mean) /
+                            orig_data_ptr[j*w + i];
+                    for (size_t c = 0; c < channel_num; c++)
+                    {
+                        (newImage->getValues(c))[j*w + i] =
+                                (image->getValues(c))[j*w + i] * lum_ratio;
+                    }
+                }
+            }
+
+            return newImage;
+        }
 
         auto newImage = std::make_unique<Image>(w, h, 1);
         for (size_t j = 0; j < h; j++)
