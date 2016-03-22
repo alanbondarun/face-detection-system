@@ -4,12 +4,12 @@
         "size": {
             "width": 32,
             "height": 32,
-            "channel_num": 1
+            "channel_num": 3
         }
     },
     "uses_gpu": true,
     "train_num": 7000,
-    "batch_size": 1,
+    "batch_size": 8,
     "epoch_num": 30,
     "max_eval_patch": 128,
     "learn_rate": 0.01,
@@ -59,21 +59,9 @@
         },
         {
             "id": 4,
-            "type": "convolution",
+            "type": "maxpool",
             "data_location": "4.json",
             "child": [5],
-            "dimensions": {
-                "map_num": 24,
-                "recep_size": 3,
-                "enable_zero_pad": true,
-                "activation_func": "relu"
-            }
-        },
-        {
-            "id": 5,
-            "type": "maxpool",
-            "data_location": "5.json",
-            "child": [6],
             "dimensions": {
                 "pool_width": 2,
                 "pool_height": 2,
@@ -81,30 +69,19 @@
             }
         },
         {
-            "id": 6,
+            "id": 5,
             "type": "sigmoid",
-            "data_location": "6.json",
-            "child": [7],
+            "data_location": "5.json",
+            "child": [6],
             "dimensions": {
-                "size": 512
+                "size": 256
             },
             "enable_dropout": false
         },
         {
-            "id": 7,
+            "id": 6,
             "type": "sigmoid",
-            "data_location": "7.json",
-            "child": [8],
-            "dimensions": {
-                "size": 128
-            },
-            "enable_dropout": true,
-            "dropout_rate": 0.5
-        },
-        {
-            "id": 8,
-            "type": "sigmoid",
-            "data_location": "8.json",
+            "data_location": "6.json",
             "child": [],
             "dimensions": {
                 "size": 2

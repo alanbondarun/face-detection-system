@@ -53,6 +53,7 @@ std::vector<float> getRawDataFromImages(
 bool load_fddb(std::vector< std::unique_ptr<NeuralNet::Image> >& images,
         size_t num_image, bool uses_first)
 {
+    const size_t patch_size = 32;
     size_t loaded_image = 0;
 
     std::ifstream ellipse_list;
@@ -107,7 +108,7 @@ bool load_fddb(std::vector< std::unique_ptr<NeuralNet::Image> >& images,
             float majsize, minsize, tilt, centx, centy;
             iss2 >> majsize >> minsize >> tilt >> centx >> centy;
 
-            if (majsize < 32)
+            if (majsize < patch_size)
                 continue;
 
             auto crop_ptr = NeuralNet::cropImage(img_ptr,
@@ -115,9 +116,8 @@ bool load_fddb(std::vector< std::unique_ptr<NeuralNet::Image> >& images,
                         centy - minsize/2,
                         majsize,
                         majsize);
-            auto fit_ptr = NeuralNet::fitImageTo(crop_ptr, 32, 32);
-            images.push_back(preprocessImage(
-                        NeuralNet::grayscaleImage(fit_ptr)));
+            auto fit_ptr = NeuralNet::fitImageTo(crop_ptr, patch_size, patch_size);
+            images.push_back(std::move(fit_ptr));
             actual_count++;
         }
         loaded_image += actual_count;
@@ -154,6 +154,7 @@ bool load_nonface_patch(std::vector< std::unique_ptr<NeuralNet::Image> >& images
         size_t num_image, size_t train_set)
 {
     const size_t set_size = 2000;
+    const size_t patch_size = 32;
     const size_t sample_per_img = 10;
     const size_t max_sample_per_img = 1000;
     const float var_thresh = 0.0007;
@@ -186,17 +187,19 @@ bool load_nonface_patch(std::vector< std::unique_ptr<NeuralNet::Image> >& images
             return false;
         }
 
-        std::uniform_int_distribution<size_t> dis_w(0, img_ptr->getWidth() - 32);
-        std::uniform_int_distribution<size_t> dis_h(0, img_ptr->getHeight() - 32);
+        std::uniform_int_distribution<size_t> dis_w(0, img_ptr->getWidth() - patch_size);
+        std::uniform_int_distribution<size_t> dis_h(0, img_ptr->getHeight() - patch_size);
 
         size_t added_patch = 0;
         for (int i=0; i<max_sample_per_img && added_patch < sample_per_img
                 && added_patch + loaded_patch < num_image; i++)
         {
-            auto cropImage = NeuralNet::grayscaleImage(NeuralNet::cropImage(
-                        img_ptr, dis_w(rgen), dis_h(rgen), 32, 32));
+            auto cropImage = NeuralNet::cropImage(
+                        img_ptr, dis_w(rgen), dis_h(rgen), patch_size, patch_size);
 
-            if (NeuralNet::getVariance(cropImage) <= var_thresh)
+            auto grayImage = NeuralNet::grayscaleImage(cropImage);
+
+            if (NeuralNet::getVariance(grayImage) <= var_thresh)
             {
                 num_failed_imgs++;
             }
@@ -205,10 +208,10 @@ bool load_nonface_patch(std::vector< std::unique_ptr<NeuralNet::Image> >& images
                 num_accept_imgs++;
             }
 
-            if (NeuralNet::getVariance(cropImage) <= var_thresh)
+            if (NeuralNet::getVariance(grayImage) <= var_thresh)
                 continue;
 
-            images.push_back(preprocessImage(cropImage));
+            images.push_back(std::move(cropImage));
             added_patch++;
         }
         loaded_patch += added_patch;
@@ -284,9 +287,7 @@ int main(int argc, char* argv[])
     {
         std::ostringstream oss;
         oss << "eval-image/" << i << ".bmp";
-        imageList.push_back(std::move(preprocessImage(
-            NeuralNet::grayscaleImage(NeuralNet::loadBitmapImage(oss.str().c_str())))
-        ));
+        imageList.push_back(NeuralNet::loadBitmapImage(oss.str().c_str()));
     }
 
     auto originalImgData = getRawDataFromImages(imageList);
@@ -326,9 +327,7 @@ int main(int argc, char* argv[])
         file_name.append(person_name);
         file_name.append("_0001.ppm");
 
-        lfwTestImages.push_back(std::move(preprocessImage(
-            NeuralNet::grayscaleImage(NeuralNet::loadPPMImage(file_name.c_str()))
-        )));
+        lfwTestImages.push_back(NeuralNet::loadPPMImage(file_name.c_str()));
     }
 
     auto lfwTestData = getRawDataFromImages(lfwTestImages);

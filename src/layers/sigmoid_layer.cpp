@@ -92,9 +92,9 @@ namespace NeuralNet
             mul_mat_vec(m_weight, prev_a + (i*m_prev_d), cur_z + (i*m_current_d),
                     m_current_d, m_prev_d);
             add_vec(cur_z + (i*m_current_d), m_bias,
-                    cur_a + (i*m_current_d), m_current_d);
+                    cur_z + (i*m_current_d), m_current_d);
         }
-        apply_vec(cur_a, cur_a, m_current_d * m_train_num, ActivationFuncs::f_sigmoid);
+        apply_vec(cur_z, cur_a, m_current_d * m_train_num, ActivationFuncs::f_sigmoid);
 
         refreshDropout();
 
