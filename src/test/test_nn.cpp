@@ -191,7 +191,7 @@ bool load_nonface_patch(std::vector< std::unique_ptr<NeuralNet::Image> >& images
         std::uniform_int_distribution<size_t> dis_h(0, img_ptr->getHeight() - patch_size);
 
         size_t added_patch = 0;
-        for (int i=0; i<max_sample_per_img && added_patch < sample_per_img
+        for (size_t i=0; i<max_sample_per_img && added_patch < sample_per_img
                 && added_patch + loaded_patch < num_image; i++)
         {
             auto cropImage = NeuralNet::cropImage(

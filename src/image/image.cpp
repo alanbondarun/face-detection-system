@@ -199,6 +199,9 @@ namespace NeuralNet
 
     std::unique_ptr<Image> cropImage(const std::unique_ptr<Image>& image, int x, int y, int w, int h)
     {
+        const int orig_w = image->getWidth();
+        const int orig_h = image->getHeight();
+
         auto img_ptr = std::make_unique<Image>(w, h, image->getChannelNum());
         for (size_t ch = 0; ch < image->getChannelNum(); ch++)
         {
@@ -211,9 +214,9 @@ namespace NeuralNet
                 {
                     int ii = i + x;
                     int jj = j + y;
-                    if (ii < image->getWidth() && jj < image->getHeight())
+                    if (ii < orig_w && jj < orig_h)
                     {
-                        res_data_ptr[j*w + i] = orig_data_ptr[jj*image->getWidth() + ii];
+                        res_data_ptr[j*w + i] = orig_data_ptr[jj*orig_w + ii];
                     }
                     else
                     {
@@ -285,7 +288,7 @@ namespace NeuralNet
                 int idx = static_cast<int>((image->getValues(0))[j*w + i] * level);
                 if (idx < 0)
                     val_distrib[0]++;
-                else if (idx > level)
+                else if (static_cast<size_t>(idx) > level)
                     val_distrib[level]++;
                 else
                     val_distrib[idx]++;
@@ -308,7 +311,7 @@ namespace NeuralNet
                 int idx = static_cast<int>((image->getValues(0))[j*w + i] * level);
                 if (idx < 0)
                     new_data_ptr[j*w + i] = static_cast<float>(val_cdf[0]) / (w*h);
-                else if (idx > level)
+                else if (static_cast<size_t>(idx) > level)
                     new_data_ptr[j*w + i] = static_cast<float>(val_cdf[level]) / (w*h);
                 else
                     new_data_ptr[j*w + i] = static_cast<float>(val_cdf[idx]) / (w*h);
@@ -484,9 +487,9 @@ namespace NeuralNet
 
         auto img_ptr = std::make_unique<Image>(img_w, img_h, 3);
 
-        for (size_t y = 0; y < img_h; y++)
+        for (int y = 0; y < img_h; y++)
         {
-            for (size_t x = 0; x < img_w; x++)
+            for (int x = 0; x < img_w; x++)
             {
                 (img_ptr->getValues(0))[y * img_w + x] = static_cast<float>(pixels[y][x].r)
                         / max_pval;
@@ -523,9 +526,9 @@ namespace NeuralNet
 
         auto img_ptr = std::make_unique<Image>(img_w, img_h, 3);
 
-        for (size_t y = 0; y < img_h; y++)
+        for (int y = 0; y < img_h; y++)
         {
-            for (size_t x = 0; x < img_w; x++)
+            for (int x = 0; x < img_w; x++)
             {
                 (img_ptr->getValues(0))[y * img_w + x] = static_cast<float>(pixels[y][x])
                         / max_pval;

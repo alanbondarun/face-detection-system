@@ -4,6 +4,7 @@
 #include <fstream>
 
 #define __CL_ENABLE_EXCEPTIONS
+#define CL_USE_DEPRECATED_OPENCL_1_2_APIS
 #include "CL/cl.hpp"
 
 const char* helloStr = "__kernel void hello(void) { }";

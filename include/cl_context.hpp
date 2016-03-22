@@ -2,6 +2,7 @@
 #define __CL_CONTEXT_HPP
 
 #define __CL_ENABLE_EXCEPTIONS
+#define CL_USE_DEPRECATED_OPENCL_1_2_APIS
 #include "CL/cl.hpp"
 #include <vector>
 #include <string>
@@ -63,4 +64,4 @@ namespace NeuralNet
     };
 }
 
-#endif __CL_CONTEXT_HPP
+#endif // __CL_CONTEXT_HPP

@@ -87,7 +87,7 @@ namespace NeuralNet
         auto cur_z = current.get(LayerData::DataIndex::INTER_VALUE);
         auto cur_a = current.get(LayerData::DataIndex::ACTIVATION);
 
-        for (int i=0; i<m_train_num; i++)
+        for (size_t i=0; i<m_train_num; i++)
         {
             mul_mat_vec(m_weight, prev_a + (i*m_prev_d), cur_z + (i*m_current_d),
                     m_current_d, m_prev_d);
@@ -113,10 +113,6 @@ namespace NeuralNet
         refreshDropout();
 
         int train_num = current.getTrainNum();
-        auto prev_a = prev.get(LayerData::DataIndex::ACTIVATION);
-        auto cur_z = current.get(LayerData::DataIndex::INTER_VALUE);
-        auto cur_a = current.get(LayerData::DataIndex::ACTIVATION);
-
         auto m_buf_pa = prev.getCLBuffer(LayerData::DataIndex::ACTIVATION);
         auto m_buf_cz = current.getCLBuffer(LayerData::DataIndex::INTER_VALUE);
         auto m_buf_ca = current.getCLBuffer(LayerData::DataIndex::ACTIVATION);
@@ -169,7 +165,7 @@ namespace NeuralNet
         float *temp_w = new float[m_prev_d * m_current_d];
         transpose_mat(m_weight, temp_w, m_current_d, m_prev_d);
 
-        for (int i=0; i<m_train_num; i++)
+        for (size_t i=0; i<m_train_num; i++)
         {
             mul_mat_vec(temp_w, cur_e + (i*m_current_d), prev_e + (i*m_prev_d), m_prev_d, m_current_d);
         }
@@ -188,7 +184,7 @@ namespace NeuralNet
         float *delta_w = new float[m_prev_d * m_current_d];
         memset(delta_w, 0, sizeof(float) * m_prev_d * m_current_d);
 
-        for (int i=0; i<m_train_num; i++)
+        for (size_t i=0; i<m_train_num; i++)
         {
             vec_outer_prod(cur_e, prev_a, temp_w, m_current_d, m_prev_d);
             add_vec(delta_w, temp_w, delta_w, m_prev_d * m_current_d);
@@ -306,20 +302,20 @@ namespace NeuralNet
         auto weight_lists = coeffs["weight"];
         if (weight_lists.size() != m_current_d)
             throw Json::LogicError("invalid number of weight values");
-        for (int i = 0; i < m_current_d; i++)
+        for (int i = 0; i < static_cast<int>(m_current_d); i++)
         {
             auto weights = weight_lists[i];
             if (weights.size() != m_prev_d)
                 throw Json::LogicError("invalid number of weight values");
 
-            for (int j = 0; j < m_prev_d; j++)
+            for (int j = 0; j < static_cast<int>(m_prev_d); j++)
                 m_weight[i * m_prev_d + j] = weights[j].asDouble();
         }
 
         auto biases = coeffs["bias"];
         if (biases.size() != m_current_d)
             throw Json::LogicError("invalid number of bias values");
-        for (int i = 0; i < m_current_d; i++)
+        for (int i = 0; i < static_cast<int>(m_current_d); i++)
             m_bias[i] = biases[i].asDouble();
 
         refreshCLLayerInfo();

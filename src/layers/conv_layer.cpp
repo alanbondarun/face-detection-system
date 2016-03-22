@@ -154,10 +154,6 @@ namespace NeuralNet
     void ConvLayer::forward_gpu(const CLLayerData& prev, CLLayerData& current)
     {
         int train_num = current.getTrainNum();
-        auto prev_a = prev.get(LayerData::DataIndex::ACTIVATION);
-        auto cur_a = current.get(LayerData::DataIndex::ACTIVATION);
-        auto cur_z = current.get(LayerData::DataIndex::INTER_VALUE);
-
         auto m_buf_pa = prev.getCLBuffer(LayerData::DataIndex::ACTIVATION);
         auto m_buf_cz = current.getCLBuffer(LayerData::DataIndex::INTER_VALUE);
         auto m_buf_ca = current.getCLBuffer(LayerData::DataIndex::ACTIVATION);

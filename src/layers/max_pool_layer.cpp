@@ -63,11 +63,6 @@ namespace NeuralNet
     void MaxPoolLayer::forward_gpu(const CLLayerData& prev, CLLayerData& current)
     {
         int train_num = current.getTrainNum();
-        auto prev_a = prev.get(LayerData::DataIndex::ACTIVATION);
-        auto prev_z = prev.get(LayerData::DataIndex::INTER_VALUE);
-        auto cur_a = current.get(LayerData::DataIndex::ACTIVATION);
-        auto cur_z = current.get(LayerData::DataIndex::INTER_VALUE);
-
         auto m_buf_pa = prev.getCLBuffer(LayerData::DataIndex::ACTIVATION);
         auto m_buf_pz = prev.getCLBuffer(LayerData::DataIndex::INTER_VALUE);
         auto m_buf_ca = current.getCLBuffer(LayerData::DataIndex::ACTIVATION);
@@ -78,7 +73,6 @@ namespace NeuralNet
         m_fwd_kernel.setArg(3, m_buf_ca);
         m_fwd_kernel.setArg(10, sizeof(int), &train_num);
 
-        size_t size_pmap = m_dim.map_num * m_dim.image_width * m_dim.image_height * train_num;
         size_t size_cmap = m_dim.map_num * m_output_width * m_output_height * train_num;
 
         auto queue = CLContext::getInstance().getCommandQueue();

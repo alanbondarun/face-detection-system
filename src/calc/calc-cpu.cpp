@@ -5,7 +5,7 @@ namespace NeuralNet
     void add_vec(const float *v1, const float *v2, float *vres, size_t dim)
     {
         float *pres = vres;
-        while (vres - pres < dim)
+        while (static_cast<size_t>(vres - pres) < dim)
         {
             *vres = *v1 + *v2;
             vres++;
@@ -17,7 +17,7 @@ namespace NeuralNet
     void pmul_vec(const float *v1, const float *v2, float *vres, size_t dim)
     {
         float *pres = vres;
-        while (vres - pres < dim)
+        while (static_cast<size_t>(vres - pres) < dim)
         {
             *vres = *v1 * *v2;
             vres++;
@@ -30,10 +30,10 @@ namespace NeuralNet
     {
         float *pres = vres;
         const float *pv = v;
-        while (vres - pres < dim_r)
+        while (static_cast<size_t>(vres - pres) < dim_r)
         {
             *vres = 0;
-            while (v - pv < dim_c)
+            while (static_cast<size_t>(v - pv) < dim_c)
             {
                 *vres += (*m) * (*v);
                 m++;
@@ -47,7 +47,7 @@ namespace NeuralNet
     void copy_vec(const float *v, float *vres, size_t dim)
     {
         const float *pres = v;
-        while (v - pres < dim)
+        while (static_cast<size_t>(v - pres) < dim)
         {
             *vres = *v;
             v++;
@@ -58,7 +58,7 @@ namespace NeuralNet
     void set_vec(float *v, float val, size_t dim)
     {
         float *pv = v;
-        while (v - pv < dim)
+        while (static_cast<size_t>(v - pv) < dim)
         {
             *v = val;
             v++;
@@ -68,7 +68,7 @@ namespace NeuralNet
     void const_mul_vec(float *v, float val, size_t dim)
     {
         float *pv = v;
-        while (v - pv < dim)
+        while (static_cast<size_t>(v - pv) < dim)
         {
             *v *= val;
             v++;
@@ -78,7 +78,7 @@ namespace NeuralNet
     void apply_vec(const float *v, float *vres, size_t dim, std::function<float(float)> func)
     {
         const float *pres = v;
-        while (v - pres < dim)
+        while (static_cast<size_t>(v - pres) < dim)
         {
             *vres = func(*v);
             v++;
@@ -88,9 +88,9 @@ namespace NeuralNet
 
     void transpose_mat(const float *m, float *mres, size_t dim_r, size_t dim_c)
     {
-        for (int i=0; i<dim_r; i++)
+        for (size_t i=0; i<dim_r; i++)
         {
-            for (int j=0; j<dim_c; j++)
+            for (size_t j=0; j<dim_c; j++)
             {
                 mres[i+j*dim_r] = m[i*dim_c+j];
             }
@@ -103,16 +103,16 @@ namespace NeuralNet
         const float *p_vset = vset;
 
         /* initialize to zero before addition */
-        while (vres - p_vres < dim_v)
+        while (static_cast<size_t>(vres - p_vres) < dim_v)
         {
             *vres = 0;
             vres++;
         }
         vres = p_vres;
 
-        while (vset - p_vset < dim_v*num_v)
+        while (static_cast<size_t>(vset - p_vset) < dim_v*num_v)
         {
-            while (vres - p_vres < dim_v)
+            while (static_cast<size_t>(vres - p_vres) < dim_v)
             {
                 *vres += *vset;
                 vres++;
@@ -126,9 +126,9 @@ namespace NeuralNet
     {
         const float *p_v1 = v1;
         const float *p_v2 = v2;
-        while (v1 - p_v1 < dim_n)
+        while (static_cast<size_t>(v1 - p_v1) < dim_n)
         {
-            while (v2 - p_v2 < dim_m)
+            while (static_cast<size_t>(v2 - p_v2) < dim_m)
             {
                 *mres = (*v1) * (*v2);
                 mres++;
@@ -208,7 +208,7 @@ namespace NeuralNet
         }
         else
         {
-            while (m - pm < dim_w * dim_h)
+            while (static_cast<size_t>(m - pm) < dim_w * dim_h)
             {
                 *pmres = *m;
                 m++;

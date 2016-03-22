@@ -65,8 +65,7 @@ namespace NeuralNet
             bool uses_gpu;
             explicit MaxPoolLayerSetting(size_t _m, size_t _w, size_t _h, size_t _iw, size_t _ih, size_t _st, bool _gpu)
                 : LayerSetting(), map_num(_m), pool_w(_w), pool_h(_h), input_w(_iw), input_h(_ih),
-                uses_gpu(_gpu),
-                output_w(_iw / _w), output_h(_ih / _h), stride(_st) {}
+                output_w(_iw / _w), output_h(_ih / _h), stride(_st), uses_gpu(_gpu) {}
             virtual ~MaxPoolLayerSetting() {}
         };
 
