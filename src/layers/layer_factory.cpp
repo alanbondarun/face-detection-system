@@ -79,7 +79,8 @@ namespace NeuralNet
                 cast_cur_set.learn_rate,
                 cast_cur_set.dropout_rate,
                 cast_cur_set.enable_dropout,
-                cast_cur_set.uses_gpu
+                cast_cur_set.uses_gpu,
+                cast_cur_set.weight_decay
             })
         );
     }
@@ -99,7 +100,8 @@ namespace NeuralNet
                 cast_cur_set.learn_rate,
                 cast_cur_set.dropout_rate,
                 cast_cur_set.enable_dropout,
-                cast_cur_set.uses_gpu
+                cast_cur_set.uses_gpu,
+                cast_cur_set.weight_decay
             })
         );
     }
@@ -119,7 +121,8 @@ namespace NeuralNet
                 cast_cur_set.learn_rate,
                 cast_cur_set.dropout_rate,
                 cast_cur_set.enable_dropout,
-                cast_cur_set.uses_gpu
+                cast_cur_set.uses_gpu,
+                cast_cur_set.weight_decay
             })
         );
     }
@@ -141,7 +144,8 @@ namespace NeuralNet
                     cast_cur_set.recep_size,
                     cast_cur_set.learn_rate,
                     cast_cur_set.enable_zero_pad,
-                    cast_cur_set.uses_gpu
+                    cast_cur_set.uses_gpu,
+                    cast_cur_set.weight_decay
                 }),
                 ConvLayer::ActivationFunc::RELU
         );
@@ -164,7 +168,8 @@ namespace NeuralNet
                     cast_cur_set.recep_size,
                     cast_cur_set.learn_rate,
                     cast_cur_set.enable_zero_pad,
-                    cast_cur_set.uses_gpu
+                    cast_cur_set.uses_gpu,
+                    cast_cur_set.weight_decay
                 }),
                 ConvLayer::ActivationFunc::RELU
         );
@@ -187,7 +192,8 @@ namespace NeuralNet
                     cast_cur_set.recep_size,
                     cast_cur_set.learn_rate,
                     cast_cur_set.enable_zero_pad,
-                    cast_cur_set.uses_gpu
+                    cast_cur_set.uses_gpu,
+                    cast_cur_set.weight_decay
                 }),
                 ConvLayer::ActivationFunc::RELU
         );

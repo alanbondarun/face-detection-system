@@ -139,6 +139,7 @@ namespace NeuralNet
         float m_learn_rate;
         LearnRateSetting m_learn_rate_set;
         bool m_uses_gpu;
+        float m_weight_decay;
 
         std::vector<NodeID> m_start_idxes;
         std::vector<NodeID> m_leaf_idx;

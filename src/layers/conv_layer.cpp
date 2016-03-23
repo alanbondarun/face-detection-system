@@ -222,6 +222,11 @@ namespace NeuralNet
             }
         }
 
+        // add weight decay term
+        const_mul_vec(m_weight, 1.0 - (m_set.learn_rate * m_set.weight_decay),
+                m_set.current_map_num * m_set.prev_map_num *
+                m_set.recep_size * m_set.recep_size);
+
         /* calculate delta_w and update current weight */
         float *delta_w = new float[m_set.recep_size * m_set.recep_size];
         size_t dw_offset = 0;

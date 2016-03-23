@@ -80,6 +80,15 @@ namespace NeuralNet
 
         // additional learning setting
         m_uses_gpu = setting["uses_gpu"].asBool();
+        auto wd_value = setting["weight_decay"];
+        if (!wd_value.isNull())
+        {
+            m_weight_decay = wd_value.asFloat();
+        }
+        else
+        {
+            m_weight_decay = 0;
+        }
 
         /* input file description */
         auto input_val = setting["input"];
@@ -119,7 +128,7 @@ namespace NeuralNet
             {
                 auto node_pair = std::make_pair(start_id,
                     std::make_unique<LayerFactory::SigmoidLayerSetting>(
-                        m_in_dim.size, m_learn_rate, 1.0, false, m_uses_gpu));
+                        m_in_dim.size, m_learn_rate, 1.0, false, m_uses_gpu, m_weight_decay));
                 setting_map.insert(std::move(node_pair));
             }
             else if (m_in_type == InputType::IMAGE)
@@ -186,7 +195,7 @@ namespace NeuralNet
                 // update prevSetting
                 prevSetting[child_id] = std::make_unique<LayerFactory::SigmoidLayerSetting>(
                         merger_map[child_id]->merger->getNeuronNum(),
-                        0.01, 1, false, m_uses_gpu
+                        0.01, 1, false, m_uses_gpu, m_weight_decay
                 );
             }
             else
@@ -231,7 +240,8 @@ namespace NeuralNet
                 layer_do_rate = jsonLayer["dropout_rate"].asDouble();
 
             cur_setting = std::make_unique<LayerFactory::SigmoidLayerSetting>(
-                    neurons, m_learn_rate, layer_do_rate, layer_enable_do, m_uses_gpu);
+                    neurons, m_learn_rate, layer_do_rate, layer_enable_do, m_uses_gpu,
+                    m_weight_decay);
         }
         else if (!layer_type.compare("convolution"))
         {
@@ -244,7 +254,8 @@ namespace NeuralNet
                     input_w, input_h);
 
             cur_setting = std::make_unique<LayerFactory::ConvLayerSetting>(maps,
-                    recep, input_w, input_h, m_learn_rate, zeropad, m_uses_gpu);
+                    recep, input_w, input_h, m_learn_rate, zeropad, m_uses_gpu,
+                    m_weight_decay);
         }
         else if (!layer_type.compare("maxpool"))
         {

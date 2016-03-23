@@ -16,7 +16,8 @@ namespace NeuralNet
         m_learn_rate(set.learn_rate),
         m_uses_dropout(set.dropout_enable), m_dropout_enabled(false),
         m_dropout_rate(set.dropout_rate),
-        m_uses_gpu(set.uses_gpu)
+        m_uses_gpu(set.uses_gpu),
+        m_weight_decay(set.weight_decay)
     {
         m_weight = new float[m_current_d * m_prev_d];
         m_bias = new float[m_current_d];
@@ -180,6 +181,9 @@ namespace NeuralNet
         });
         add_vec(m_bias, delta_b, m_bias, m_current_d);
 
+        // add decay term
+        const_mul_vec(m_weight, 1.0 - m_learn_rate * m_weight_decay, m_prev_d * m_current_d);
+
         /* calculate delta_w and update current weight */
         float *delta_w = new float[m_prev_d * m_current_d];
         memset(delta_w, 0, sizeof(float) * m_prev_d * m_current_d);
@@ -193,6 +197,7 @@ namespace NeuralNet
             return -in*learn_rate/train_num;
         });
         add_vec(m_weight, delta_w, m_weight, m_prev_d * m_current_d);
+
 
         delete [] delta_w;
         delete [] delta_b;

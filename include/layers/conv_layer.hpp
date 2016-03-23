@@ -26,6 +26,7 @@ namespace NeuralNet
             float learn_rate;
             bool enable_zero_pad;
             bool uses_gpu;
+            float weight_decay;
         };
 
         enum class ActivationFunc

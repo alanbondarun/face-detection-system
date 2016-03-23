@@ -32,9 +32,10 @@ namespace NeuralNet
             float dropout_rate;
             bool enable_dropout;
             bool uses_gpu;
-            explicit SigmoidLayerSetting(size_t _n, float _l, float _droprate, bool _dr, bool _gpu)
+            float weight_decay;
+            explicit SigmoidLayerSetting(size_t _n, float _l, float _droprate, bool _dr, bool _gpu, float _wdd)
                 : LayerSetting(), neuron_num(_n), learn_rate(_l), dropout_rate(_droprate),
-                enable_dropout(_dr), uses_gpu(_gpu) {}
+                enable_dropout(_dr), uses_gpu(_gpu), weight_decay(_wdd) {}
             virtual ~SigmoidLayerSetting() {}
         };
         struct ImageLayerSetting: public LayerSetting
@@ -52,11 +53,13 @@ namespace NeuralNet
             float learn_rate;
             bool enable_zero_pad, uses_gpu;
             size_t output_w, output_h;
-            explicit ConvLayerSetting(size_t _m, size_t _r, size_t _iw, size_t _ih, float _l, bool _zeropad, bool _gpu)
+            float weight_decay;
+            explicit ConvLayerSetting(size_t _m, size_t _r, size_t _iw, size_t _ih, float _l, bool _zeropad, bool _gpu, float _wdd)
                 : LayerSetting(), map_num(_m), recep_size(_r), input_w(_iw), input_h(_ih),
                 learn_rate(_l), enable_zero_pad(_zeropad), uses_gpu(_gpu),
                 output_w((enable_zero_pad)?(_iw):(_iw - (_r - 1))),
-                output_h((enable_zero_pad)?(_ih):(_ih - (_r - 1))) {}
+                output_h((enable_zero_pad)?(_ih):(_ih - (_r - 1))),
+                weight_decay(_wdd) {}
             virtual ~ConvLayerSetting() {}
         };
         struct MaxPoolLayerSetting: public LayerSetting
