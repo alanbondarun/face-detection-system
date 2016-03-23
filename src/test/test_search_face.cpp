@@ -3,6 +3,8 @@
 #include <sstream>
 #include <string>
 #include <vector>
+#include <chrono>
+#include <ctime>
 #include "netpbm/pm.h"
 #include "utils/make_unique.hpp"
 #include "utils/cl_exception.hpp"
@@ -229,10 +231,19 @@ int main(int argc, char* argv[])
     std::cout << "loading configuration complete" << std::endl;
 
     // load an image (just an empty pointer now)
+    std::chrono::time_point<std::chrono::system_clock> time_point_start, time_point_finish;
+    std::chrono::duration<double> elapsed_seconds;
+    time_point_start = std::chrono::system_clock::now();
+
     auto image = NeuralNet::loadBitmapImage(config.test_file.c_str());
-    std::cout << "loading test image complete" << std::endl;
+
+    time_point_finish = std::chrono::system_clock::now();
+    elapsed_seconds = time_point_finish - time_point_start;
+    std::cout << "loading test image complete, time: " << elapsed_seconds.count()
+        << "s" << std::endl;
     
     // load image patches from the given image
+    time_point_start = std::chrono::system_clock::now();
     std::vector<float> patch_data;
     if (config.uses_gpu)
     {
@@ -263,7 +274,10 @@ int main(int argc, char* argv[])
             }
         }
     }
-    std::cout << "loading image patches complete" << std::endl;
+    time_point_finish = std::chrono::system_clock::now();
+    elapsed_seconds = time_point_finish - time_point_start;
+    std::cout << "loading image patches complete, time: " << elapsed_seconds.count()
+        << "s" << std::endl;
     
     // classify patches with the trained network
     auto network = loadNetwork(config.net_config_file);
@@ -275,8 +289,14 @@ int main(int argc, char* argv[])
     network->loadFromFiles();
     std::cout << "loading network complete" << std::endl;
     
+    time_point_start = std::chrono::system_clock::now();
+
     auto category_list = network->evaluateAll(patch_data);
-    std::cout << "image patch evaluation complete" << std::endl;
+
+    time_point_finish = std::chrono::system_clock::now();
+    elapsed_seconds = time_point_finish - time_point_start;
+    std::cout << "image patch evaluation complete, time: " << elapsed_seconds.count()
+        << "s" << std::endl;
 
     size_t positive_res = 0;
     for (auto val: category_list[0])
