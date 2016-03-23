@@ -465,12 +465,23 @@ namespace NeuralNet
             {
                 for (size_t i = 0; i < w; i++)
                 {
-                    float lum_ratio = (alpha * (orig_data_ptr[j*w + i] - current_mean) + mean) /
-                            orig_data_ptr[j*w + i];
-                    for (size_t c = 0; c < channel_num; c++)
+                    float orig_lum = orig_data_ptr[j*w + i];
+                    if (std::isfinite(orig_lum) && !std::isnormal(orig_lum))
                     {
-                        (newImage->getValues(c))[j*w + i] =
-                                (image->getValues(c))[j*w + i] * lum_ratio;
+                        // deal with subnormal cases
+                        for (size_t c = 0; c < channel_num; c++)
+                        {
+                            (newImage->getValues(c))[j*w + i] = 0;
+                        }
+                    }
+                    else
+                    {
+                        float lum_ratio = (alpha * (orig_lum - current_mean) + mean) / orig_lum;
+                        for (size_t c = 0; c < channel_num; c++)
+                        {
+                            (newImage->getValues(c))[j*w + i] =
+                                    (image->getValues(c))[j*w + i] * lum_ratio;
+                        }
                     }
                 }
             }
