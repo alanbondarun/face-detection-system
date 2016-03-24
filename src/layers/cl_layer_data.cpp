@@ -45,4 +45,24 @@ namespace NeuralNet
     {
         return m_buffers[static_cast<int>(idx)];
     }
+
+    void CLLayerData::updateDataSize(size_t new_train_num)
+    {
+        LayerData::updateDataSize(new_train_num);
+        auto queue = CLContext::getInstance().getCommandQueue();
+        auto context = CLContext::getInstance().getContext();
+
+        for (size_t i = 0; i < LayerData::DATA_COUNT; i++)
+        {
+            cl::Buffer tmp_buf(context, CL_MEM_READ_WRITE,
+                    sizeof(float) * new_train_num * getDataNum());
+
+            cl_int err = queue.enqueueCopyBuffer(m_buffers[i],
+                    tmp_buf,
+                    0, 0,
+                    sizeof(float) * getTrainNum() * getDataNum());
+            printError(err, "enqueueCopyBuffer at CLLayerData::updateBufferSize");
+            m_buffers[i] = tmp_buf;
+        }
+    }
 }

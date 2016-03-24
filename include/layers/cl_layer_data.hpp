@@ -21,6 +21,9 @@ namespace NeuralNet
 
         cl::Buffer getCLBuffer(LayerData::DataIndex idx) const;
 
+    protected:
+        virtual void updateDataSize(size_t new_train_num);
+
     private:
         std::vector<cl::Buffer> m_buffers;
     };

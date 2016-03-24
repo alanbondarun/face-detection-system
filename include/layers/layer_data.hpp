@@ -26,15 +26,22 @@ namespace NeuralNet
         LayerData(const LayerData& other);
         LayerData& operator=(const LayerData& other);
 
+        LayerData(LayerData&& other) noexcept;
+        LayerData& operator=(LayerData&& other) noexcept;
+
         /* returns the desired array */
         float *get(DataIndex idx) const;
 
         /* returns the dimensions */
         size_t getDataNum() const { return m_data_num; }
         size_t getTrainNum() const { return m_train_num; }
+        void setTrainNum(size_t _t);
+
+    protected:
+        virtual void updateDataSize(size_t new_train_num);
 
     private:
-        size_t m_train_num, m_data_num;
+        size_t m_capacity, m_train_num, m_data_num;
         float *data;
     };
 }

@@ -524,24 +524,45 @@ namespace NeuralNet
 
     void Network::prepareLayerData(size_t train_num)
     {
-        if (m_uses_gpu)
+        if (m_input_data)
         {
-            m_input_data = std::make_unique<CLLayerData>(train_num, m_unit_size);
+            m_input_data->setTrainNum(train_num);
         }
         else
         {
-            m_input_data = std::make_unique<LayerData>(train_num, m_unit_size);
+            if (m_uses_gpu)
+            {
+                m_input_data = std::make_unique<CLLayerData>(train_num, m_unit_size);
+            }
+            else
+            {
+                m_input_data = std::make_unique<LayerData>(train_num, m_unit_size);
+            }
         }
 
         for (auto& node_pair: node_map)
         {
-            node_pair.second->data =
-                    std::move(node_pair.second->layer->createLayerData(train_num));
+            if (node_pair.second->data)
+            {
+                node_pair.second->data->setTrainNum(train_num);
+            }
+            else
+            {
+                node_pair.second->data = std::move(
+                        node_pair.second->layer->createLayerData(train_num));
+            }
         }
         for (auto& node_pair: merger_map)
         {
-            node_pair.second->data =
-                    std::move(node_pair.second->merger->createLayerData(train_num));
+            if (node_pair.second->data)
+            {
+                node_pair.second->data->setTrainNum(train_num);
+            }
+            else
+            {
+                node_pair.second->data = std::move(
+                        node_pair.second->merger->createLayerData(train_num));
+            }
         }
     }
 
