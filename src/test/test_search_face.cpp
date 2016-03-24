@@ -5,6 +5,7 @@
 #include <vector>
 #include <chrono>
 #include <ctime>
+#include <cmath>
 #include "netpbm/pm.h"
 #include "utils/make_unique.hpp"
 #include "utils/cl_exception.hpp"
@@ -219,6 +220,87 @@ void clGetPatches(const SearchConfig& config, const std::unique_ptr<NeuralNet::I
     }
 }
 
+int accumulatePatches(const SearchConfig& config,
+        const std::vector<int>& category_list)
+{
+    std::vector<std::pair<size_t, size_t>> pyramid_patches;
+    float delta = 1.0;
+    while (config.width * delta >= config.min_image_width)
+    {
+        size_t tw = config.width * delta;
+        size_t th = config.height * delta;
+        size_t nw = (tw - config.patch) / config.stride + 1;
+        size_t nh = (th - config.patch) / config.stride + 1;
+        pyramid_patches.emplace_back(nw, nh);
+
+        delta *= config.shrink_ratio;
+    }
+
+    // phase 1) construct the delta map
+    std::vector<int> deltamap;
+    deltamap.resize((config.width + 1) * (config.height + 1), 0);
+    size_t map_w = config.width + 1;
+    size_t map_h = config.height + 1;
+    for (size_t i = 0; i < category_list.size(); i++)
+    {
+        if (category_list[i] != 0)
+            continue;
+
+        // find the level index and (x,y) coordinate of the patch
+        size_t j = 0;
+        size_t sump = 0;
+        while (j < pyramid_patches.size())
+        {
+            if (sump + pyramid_patches[j].first * pyramid_patches[j].second > i)
+                break;
+            sump += pyramid_patches[j].first * pyramid_patches[j].second;
+            j++;
+        }
+
+        float sratio = std::pow(config.shrink_ratio, j);
+        float patch_size = config.patch * sratio;
+        float stride_size = config.stride * sratio;
+        float posx = ((i - sump) % (pyramid_patches[j].second)) * stride_size;
+        float posy = ((i - sump) / (pyramid_patches[j].second)) * stride_size;
+
+        size_t iposx = static_cast<size_t>(posx);
+        size_t iposy = static_cast<size_t>(posy);
+        size_t posa = std::min(static_cast<size_t>(posx + patch_size),
+                config.width);
+        size_t posb = std::min(static_cast<size_t>(posy + patch_size),
+                config.height);
+
+        deltamap[iposy * map_w + iposx]++;
+        deltamap[iposy * map_w + posa]--;
+        deltamap[posb * map_w + iposx]--;
+        deltamap[posb * map_w + posa]++;
+    }
+
+    // phase 2) accumulate the delta map
+    for (size_t i = 1; i < map_w; i++)
+    {
+        deltamap[i] += deltamap[i-1];
+    }
+    for (size_t j = 1; j < map_h; j++)
+    {
+        deltamap[j*map_w] += deltamap[(j-1)*map_w];
+        for (size_t i = 1; i < map_w; i++)
+        {
+            deltamap[j*map_w + i] += (deltamap[(j-1)*map_w + i]
+                    + deltamap[j*map_w + (i-1)]
+                    - deltamap[(j-1)*map_w + (i-1)]);
+        }
+    }
+
+    // phase 3) find the max value in the accumulated map
+    int mval = 0;
+    for (auto& val: deltamap)
+    {
+        mval = std::max(mval, val);
+    }
+    return mval;
+}
+
 int main(int argc, char* argv[])
 {
     pm_init(argv[0], 0);
@@ -307,4 +389,11 @@ int main(int argc, char* argv[])
     }
 
     std::cout << "positive patches = " << positive_res << std::endl;
+
+    time_point_start = std::chrono::system_clock::now();
+    auto score = accumulatePatches(config, category_list[0]);
+    time_point_finish = std::chrono::system_clock::now();
+    elapsed_seconds = time_point_finish - time_point_start;
+    std::cout << "score = " << score << ", score calc time: "
+        << elapsed_seconds.count() << std::endl;
 }
