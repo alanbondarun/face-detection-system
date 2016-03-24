@@ -63,8 +63,12 @@ namespace NeuralNet
             delete [] value[i];
         delete [] value;
 
+        width = other.width;
+        height = other.height;
+        channel_num = other.channel_num;
         value = other.value;
         other.value = nullptr;
+
         return *this;
     }
 
