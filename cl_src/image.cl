@@ -5,7 +5,7 @@ __kernel void grayscale_img(__read_only image2d_t img_in,
 {
     const int2 pos = {get_global_id(0), get_global_id(1)};
 
-    __constant sampler_t sampler = CLK_NORMALIZED_COORDS_FALSE |
+    sampler_t sampler = CLK_NORMALIZED_COORDS_FALSE |
             CLK_ADDRESS_CLAMP_TO_EDGE |
             CLK_FILTER_NEAREST;
 
