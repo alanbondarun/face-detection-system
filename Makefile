@@ -104,25 +104,25 @@ endif
 
 # default rule for object files
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp
-	$(CXX) -c -o $@ $(CXXFLAGS) $(DEPEND_FLAGS) -MT $@ -MF $(patsubst %.o,%.d,$@) $<
+	$(CXX) -c $< $(CXXFLAGS) $(DEPEND_FLAGS) -MT $@ -MF $(patsubst %.o,%.d,$@) -o $@
 
 $(OBJ_DIR)/led-user.o: $(SRC_DIR)/led-user.c
-	$(CXX) -c -o $@ $(CXXFLAGS) $(DEPEND_FLAGS) -MT $@ -MF $(patsubst %.o,%.d,$@) $<
+	$(CXX) -c $< $(CXXFLAGS) $(DEPEND_FLAGS) -MT $@ -MF $(patsubst %.o,%.d,$@) -o $@
 
 $(BUILD_DIR)/led-user: $(OBJ_DIR)/led-user.o
-	$(CXX) -o $@ $(CXXFLAGS) $(DEPEND_FLAGS) -MT $@ -MF $(patsubst %.o,%.d,$@) $^
+	$(CXX) $< $(CXXFLAGS) $(DEPEND_FLAGS) -MT $@ -MF $(patsubst %.o,%.d,$@) -o $@
 
 $(BUILD_DIR)/test_nn: $(OBJ_DIR)/$(TEST_SUBDIR)/test_nn.o $(NEURAL_NET_OBJS)
-	$(CXX) -o $@ $(CXXFLAGS) $(DEPEND_FLAGS) -MT $@ -MF $(patsubst %.o,%.d,$@) $^
+	$(CXX) $^ $(CXXFLAGS) $(DEPEND_FLAGS) -MT $@ -MF $(patsubst %.o,%.d,$@) -o $@
 
 $(BUILD_DIR)/test_load_image: $(OBJ_DIR)/$(IMAGE_SUBDIR)/image.o $(OBJ_DIR)/$(TEST_SUBDIR)/test_load_image.o
-	$(CXX) -o $@ $(CXXFLAGS) $(DEPEND_FLAGS) -MT $@ -MF $(patsubst %.o,%.d,$@) $^
+	$(CXX) $^ $(CXXFLAGS) $(DEPEND_FLAGS) -MT $@ -MF $(patsubst %.o,%.d,$@) -o $@
 
 $(BUILD_DIR)/test_search_face: $(OBJ_DIR)/$(TEST_SUBDIR)/test_search_face.o \
 		$(NEURAL_NET_OBJS)
-	$(CXX) -o $@ $(CXXFLAGS) $(DEPEND_FLAGS) -MT $@ -MF $(patsubst %.o,%.d,$@) $^
+	$(CXX) $^ $(CXXFLAGS) $(DEPEND_FLAGS) -MT $@ -MF $(patsubst %.o,%.d,$@) -o $@
 
 $(BUILD_DIR)/test_cl: $(OBJ_DIR)/$(TEST_SUBDIR)/test_cl.o $(NEURAL_NET_OBJS)
-	$(CXX) -o $@ $(CXXFLAGS) $(DEPEND_FLAGS) -MT $@ -MF $(patsubst %.o,%.d,$@) $^
+	$(CXX) $^ $(CXXFLAGS) $(DEPEND_FLAGS) -MT $@ -MF $(patsubst %.o,%.d,$@) -o $@
 
 -include $(MIDDLE_OBJS_DEP)
