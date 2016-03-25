@@ -1,49 +1,53 @@
 // kernels for forward/backwarding in max pool layers
 
-__kernel void max_pool_forward(__constant float* prev_z,
-        __constant float* prev_a,
-        __global float* cur_z,
-        __global float* cur_a,
-        const int map_num,
-        const int in_width,
-        const int in_height,
+__kernel void max_pool_forward(__read_only image3d_t prev_z,
+        __read_only image3d_t prev_a,
+        __write_only image3d_t cur_z,
+        __write_only image3d_t cur_a,
         const int pool_width,
         const int pool_height,
-        const int stride,
-        const int train_num)
+        const int stride)
 {
-    int g_idx = get_global_id(0);
+    const int4 out_pos = {get_global_id(0), get_global_id(1),
+        get_global_id(2), 0};
+    const int4 in_dim = get_image_dim(prev_z);
 
     int delta_w = pool_width - (stride - 1);
     int delta_h = pool_height - (stride - 1);
-    int out_width = (in_width - pool_width) / delta_w + 1;
-    int out_height = (in_height - pool_height) / delta_h + 1;
 
-    int out_x = g_idx % out_width;
-    int out_y = (g_idx / out_width) % out_height;
-    int out_m = (g_idx / (out_width * out_height)) % map_num;
-    int out_t = (g_idx / (out_width * out_height * map_num));
-    int map_off = (out_t * map_num + out_m) * in_width * in_height;
+    sampler_t sampler = CLK_NORMALIZED_COORDS_FALSE |
+            CLK_ADDRESS_CLAMP_TO_EDGE |
+            CLK_FILTER_NEAREST;
 
     // downsample cur_z
-    float maxv = prev_z[((out_y * delta_h) * in_width + (out_x * delta_w)) + map_off];
-    for (int y = out_y * delta_h; y < out_y * delta_h + pool_height; y++)
+    float maxv = read_imagef(prev_z, sampler,
+            (int4)(out_pos.x * delta_w, out_pos.y * delta_h, out_pos.z, 0)).x;
+    for (int y = out_pos.y * delta_h; y < out_pos.y * delta_h + pool_height;
+            y++)
     {
-        for (int x = out_x * delta_w; x < out_x * delta_w + pool_width; x++)
+        for (int x = out_pos.x * delta_w; x < out_pos.x * delta_w + pool_width;
+                x++)
         {
-            maxv = fmax(maxv, prev_z[(y * in_width + x) + map_off]);
+            maxv = fmax(maxv,
+                    read_imagef(prev_z, sampler,
+                        (int4)(x, y, out_pos.z, 0)).x);
         }
     }
-    cur_z[g_idx] = maxv;
+    write_imagef(cur_z, out_pos, (float4)(maxv, maxv, maxv, maxv));
 
     // downsample cur_a
-    maxv = prev_a[((out_y * delta_h) * in_width + (out_x * delta_w)) + map_off];
-    for (int y = out_y * delta_h; y < out_y * delta_h + pool_height; y++)
+    maxv = read_imagef(prev_a, sampler,
+            (int4)(out_pos.x * delta_w, out_pos.y * delta_h, out_pos.z, 0)).x;
+    for (int y = out_pos.y * delta_h; y < out_pos.y * delta_h + pool_height;
+            y++)
     {
-        for (int x = out_x * delta_w; x < out_x * delta_w + pool_width; x++)
+        for (int x = out_pos.x * delta_w; x < out_pos.x * delta_w + pool_width;
+                x++)
         {
-            maxv = fmax(maxv, prev_a[(y * in_width + x) + map_off]);
+            maxv = fmax(maxv,
+                    read_imagef(prev_a, sampler,
+                        (int4)(x, y, out_pos.z, 0)).x);
         }
     }
-    cur_a[g_idx] = maxv;
+    write_imagef(cur_a, out_pos, (float4)(maxv, maxv, maxv, maxv));
 }

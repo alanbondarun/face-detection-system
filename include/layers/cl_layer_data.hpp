@@ -13,16 +13,15 @@ namespace NeuralNet
     class CLLayerData: public LayerData
     {
     public:
-        CLLayerData(size_t train_num, size_t data_num);
-        virtual ~CLLayerData();
+        CLLayerData(size_t train_num, size_t data_num)
+            : LayerData(train_num, data_num) {}
+        virtual ~CLLayerData() {}
 
-        void loadToCLBuffer(DataIndex idx);
-        void getFromCLBuffer(DataIndex idx);
+        virtual void loadToCL(DataIndex idx) = 0;
+        virtual void getFromCL(DataIndex idx) = 0;
 
-        cl::Buffer getCLBuffer(LayerData::DataIndex idx) const;
-
-    private:
-        std::vector<cl::Buffer> m_buffers;
+        virtual cl::Memory getCLMemory(LayerData::DataIndex data_idx,
+                size_t train_idx) const = 0;
     };
 }
 

@@ -67,7 +67,7 @@ namespace NeuralNet
         float *m_weight;
         float *m_bias;
 
-        cl::Buffer m_buf_w, m_buf_b;
+        cl::Image3D m_imgbuf_w, m_imgbuf_b;
         cl::Kernel m_fwd_kernel;
 
     public:

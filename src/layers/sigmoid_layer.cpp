@@ -1,5 +1,4 @@
 #include "layers/sigmoid_layer.hpp"
-#include "layers/cl_layer_data.hpp"
 #include "calc/calc-cpu.hpp"
 #include "calc/util-functions.hpp"
 #include "utils/make_unique.hpp"
@@ -50,21 +49,34 @@ namespace NeuralNet
         {
             // initialize buffers
             cl::Context context = CLContext::getInstance().getContext();
-            m_buf_w = cl::Buffer(context, CL_MEM_READ_ONLY, sizeof(float) * m_prev_d * m_current_d);
+            cl::ImageFormat weight_fmt{CL_INTENSITY, CL_FLOAT};
+            cl_int err;
+
+            m_imgbuf_w = cl::Image2D(context, CL_MEM_READ_ONLY, weight_fmt,
+                    m_prev_d, m_current_d, 0, nullptr, &err);
+            printError(err, "m_imgbuf_w in SigmoidLayer");
+
             m_buf_b = cl::Buffer(context, CL_MEM_READ_ONLY, sizeof(float) * m_current_d);
             m_buf_do = cl::Buffer(context, CL_MEM_READ_ONLY, sizeof(float) * m_current_d);
 
             // create kernel
             m_fwd_kernel = cl::Kernel(CLContext::getInstance().getProgram(), "sigmoid_forward");
+            m_fwd_img_kernel = cl::Kernel(CLContext::getInstance().getProgram(),
+                    "sigmoid_forward_img");
 
-            m_fwd_kernel.setArg(1, m_buf_w);
+            m_fwd_kernel.setArg(1, m_imgbuf_w);
             m_fwd_kernel.setArg(2, m_buf_b);
             m_fwd_kernel.setArg(5, m_buf_do);
+            m_fwd_img_kernel.setArg(1, m_imgbuf_w);
+            m_fwd_img_kernel.setArg(2, m_buf_b);
+            m_fwd_img_kernel.setArg(5, m_buf_do);
 
             int i_prev_d = static_cast<int>(m_prev_d);
             int i_cur_d = static_cast<int>(m_current_d);
             m_fwd_kernel.setArg(6, sizeof(int), &i_prev_d);
             m_fwd_kernel.setArg(7, sizeof(int), &i_cur_d);
+            m_fwd_img_kernel.setArg(6, sizeof(int), &i_prev_d);
+            m_fwd_img_kernel.setArg(7, sizeof(int), &i_cur_d);
 
             refreshCLLayerInfo();
             updateDOBuffer();
@@ -111,23 +123,77 @@ namespace NeuralNet
 
     void SigmoidLayer::forward_gpu(const CLLayerData& prev, CLLayerData& current)
     {
+        auto* prev_ptr = &prev;
+        auto* current_ptr = &current;
+        auto* cbptr = dynamic_cast<CLBufferLayerData*>(current_ptr);
+        
+        if (cbptr)
+        {
+            auto* pbptr = dynamic_cast<const CLBufferLayerData*>(prev_ptr);
+            auto* piptr = dynamic_cast<const CLImageLayerData*>(prev_ptr);
+            if (pbptr)
+            {
+                forward_gpu(*pbptr, *cbptr);
+            }
+            else if (piptr)
+            {
+                forward_gpu(*piptr, *cbptr);
+            }
+        }
+    }
+
+    void SigmoidLayer::forward_gpu(const CLImageLayerData& prev,
+            CLBufferLayerData& current)
+    {
         refreshDropout();
 
-        int train_num = current.getTrainNum();
-        auto m_buf_pa = prev.getCLBuffer(LayerData::DataIndex::ACTIVATION);
-        auto m_buf_cz = current.getCLBuffer(LayerData::DataIndex::INTER_VALUE);
-        auto m_buf_ca = current.getCLBuffer(LayerData::DataIndex::ACTIVATION);
-        m_fwd_kernel.setArg(0, m_buf_pa);
-        m_fwd_kernel.setArg(3, m_buf_cz);
-        m_fwd_kernel.setArg(4, m_buf_ca);
-        m_fwd_kernel.setArg(8, sizeof(int), &train_num);
+        cl::CommandQueue queue = CLContext::getInstance().getCommandQueue();
+        auto train_num = current.getTrainNum();
+        for (size_t i=0; i<train_num; i++)
+        {
+            auto m_buf_pa = prev.getCLMemory(
+                    LayerData::DataIndex::ACTIVATION, i);
+            auto m_buf_cz = current.getCLMemory(
+                    LayerData::DataIndex::INTER_VALUE, i);
+            auto m_buf_ca = current.getCLMemory(
+                    LayerData::DataIndex::ACTIVATION, i);
+
+            m_fwd_img_kernel.setArg(0, m_buf_pa);
+            m_fwd_img_kernel.setArg(3, m_buf_cz);
+            m_fwd_img_kernel.setArg(4, m_buf_ca);
+
+            cl_int err = CL_SUCCESS;
+            err = queue.enqueueNDRangeKernel(m_fwd_img_kernel, cl::NullRange,
+                    cl::NDRange(m_current_d), cl::NullRange);
+            printError(err, "Error at CommandQueue::enqueNDRangeKernel");
+        }
+    }
+
+    void SigmoidLayer::forward_gpu(const CLBufferLayerData& prev,
+            CLBufferLayerData& current)
+    {
+        refreshDropout();
 
         cl::CommandQueue queue = CLContext::getInstance().getCommandQueue();
-        cl_int err = CL_SUCCESS;
+        auto train_num = current.getTrainNum();
+        for (size_t i=0; i<train_num; i++)
+        {
+            auto m_buf_pa = prev.getCLMemory(
+                    LayerData::DataIndex::ACTIVATION, i);
+            auto m_buf_cz = current.getCLMemory(
+                    LayerData::DataIndex::INTER_VALUE, i);
+            auto m_buf_ca = current.getCLMemory(
+                    LayerData::DataIndex::ACTIVATION, i);
 
-        err = queue.enqueueNDRangeKernel(m_fwd_kernel, cl::NullRange,
-                cl::NDRange(m_current_d * train_num), cl::NullRange);
-        printError(err, "Error at CommandQueue::enqueNDRangeKernel");
+            m_fwd_kernel.setArg(0, m_buf_pa);
+            m_fwd_kernel.setArg(3, m_buf_cz);
+            m_fwd_kernel.setArg(4, m_buf_ca);
+
+            cl_int err = CL_SUCCESS;
+            err = queue.enqueueNDRangeKernel(m_fwd_kernel, cl::NullRange,
+                    cl::NDRange(m_current_d), cl::NullRange);
+            printError(err, "Error at CommandQueue::enqueNDRangeKernel");
+        }
     }
 
     void SigmoidLayer::backward_cpu(LayerData& prev, LayerData& current)
@@ -272,9 +338,16 @@ namespace NeuralNet
         {
             cl::CommandQueue queue = CLContext::getInstance().getCommandQueue();
             cl_int err = CL_SUCCESS;
-            err = queue.enqueueWriteBuffer(m_buf_w, CL_TRUE, 0,
-                    sizeof(float) * m_prev_d * m_current_d, m_weight);
-            printError(err, "Error at CommandQueue::enqueWriteBuffer for m_buf_w");
+
+            cl::size_t<3> in_offset, in_region;
+            in_region[0] = m_prev_d;
+            in_region[1] = m_current_d;
+            in_region[2] = 1;
+
+            err = queue.enqueueWriteImage(m_imgbuf_w, CL_TRUE, in_offset,
+                    in_region, 0, 0, m_weight);
+            printError(err, "Error at CommandQueue::enqueWriteBuffer for m_imgbuf_w");
+            
             err = queue.enqueueWriteBuffer(m_buf_b, CL_TRUE, 0, sizeof(float) * m_current_d,
                     m_bias);
             printError(err, "Error at CommandQueue::enqueWriteBuffer for m_buf_b");
@@ -285,7 +358,7 @@ namespace NeuralNet
     {
         if (m_uses_gpu)
         {
-            return std::make_unique<CLLayerData>(
+            return std::make_unique<CLBufferLayerData>(
                     train_num,
                     m_current_d
             );

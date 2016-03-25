@@ -2,6 +2,8 @@
 #define __SIGMOID_LAYER_HPP
 
 #include "layers/layer.hpp"
+#include "layers/cl_buffer_layer_data.hpp"
+#include "layers/cl_image_layer_data.hpp"
 #include "json/json.h"
 #include <functional>
 
@@ -45,6 +47,11 @@ namespace NeuralNet
         static const std::function<float(float)> f_sigmoid_prime;
 
     private:
+        void forward_gpu(const CLImageLayerData& prev,
+                CLBufferLayerData& current);
+        void forward_gpu(const CLBufferLayerData& prev,
+                CLBufferLayerData& current);
+
         void refreshCLLayerInfo();
 
         void refreshDropout();
@@ -64,8 +71,10 @@ namespace NeuralNet
         float *m_dropout_coeff;
 
         // OpenCL contexts
-        cl::Buffer m_buf_w, m_buf_b, m_buf_do;
+        cl::Buffer m_buf_b, m_buf_do;
+        cl::Image2D m_imgbuf_w;
         cl::Kernel m_fwd_kernel;
+        cl::Kernel m_fwd_img_kernel;
 
     public:
         virtual void setLearnRate(float rate) { m_learn_rate = rate; }
