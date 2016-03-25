@@ -125,7 +125,7 @@ namespace NeuralNet
                 std::vector<float>& error_vals,
                 size_t batch_num);
 
-        void dropLearnRate(const std::vector<float>& total_errors);
+        void dropLearnRate(std::vector<float>& total_errors);
 
         /* dimensions */
         InputType m_in_type;

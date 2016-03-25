@@ -625,7 +625,7 @@ namespace NeuralNet
         }
     }
 
-    void Network::dropLearnRate(const std::vector<float>& total_errors)
+    void Network::dropLearnRate(std::vector<float>& total_errors)
     {
         if (!(m_learn_rate_set.enable))
             return;
@@ -651,6 +651,10 @@ namespace NeuralNet
         {
             node_pair.second->layer->setLearnRate(m_learn_rate);
         }
+
+        // remove previous error values so that the error rate will not drop
+        // within the drop count
+        total_errors.erase(total_errors.begin(), total_errors.end() - 1);
 
         std::cout << "learn rate dropped to: " << m_learn_rate << std::endl;
     }
