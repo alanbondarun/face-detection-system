@@ -53,17 +53,17 @@ std::vector<float> getRawDataFromImages(
 bool load_fddb(std::vector< std::unique_ptr<NeuralNet::Image> >& images,
         size_t num_image, bool uses_first)
 {
-    const size_t patch_size = 32;
+    const size_t patch_size = 24;
     size_t loaded_image = 0;
 
     std::ifstream ellipse_list;
     if (uses_first)
     {
-        ellipse_list.open("data-fddb/ellipse-1to5.txt");
+        ellipse_list.open("data-fddb/ellipse-1to7.txt");
     }
     else
     {
-        ellipse_list.open("data-fddb/ellipse-6to10.txt");
+        ellipse_list.open("data-fddb/ellipse-8to10.txt");
     }
 
     while (loaded_image < num_image)
@@ -128,7 +128,7 @@ bool load_fddb(std::vector< std::unique_ptr<NeuralNet::Image> >& images,
 
 bool load_faces(std::vector<float>& data, std::vector< std::vector<int> >& category)
 {
-    const size_t num_image = 2000;
+    const size_t num_image = 2500;
     std::vector< std::unique_ptr<NeuralNet::Image> > images;
 
     if (!load_fddb(images, num_image, true))
@@ -154,10 +154,10 @@ bool load_nonface_patch(std::vector< std::unique_ptr<NeuralNet::Image> >& images
         size_t num_image, size_t train_set)
 {
     const size_t set_size = 2000;
-    const size_t patch_size = 32;
+    const size_t patch_size = 24;
     const size_t sample_per_img = 10;
     const size_t max_sample_per_img = 1000;
-    const float var_thresh = 0.0007;
+    const float var_thresh = 0.001;
     
     size_t lbound = set_size * train_set + 1;
     size_t ubound = lbound + set_size;
@@ -229,7 +229,7 @@ bool load_nonface_patch(std::vector< std::unique_ptr<NeuralNet::Image> >& images
 
 bool load_non_faces(std::vector<float>& data, std::vector< std::vector<int> >& category)
 {
-    const size_t num_image = 5000;
+    const size_t num_image = 11500;
 
     std::vector< std::unique_ptr<NeuralNet::Image> > images;
     if (!load_nonface_patch(images, num_image, 0))
@@ -255,7 +255,7 @@ bool load_non_faces(std::vector<float>& data, std::vector< std::vector<int> >& c
 
 int main(int argc, char* argv[])
 {
-    const size_t imageCount = 28;
+//    const size_t imageCount = 28;
     const size_t test_lfw = 1000;
     const size_t test_fddb = 1000;
     const size_t test_nonface = 1000;
@@ -282,7 +282,7 @@ int main(int argc, char* argv[])
     }
 
     // loading images for evaluation
-    std::vector< std::unique_ptr<NeuralNet::Image> > imageList;
+/*    std::vector< std::unique_ptr<NeuralNet::Image> > imageList;
     for (size_t i = 1; i <= imageCount; i++)
     {
         std::ostringstream oss;
@@ -293,7 +293,7 @@ int main(int argc, char* argv[])
 
     auto originalImgData = getRawDataFromImages(imageList);
     imageList.clear();
-    std::cout << "loading evaluation images (original) finished" << std::endl;
+    std::cout << "loading evaluation images (original) finished" << std::endl;*/
 
     std::vector< std::unique_ptr<NeuralNet::Image> > fddbTestImages;
     if (!load_fddb(fddbTestImages, test_fddb, false))
@@ -361,7 +361,7 @@ int main(int argc, char* argv[])
     clist3.emplace_back(test_fddb, 0);
     network.registerTestSet("FDDB", std::move(fddbTestData), std::move(clist3));
 
-    std::vector< std::vector<int> > clist4;
+/*    std::vector< std::vector<int> > clist4;
     std::vector<int> clist4_temp;
     for (size_t i = 0; i < 14; i++)
         clist4_temp.push_back(0);
@@ -369,7 +369,7 @@ int main(int argc, char* argv[])
         clist4_temp.push_back(1);
     clist4.push_back(clist4_temp);
     network.registerTestSet("original", std::move(originalImgData),
-            std::move(clist4));
+            std::move(clist4));*/
 
     std::chrono::time_point<std::chrono::system_clock> time_point_start, time_point_finish;
 
