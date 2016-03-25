@@ -160,6 +160,7 @@ void clGetPatches(const SearchConfig& config, const std::unique_ptr<NeuralNet::I
     NeuralNet::printError(err, "in_img_buf");
 
     cl::size_t<3> in_offset, in_region;
+    in_offset[0] = in_offset[1] = in_offset[2] = 0;
     in_region[0] = input_img->getWidth();
     in_region[1] = input_img->getHeight();
     in_region[2] = 1;
@@ -198,32 +199,66 @@ void clGetPatches(const SearchConfig& config, const std::unique_ptr<NeuralNet::I
         int img_h = pyrm_img_buf.getImageInfo<CL_IMAGE_HEIGHT>();
         int i_patch = static_cast<int>(config.patch);
         int i_stride = static_cast<int>(config.stride);
-        int i_channels = 3;
+        int patches_w = (img_w - config.patch) / config.stride + 1;
+        int patches_h = (img_h - config.patch) / config.stride + 1;
+        int patch_nums = i_patch * i_patch;
+
+        int real_channels = 3;
         if (config.grayscale)
-            i_channels = 1;
-        int npatch = ((img_w - config.patch) / config.stride + 1) *
-            ((img_h - config.patch) / config.stride + 1) *
-            config.patch * config.patch * i_channels;
+            real_channels = 1;
 
-        cl::Buffer patch_buf(context, CL_MEM_READ_WRITE, sizeof(float) * npatch);
+        std::vector<cl::Buffer> patch_bufs;
+        for (int j=0; j<patches_h; j++)
+        {
+            for (int i=0; i<patches_w; i++)
+            {
+                patch_bufs.emplace_back(context, CL_MEM_READ_WRITE,
+                        config.patch * config.patch * real_channels);
 
-        extract_patch_kernel.setArg(0, pyrm_img_buf);
-        extract_patch_kernel.setArg(1, patch_buf);
-        extract_patch_kernel.setArg(2, sizeof(int), &i_patch);
-        extract_patch_kernel.setArg(3, sizeof(int), &i_patch);
-        extract_patch_kernel.setArg(4, sizeof(int), &i_stride);
-        extract_patch_kernel.setArg(5, sizeof(int), &i_channels);
+                extract_patch_kernel.setArg(0, pyrm_img_buf);
+                extract_patch_kernel.setArg(1, patch_bufs.back());
+                extract_patch_kernel.setArg(2, sizeof(int), &i_patch);
+                extract_patch_kernel.setArg(3, sizeof(int), &i_patch);
+                extract_patch_kernel.setArg(4, sizeof(int), &i);
+                extract_patch_kernel.setArg(5, sizeof(int), &j);
+                extract_patch_kernel.setArg(6, sizeof(int), &i_stride);
 
-        err = queue.enqueueNDRangeKernel(extract_patch_kernel, cl::NullRange,
-                cl::NDRange(npatch), cl::NullRange);
-        NeuralNet::printError(err, "enqueNDRangeKernel");
+                err = queue.enqueueNDRangeKernel(extract_patch_kernel,
+                        cl::NullRange,
+                        cl::NDRange(config.patch * config.patch *
+                            real_channels),
+                        cl::NullRange);
+                NeuralNet::printError(err, "enqueNDRangeKernel");
+            }
+        }
 
-        std::vector<float> patch_list(npatch);
-        err = queue.enqueueReadBuffer(patch_buf, CL_TRUE, 0, sizeof(float) * npatch,
-                patch_list.data());
-        NeuralNet::printError(err, "enqueueReadData");
+        for (auto& patch_buf: patch_bufs)
+        {
+            auto new_img = std::make_unique<NeuralNet::Image>(
+                    config.patch, config.patch, real_channels);
 
-        patch_data.insert(patch_data.end(), patch_list.begin(), patch_list.end());
+            for (size_t c=0; c<new_img->getChannelNum(); c++)
+            {
+                err = queue.enqueueReadBuffer(patch_buf, CL_TRUE,
+                        patch_nums * c,
+                        patch_nums,
+                        new_img->getValues(c));
+                NeuralNet::printError(err, "enqueueReadBuffer");
+            }
+
+            if (config.grayscale)
+            {
+                // TODO: preprocessing with OpenCL?
+                new_img = preprocessImage(new_img);
+            }
+
+            for (size_t c=0; c<new_img->getChannelNum(); c++)
+            {
+                patch_data.insert(patch_data.end(),
+                        new_img->getValues(c),
+                        new_img->getValues(c) + (config.patch * config.patch));
+            }
+        }
     }
 }
 
