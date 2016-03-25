@@ -213,7 +213,7 @@ void clGetPatches(const SearchConfig& config, const std::unique_ptr<NeuralNet::I
             for (int i=0; i<patches_w; i++)
             {
                 patch_bufs.emplace_back(context, CL_MEM_READ_WRITE,
-                        config.patch * config.patch * real_channels);
+                        sizeof(float) * config.patch * config.patch * real_channels);
 
                 extract_patch_kernel.setArg(0, pyrm_img_buf);
                 extract_patch_kernel.setArg(1, patch_bufs.back());
@@ -240,8 +240,8 @@ void clGetPatches(const SearchConfig& config, const std::unique_ptr<NeuralNet::I
             for (size_t c=0; c<new_img->getChannelNum(); c++)
             {
                 err = queue.enqueueReadBuffer(patch_buf, CL_TRUE,
-                        patch_nums * c,
-                        patch_nums,
+                        sizeof(float) * patch_nums * c,
+                        sizeof(float) * patch_nums,
                         new_img->getValues(c));
                 NeuralNet::printError(err, "enqueueReadBuffer");
             }
@@ -249,14 +249,19 @@ void clGetPatches(const SearchConfig& config, const std::unique_ptr<NeuralNet::I
             if (config.grayscale)
             {
                 // TODO: preprocessing with OpenCL?
-                new_img = preprocessImage(new_img);
-            }
-
-            for (size_t c=0; c<new_img->getChannelNum(); c++)
-            {
+                auto pre_img = preprocessImage(new_img);
                 patch_data.insert(patch_data.end(),
-                        new_img->getValues(c),
-                        new_img->getValues(c) + (config.patch * config.patch));
+                        pre_img->getValues(0),
+                        pre_img->getValues(0) + (config.patch * config.patch));
+            }
+            else
+            {
+                for (size_t c=0; c<new_img->getChannelNum(); c++)
+                {
+                    patch_data.insert(patch_data.end(),
+                            new_img->getValues(c),
+                            new_img->getValues(c) + (config.patch * config.patch));
+                }
             }
         }
     }
