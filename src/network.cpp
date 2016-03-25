@@ -11,7 +11,8 @@
 #include "network.hpp"
 #include "calc/calc-cpu.hpp"
 #include "calc/util-functions.hpp"
-#include "layers/cl_layer_data.hpp"
+#include "layers/cl_buffer_layer_data.hpp"
+#include "layers/cl_image_layer_data.hpp"
 #include "layers/layer_factory.hpp"
 #include "layers/sigmoid_layer.hpp"
 #include "layers/layer_merger.hpp"
@@ -418,7 +419,7 @@ namespace NeuralNet
                 auto* cl_data_ptr = dynamic_cast<CLLayerData *>(node_map[m_leaf_idx[i]]->data.get());
                 if (cl_data_ptr)
                 {
-                    cl_data_ptr->getFromCLBuffer(LayerData::DataIndex::ACTIVATION);
+                    cl_data_ptr->getFromCL(LayerData::DataIndex::ACTIVATION);
                 }
 
                 auto category_list = getCategory(*(node_map[m_leaf_idx[i]]->data));
@@ -469,7 +470,7 @@ namespace NeuralNet
         auto* cl_data_ptr = dynamic_cast<CLLayerData *>(m_input_data.get());
         if (cl_data_ptr)
         {
-            cl_data_ptr->loadToCLBuffer(LayerData::DataIndex::ACTIVATION);
+            cl_data_ptr->loadToCL(LayerData::DataIndex::ACTIVATION);
         }
 
         // forward the input
@@ -526,7 +527,18 @@ namespace NeuralNet
     {
         if (m_uses_gpu)
         {
-            m_input_data = std::make_unique<CLLayerData>(train_num, m_unit_size);
+            if (m_in_type == InputType::VECTOR)
+            {
+                m_input_data = std::make_unique<CLBufferLayerData>(
+                        train_num, m_unit_size);
+            }
+            else
+            {
+                m_input_data = std::make_unique<CLImageLayerData>(
+                        train_num,
+                        m_in_dim.width, m_in_dim.height, m_in_dim.channel_num,
+                        CLImageLayerData::Channel::INTENSITY);
+            }
         }
         else
         {
@@ -701,8 +713,8 @@ namespace NeuralNet
                     auto* cl_layer_data = dynamic_cast<CLLayerData *>(node_pair.second->data.get());
                     if (cl_layer_data)
                     {
-                        cl_layer_data->getFromCLBuffer(LayerData::DataIndex::ACTIVATION);
-                        cl_layer_data->getFromCLBuffer(LayerData::DataIndex::INTER_VALUE);
+                        cl_layer_data->getFromCL(LayerData::DataIndex::ACTIVATION);
+                        cl_layer_data->getFromCL(LayerData::DataIndex::INTER_VALUE);
                     }
                 }
 

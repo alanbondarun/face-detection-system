@@ -1,5 +1,6 @@
 #include "layers/conv_layer.hpp"
 #include "layers/cl_layer_data.hpp"
+#include "layers/cl_image_layer_data.hpp"
 #include "calc/calc-cpu.hpp"
 #include "calc/util-functions.hpp"
 #include "utils/make_unique.hpp"
@@ -67,8 +68,16 @@ namespace NeuralNet
         {
             // initialize buffers
             cl::Context context = CLContext::getInstance().getContext();
-            m_buf_w = cl::Buffer(context, CL_MEM_READ_ONLY, sizeof(float) * num_weights);
-            m_buf_b = cl::Buffer(context, CL_MEM_READ_ONLY, sizeof(float) * num_biases);
+            cl::ImageFormat value_fmt{CL_INTENSITY, CL_FLOAT};
+
+            m_imgbuf_w = cl::Image3D(context, CL_MEM_READ_ONLY, value_fmt,
+                    m_set.recep_size * m_set.recep_size,
+                    m_set.prev_map_num,
+                    m_set.current_map_num);
+            m_imgbuf_b = cl::Image3D(context, CL_MEM_READ_ONLY, value_fmt,
+                    m_output_width,
+                    m_output_height,
+                    m_set.current_map_num);
 
             // create kernel (TODO: non-ReLU activation function?)
             if (m_set.enable_zero_pad)
@@ -81,19 +90,8 @@ namespace NeuralNet
                 // TODO: non-zeropad case?
             }
 
-            m_fwd_kernel.setArg(3, m_buf_w);
-            m_fwd_kernel.setArg(4, m_buf_b);
-
-            int i_in_w = static_cast<int>(m_set.image_width);
-            int i_in_h = static_cast<int>(m_set.image_height);
-            int i_in_maps = static_cast<int>(m_set.prev_map_num);
-            int i_out_maps = static_cast<int>(m_set.current_map_num);
-            int i_recep = static_cast<int>(m_set.recep_size);
-            m_fwd_kernel.setArg(5, sizeof(int), &i_in_w);
-            m_fwd_kernel.setArg(6, sizeof(int), &i_in_h);
-            m_fwd_kernel.setArg(7, sizeof(int), &i_in_maps);
-            m_fwd_kernel.setArg(8, sizeof(int), &i_out_maps);
-            m_fwd_kernel.setArg(9, sizeof(int), &i_recep);
+            m_fwd_kernel.setArg(3, m_imgbuf_w);
+            m_fwd_kernel.setArg(4, m_imgbuf_b);
 
             refreshCLLayerInfo();
         }
@@ -154,23 +152,28 @@ namespace NeuralNet
 
     void ConvLayer::forward_gpu(const CLLayerData& prev, CLLayerData& current)
     {
-        int train_num = current.getTrainNum();
-        auto m_buf_pa = prev.getCLBuffer(LayerData::DataIndex::ACTIVATION);
-        auto m_buf_cz = current.getCLBuffer(LayerData::DataIndex::INTER_VALUE);
-        auto m_buf_ca = current.getCLBuffer(LayerData::DataIndex::ACTIVATION);
-        m_fwd_kernel.setArg(0, m_buf_pa);
-        m_fwd_kernel.setArg(1, m_buf_cz);
-        m_fwd_kernel.setArg(2, m_buf_ca);
-        m_fwd_kernel.setArg(10, sizeof(int), &train_num);
-
-        const size_t num_cmap = m_set.current_map_num * m_output_width * m_output_height;
-
+        auto train_num = current.getTrainNum();
         auto queue = CLContext::getInstance().getCommandQueue();
-        cl_int err = CL_SUCCESS;
 
-        err = queue.enqueueNDRangeKernel(m_fwd_kernel, cl::NullRange,
-                cl::NDRange(num_cmap * train_num), cl::NullRange);
-        printError(err, "Error at CommandQueue::enqueNDRangeKernel");
+        for (size_t i = 0; i < train_num; i++)
+        {
+            auto m_buf_pa = prev.getCLMemory(
+                    LayerData::DataIndex::ACTIVATION, i);
+            auto m_buf_cz = current.getCLMemory(
+                    LayerData::DataIndex::INTER_VALUE, i);
+            auto m_buf_ca = current.getCLMemory(
+                    LayerData::DataIndex::ACTIVATION, i);
+            m_fwd_kernel.setArg(0, m_buf_pa);
+            m_fwd_kernel.setArg(1, m_buf_cz);
+            m_fwd_kernel.setArg(2, m_buf_ca);
+
+            cl_int err = CL_SUCCESS;
+            err = queue.enqueueNDRangeKernel(m_fwd_kernel, cl::NullRange,
+                    cl::NDRange(m_output_width, m_output_height,
+                        m_set.current_map_num),
+                    cl::NullRange);
+            printError(err, "Error at CommandQueue::enqueNDRangeKernel");
+        }
     }
 
     void ConvLayer::backward_cpu(LayerData& prev, LayerData& current)
@@ -303,18 +306,23 @@ namespace NeuralNet
     {
         if (m_set.uses_gpu)
         {
-            const size_t num_weights = m_set.current_map_num * m_set.prev_map_num *
-                    m_set.recep_size * m_set.recep_size;
-            const size_t num_biases = m_set.current_map_num * m_output_width *
-                    m_output_height;
-
             auto queue = CLContext::getInstance().getCommandQueue();
             cl_int err = CL_SUCCESS;
-            err = queue.enqueueWriteBuffer(m_buf_w, CL_TRUE, 0, sizeof(float) * num_weights,
-                    m_weight);
+
+            cl::size_t<3> in_offset, in_region_w, in_region_b;
+            in_offset[0] = in_offset[1] = in_offset[2] = 0;
+            in_region_w[0] = m_set.recep_size * m_set.recep_size;
+            in_region_w[1] = m_set.prev_map_num;
+            in_region_w[2] = m_set.current_map_num;
+            in_region_b[0] = m_output_width;
+            in_region_b[1] = m_output_height;
+            in_region_b[2] = m_set.current_map_num;
+
+            err = queue.enqueueWriteImage(m_imgbuf_w, CL_TRUE, in_offset,
+                    in_region_w, 0, 0, m_weight);
             printError(err, "Error at CommandQueue::enqueueWriteBuffer for m_buf_w");
-            err = queue.enqueueWriteBuffer(m_buf_b, CL_TRUE, 0, sizeof(float) * num_biases,
-                    m_bias);
+            err = queue.enqueueWriteImage(m_imgbuf_b, CL_TRUE, in_offset,
+                    in_region_b, 0, 0, m_bias);
             printError(err, "Error at CommandQueue::enqueueWriteBuffer for m_buf_b");
         }
     }
@@ -323,9 +331,10 @@ namespace NeuralNet
     {
         if (m_set.uses_gpu)
         {
-            return std::make_unique<CLLayerData>(
+            return std::make_unique<CLImageLayerData>(
                     train_num,
-                    m_set.current_map_num * m_output_width * m_output_height
+                    m_output_width, m_output_height, m_set.current_map_num,
+                    CLImageLayerData::Channel::INTENSITY
             );
         }
         return std::make_unique<LayerData>(

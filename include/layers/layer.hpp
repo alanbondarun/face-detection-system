@@ -23,10 +23,8 @@ namespace NeuralNet
         {
             if (uses_gpu)
             {
-                auto cl_prev = dynamic_cast<const CLLayerData&>(prev);
-                auto cl_current = dynamic_cast<CLLayerData&>(current);
-                forward_gpu(cl_prev, cl_current);
-                current = cl_current;
+                forward_gpu(dynamic_cast<const CLLayerData&>(prev),
+                        dynamic_cast<CLLayerData&>(current));
             }
             else
                 forward_cpu(prev, current);
@@ -37,11 +35,8 @@ namespace NeuralNet
         {
             if (uses_gpu)
             {
-                auto cl_prev = dynamic_cast<CLLayerData&>(prev);
-                auto cl_current = dynamic_cast<CLLayerData&>(current);
-                backward_gpu(cl_prev, cl_current);
-                prev = cl_prev;
-                current = cl_current;
+                backward_gpu(dynamic_cast<CLLayerData&>(prev),
+                        dynamic_cast<CLLayerData&>(current));
             }
             else
                 backward_cpu(prev, current);
