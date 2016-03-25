@@ -525,6 +525,9 @@ namespace NeuralNet
 
     void Network::prepareLayerData(size_t train_num)
     {
+        if (m_input_data && train_num == m_input_data->getTrainNum())
+            return;
+
         if (m_uses_gpu)
         {
             if (m_in_type == InputType::VECTOR)
