@@ -7,6 +7,6 @@
     "min_image_width": 166,
     "net_config_file": "../net_set/test.json",
     "test_file": "n3.bmp",
-    "grayscale": false,
+    "grayscale": true,
     "uses_gpu": true
 }

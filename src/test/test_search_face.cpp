@@ -33,6 +33,13 @@ struct SearchConfig
     bool uses_gpu;
 };
 
+std::unique_ptr<NeuralNet::Image> preprocessImage(
+        const std::unique_ptr<NeuralNet::Image>& image)
+{
+    return NeuralNet::intensityPatch(NeuralNet::leastSquarePatch(
+                NeuralNet::equalizePatch(image)));
+}
+
 bool loadConfig(SearchConfig& config, const std::string& filepath)
 {
     try
@@ -220,6 +227,50 @@ void clGetPatches(const SearchConfig& config, const std::unique_ptr<NeuralNet::I
     }
 }
 
+void cpuGetPatches(const SearchConfig& config,
+        const std::unique_ptr<NeuralNet::Image>& input_img,
+        std::vector<float>& patch_data)
+{
+    auto image_pyramid = NeuralNet::pyramidImage(input_img, config.shrink_ratio,
+            config.min_image_width);
+    std::cout << "(cpu) loading image pyramid complete" << std::endl;
+
+    for (auto& small_image: image_pyramid)
+    {
+        auto patch_list = NeuralNet::extractPatches(small_image, config.patch,
+                config.patch, config.stride);
+        if (config.grayscale)
+        {
+            for (auto& patch_ptr: patch_list)
+            {
+                auto gray_patch_ptr = preprocessImage(
+                        NeuralNet::grayscaleImage(patch_ptr));
+                auto gray_data = gray_patch_ptr->getValues(0);
+
+                for (size_t i = 0; i < gray_patch_ptr->getWidth() *
+                        gray_patch_ptr->getHeight(); i++)
+                {
+                    patch_data.push_back(gray_data[i]);
+                }
+            }
+        }
+        else
+        {
+            for (auto& patch_ptr: patch_list)
+            {
+                for (size_t c = 0; c < patch_ptr->getChannelNum(); c++)
+                {
+                    for (size_t i = 0; i < patch_ptr->getWidth() *
+                            patch_ptr->getHeight(); i++)
+                    {
+                        patch_data.push_back((patch_ptr->getValues(c))[i]);
+                    }
+                }
+            }
+        }
+    }
+}
+
 int accumulatePatches(const SearchConfig& config,
         const std::vector<int>& category_list)
 {
@@ -334,28 +385,7 @@ int main(int argc, char* argv[])
     }
     else
     {
-        auto image_pyramid = NeuralNet::pyramidImage(image, config.shrink_ratio,
-                config.min_image_width);
-        std::cout << "loading image pyramid complete" << std::endl;
-
-        for (auto& small_image: image_pyramid)
-        {
-            auto patch_list = NeuralNet::extractPatches(small_image, config.patch,
-                    config.patch, config.stride);
-            for (auto& patch_ptr: patch_list)
-            {
-                // TODO: patch postprocessing?
-                
-                auto gray_patch_ptr = NeuralNet::grayscaleImage(patch_ptr);
-                auto gray_data = gray_patch_ptr->getValues(0);
-
-                for (size_t i = 0;
-                        i < gray_patch_ptr->getWidth() * gray_patch_ptr->getHeight(); i++)
-                {
-                    patch_data.push_back(gray_data[i]);
-                }
-            }
-        }
+        cpuGetPatches(config, image, patch_data);
     }
     time_point_finish = std::chrono::system_clock::now();
     elapsed_seconds = time_point_finish - time_point_start;
