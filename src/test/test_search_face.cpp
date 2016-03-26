@@ -45,13 +45,12 @@ void analyzeResult(const std::vector< std::vector<float> >& values)
     std::cout << "### avg positive patch: " << (a/values.size()) <<
         ", avg score: " << (b/values.size()) << std::endl;
     std::cout << "### nums" << std::endl;
-    for (unsigned i=0; i<nums.size(); i += 10)
+    for (size_t i=0; i<nums.size(); i += 10)
     {
-        printf("%3u ", i);
+        printf("%3d ", static_cast<int>(i));
 
         int kk = 0;
-        for (unsigned j=i; j < std::max(i+10,
-                    static_cast<unsigned>(nums.size())); j++)
+        for (size_t j=i; j < std::min(i+10, nums.size()); j++)
         {
             kk += nums[j];
         }
@@ -62,9 +61,9 @@ void analyzeResult(const std::vector< std::vector<float> >& values)
         printf("\n");
     }
     std::cout << "\n### scores\n";
-    for (unsigned i=0; i<scores.size(); i++)
+    for (size_t i=0; i<scores.size(); i++)
     {
-        printf("%3u ", i);
+        printf("%3d ", static_cast<int>(i));
         for (int j=0; j<scores[i]/2; j++)
         {
             printf("#");
