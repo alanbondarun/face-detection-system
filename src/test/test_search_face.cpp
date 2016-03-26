@@ -141,11 +141,111 @@ std::vector<cl::Image2D> createImagePyramid(const SearchConfig& config,
     return pyrm_imgs;
 }
 
-void clGetPatches(const SearchConfig& config, const std::unique_ptr<NeuralNet::Image>& input_img,
+cl::Image3D preprocessGrayscalePatches(const SearchConfig& config,
+        cl::Image3D& patch_buf)
+{
+    const int level = 256;
+    const float norm_mean = 0;
+    const float norm_stdev = 0.25;
+
+    const cl::ImageFormat gray_img_fmt{CL_INTENSITY, CL_FLOAT};
+    auto context = NeuralNet::CLContext::getInstance().getContext();
+    auto queue = NeuralNet::CLContext::getInstance().getCommandQueue();
+    auto program = NeuralNet::CLContext::getInstance().getProgram();
+    cl_int err;
+
+    int npatch_w = patch_buf.getImageInfo<CL_IMAGE_HEIGHT>();
+    int npatch_h = patch_buf.getImageInfo<CL_IMAGE_DEPTH>();
+    int ipatch = static_cast<int>(config.patch);
+
+    // phase 1) histogram equalization
+    cl::Image3D cdf_buf(context, CL_MEM_READ_WRITE, gray_img_fmt,
+            level, npatch_w, npatch_h);
+
+    cl::Kernel distrib_kernel(program, "patch_create_cdf");
+    distrib_kernel.setArg(0, patch_buf);
+    distrib_kernel.setArg(1, cdf_buf);
+    err = queue.enqueueNDRangeKernel(distrib_kernel, cl::NullRange,
+            cl::NDRange(npatch_w, npatch_h),
+            cl::NullRange);
+    NeuralNet::printError(err, "enqueNDRangeKernel");
+
+    cl::Image3D l1_buf(context, CL_MEM_READ_WRITE, gray_img_fmt,
+            config.patch * config.patch, npatch_w, npatch_h);
+
+    cl::Kernel apply_cdf_kernel(program, "patch_apply_cdf");
+    apply_cdf_kernel.setArg(0, patch_buf);
+    apply_cdf_kernel.setArg(1, cdf_buf);
+    apply_cdf_kernel.setArg(2, l1_buf);
+    err = queue.enqueueNDRangeKernel(apply_cdf_kernel, cl::NullRange,
+            cl::NDRange(config.patch * config.patch, npatch_w, npatch_h),
+            cl::NullRange);
+    NeuralNet::printError(err, "enqueNDRangeKernel");
+
+    // phase 2) least-square planar fit
+    cl::Image3D lsq_coeff_buf(context, CL_MEM_READ_WRITE, gray_img_fmt,
+            3, npatch_w, npatch_h);
+
+    cl::Kernel lsq_coeff_kernel(program, "patch_get_lsq_coeff");
+    lsq_coeff_kernel.setArg(0, l1_buf);
+    lsq_coeff_kernel.setArg(1, lsq_coeff_buf);
+    lsq_coeff_kernel.setArg(2, sizeof(int), &ipatch);
+    err = queue.enqueueNDRangeKernel(lsq_coeff_kernel, cl::NullRange,
+            cl::NDRange(npatch_w, npatch_h),
+            cl::NullRange);
+    NeuralNet::printError(err, "enqueNDRangeKernel");
+
+    cl::Image3D l2_buf(context, CL_MEM_READ_WRITE, gray_img_fmt,
+            config.patch * config.patch, npatch_w, npatch_h);
+
+    cl::Kernel apply_lsq_kernel(program, "patch_apply_lsq");
+    apply_lsq_kernel.setArg(0, l1_buf);
+    apply_lsq_kernel.setArg(1, lsq_coeff_buf);
+    apply_lsq_kernel.setArg(2, l2_buf);
+    apply_lsq_kernel.setArg(3, sizeof(int), &ipatch);
+    err = queue.enqueueNDRangeKernel(apply_lsq_kernel, cl::NullRange,
+            cl::NDRange(config.patch * config.patch, npatch_w, npatch_h),
+            cl::NullRange);
+    NeuralNet::printError(err, "enqueNDRangeKernel");
+
+    // phase 3) normalization
+    cl::Image3D mv_buf(context, CL_MEM_READ_WRITE, gray_img_fmt,
+            2, npatch_w, npatch_h);
+
+    cl::Kernel mv_kernel(program, "patch_get_mean_var");
+    mv_kernel.setArg(0, l2_buf);
+    mv_kernel.setArg(1, mv_buf);
+    err = queue.enqueueNDRangeKernel(mv_kernel, cl::NullRange,
+            cl::NDRange(npatch_w, npatch_h),
+            cl::NullRange);
+    NeuralNet::printError(err, "enqueNDRangeKernel");
+
+    cl::Image3D out_buf(context, CL_MEM_READ_WRITE, gray_img_fmt,
+            config.patch * config.patch, npatch_w, npatch_h);
+
+    cl::Kernel norm_kernel(program, "patch_normalize");
+    norm_kernel.setArg(0, l2_buf);
+    norm_kernel.setArg(1, mv_buf);
+    norm_kernel.setArg(2, out_buf);
+    norm_kernel.setArg(3, sizeof(int), &ipatch);
+    norm_kernel.setArg(4, sizeof(float), &norm_mean);
+    norm_kernel.setArg(5, sizeof(float), &norm_stdev);
+    err = queue.enqueueNDRangeKernel(norm_kernel, cl::NullRange,
+            cl::NDRange(config.patch * config.patch, npatch_w, npatch_h),
+            cl::NullRange);
+    NeuralNet::printError(err, "enqueNDRangeKernel");
+
+    return out_buf;
+}
+
+void clGetPatches(const SearchConfig& config,
+        const std::unique_ptr<NeuralNet::Image>& input_img,
         std::vector<float>& patch_data)
 {
     const cl::ImageFormat img_fmt{CL_RGBA, CL_FLOAT};
     const cl::ImageFormat gray_img_fmt{CL_INTENSITY, CL_FLOAT};
+    const cl::ImageFormat res_img_fmt = (config.grayscale)
+        ? (gray_img_fmt) : (img_fmt);
     auto context = NeuralNet::CLContext::getInstance().getContext();
     auto queue = NeuralNet::CLContext::getInstance().getCommandQueue();
     auto program = NeuralNet::CLContext::getInstance().getProgram();
@@ -201,68 +301,44 @@ void clGetPatches(const SearchConfig& config, const std::unique_ptr<NeuralNet::I
         int i_stride = static_cast<int>(config.stride);
         int patches_w = (img_w - config.patch) / config.stride + 1;
         int patches_h = (img_h - config.patch) / config.stride + 1;
-        int patch_nums = i_patch * i_patch;
 
-        int real_channels = 3;
+        cl::Image3D patch_img_buf(context, CL_MEM_READ_WRITE, res_img_fmt,
+                i_patch * i_patch, patches_w, patches_h);
+
+        extract_patch_kernel.setArg(0, pyrm_img_buf);
+        extract_patch_kernel.setArg(1, patch_img_buf);
+        extract_patch_kernel.setArg(2, sizeof(int), &i_patch);
+        extract_patch_kernel.setArg(3, sizeof(int), &i_stride);
+
+        err = queue.enqueueNDRangeKernel(extract_patch_kernel,
+                cl::NullRange,
+                cl::NDRange(config.patch * config.patch,
+                    patches_w, patches_h),
+                cl::NullRange);
+        NeuralNet::printError(err, "enqueNDRangeKernel");
+
         if (config.grayscale)
-            real_channels = 1;
-
-        std::vector<cl::Buffer> patch_bufs;
-        for (int j=0; j<patches_h; j++)
         {
-            for (int i=0; i<patches_w; i++)
-            {
-                patch_bufs.emplace_back(context, CL_MEM_READ_WRITE,
-                        sizeof(float) * config.patch * config.patch * real_channels);
+            auto prep_buf = preprocessGrayscalePatches(config, patch_img_buf);
 
-                extract_patch_kernel.setArg(0, pyrm_img_buf);
-                extract_patch_kernel.setArg(1, patch_bufs.back());
-                extract_patch_kernel.setArg(2, sizeof(int), &i_patch);
-                extract_patch_kernel.setArg(3, sizeof(int), &i_patch);
-                extract_patch_kernel.setArg(4, sizeof(int), &i);
-                extract_patch_kernel.setArg(5, sizeof(int), &j);
-                extract_patch_kernel.setArg(6, sizeof(int), &i_stride);
+            cl::size_t<3> patch_region;
+            patch_region[0] = i_patch * i_patch;
+            patch_region[1] = patches_w;
+            patch_region[2] = patches_h;
 
-                err = queue.enqueueNDRangeKernel(extract_patch_kernel,
-                        cl::NullRange,
-                        cl::NDRange(config.patch * config.patch *
-                            real_channels),
-                        cl::NullRange);
-                NeuralNet::printError(err, "enqueNDRangeKernel");
-            }
+            std::vector<float> patch_vals(i_patch * i_patch * patches_w *
+                    patches_h);
+            err = queue.enqueueReadImage(prep_buf, CL_TRUE,
+                    in_offset, patch_region,
+                    0, 0, patch_vals.data());
+            NeuralNet::printError(err, "enqueueReadImage");
+
+            patch_data.insert(patch_data.end(),
+                    patch_vals.begin(), patch_vals.end());
         }
-
-        for (auto& patch_buf: patch_bufs)
+        else
         {
-            auto new_img = std::make_unique<NeuralNet::Image>(
-                    config.patch, config.patch, real_channels);
-
-            for (size_t c=0; c<new_img->getChannelNum(); c++)
-            {
-                err = queue.enqueueReadBuffer(patch_buf, CL_TRUE,
-                        sizeof(float) * patch_nums * c,
-                        sizeof(float) * patch_nums,
-                        new_img->getValues(c));
-                NeuralNet::printError(err, "enqueueReadBuffer");
-            }
-
-            if (config.grayscale)
-            {
-                // TODO: preprocessing with OpenCL?
-                auto pre_img = preprocessImage(new_img);
-                patch_data.insert(patch_data.end(),
-                        pre_img->getValues(0),
-                        pre_img->getValues(0) + (config.patch * config.patch));
-            }
-            else
-            {
-                for (size_t c=0; c<new_img->getChannelNum(); c++)
-                {
-                    patch_data.insert(patch_data.end(),
-                            new_img->getValues(c),
-                            new_img->getValues(c) + (config.patch * config.patch));
-                }
-            }
+            // TODO: loading RGB patches!
         }
     }
 }
