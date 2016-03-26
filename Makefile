@@ -29,6 +29,7 @@ NEURAL_NET_OBJS := $(EXTLIB_OBJS) $(addprefix $(OBJ_DIR)/, $(CALC_SUBDIR)/calc-c
 	$(IMAGE_SUBDIR)/image.o \
 	$(IMAGE_SUBDIR)/image_util.o \
 	network.o \
+    face_finder.o \
 	cl_context.o)
 MIDDLE_OBJS := $(NEURAL_NET_OBJS) $(addprefix $(OBJ_DIR)/, led-user.o \
 	$(TEST_SUBDIR)/test_load_image.o $(TEST_SUBDIR)/test_nn.o \
