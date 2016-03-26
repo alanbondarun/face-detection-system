@@ -23,6 +23,8 @@ namespace NeuralNet
                 size_t train_idx) const;
 
     private:
+        cl::Buffer mergeBuffers();
+
         std::vector<cl::Buffer> m_buffers;
     };
 }

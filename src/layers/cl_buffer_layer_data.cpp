@@ -51,7 +51,17 @@ namespace NeuralNet
         cl_int err;
         std::vector<cl::Event> readEvents;
 
-        for (size_t i = 0; i < getTrainNum(); i++)
+        auto mergedBuffer = mergeBuffers();
+
+        err = queue.enqueueReadBuffer(mergedBuffer,
+                CL_TRUE,
+                0,
+                sizeof(float) * getDataNum() * getTrainNum(),
+                get(idx));
+        printError(err, "Error at CommandQueue::enqueueReadBuffer in "
+                "CLBufferLayerData::getFromCL");
+
+/*        for (size_t i = 0; i < getTrainNum(); i++)
         {
             cl_bool block_read = (getDataNum() < 128)?CL_TRUE:CL_FALSE;
 
@@ -70,7 +80,7 @@ namespace NeuralNet
         
         err = queue.enqueueMarkerWithWaitList(&readEvents);
         printError(err, "Error at CommandQueue::enqueueMarkerWithWaitList in "
-                "CLImageLayerData::getFromCL");
+                "CLImageLayerData::getFromCL");*/
     }
 
     cl::Memory CLBufferLayerData::getCLMemory(LayerData::DataIndex data_idx,
@@ -78,5 +88,35 @@ namespace NeuralNet
     {
         return m_buffers[static_cast<int>(data_idx) * getTrainNum()
                 + train_idx];
+    }
+
+    cl::Buffer CLBufferLayerData::mergeBuffers()
+    {
+        auto context = CLContext::getInstance().getContext();
+        auto queue = CLContext::getInstance().getCommandQueue();
+        cl_int err;
+
+        cl::Buffer mergedBuffer(context, CL_MEM_READ_WRITE,
+                sizeof(float) * getTrainNum() * getDataNum(),
+                nullptr, &err);
+        printError(err, "Errot at creating cl::Buffer in mergeBuffers()");
+
+        std::vector<cl::Event> copyEvents;
+        for (size_t i = 0; i < getTrainNum(); i++)
+        {
+            cl::Event ev;
+            err = queue.enqueueCopyBuffer(m_buffers[i], mergedBuffer,
+                    0, sizeof(float) * i * getDataNum(),
+                    sizeof(float) * getDataNum(),
+                    nullptr, &ev);
+            printError(err, "Error at enqueueCopyBuffer in mergeBuffers()");
+            copyEvents.push_back(std::move(ev));
+        }
+        
+        err = queue.enqueueMarkerWithWaitList(&copyEvents);
+        printError(err, "Error at CommandQueue::enqueueMarkerWithWaitList in "
+                "CLImageLayerData::getFromCL");
+
+        return mergedBuffer;
     }
 }
