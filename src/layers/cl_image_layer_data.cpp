@@ -19,16 +19,16 @@ namespace NeuralNet
         }
 
         auto context = CLContext::getInstance().getContext();
-        for (size_t i = 0; i < LayerData::DATA_COUNT * train_num; i++)
+        for (size_t i = 0; i < LayerData::DATA_COUNT; i++)
         {
-            m_images.emplace_back(context, CL_MEM_READ_WRITE,
-                    imgfmt, m_width, m_height, m_map);
+            m_imgbuf.emplace_back(context, CL_MEM_READ_WRITE,
+                    imgfmt, m_width*m_height, m_map, train_num);
         }
 
         m_origin[0] = m_origin[1] = m_origin[2] = 0;
-        m_region[0] = m_width;
-        m_region[1] = m_height;
-        m_region[2] = m_map;
+        m_region[0] = m_width * m_height;
+        m_region[1] = m_map;
+        m_region[2] = train_num;
     }
 
     CLImageLayerData::~CLImageLayerData()
@@ -39,24 +39,13 @@ namespace NeuralNet
     {
         auto queue = CLContext::getInstance().getCommandQueue();
         cl_int err;
-        std::vector<cl::Event> writeEvents;
 
-        for (size_t i = 0; i < getTrainNum(); i++)
-        {
-            cl::Event ev;
-            err = queue.enqueueWriteImage(
-                    m_images[static_cast<int>(idx) * getTrainNum() + i],
-                    CL_FALSE,
-                    m_origin, m_region, 0, 0,
-                    get(idx) + (getDataNum() * i),
-                    nullptr, &ev);
-            printError(err, "Error at CommandQueue::enqueueWriteImage in "
-                    "CLImageLayerData::loadToCL");
-            writeEvents.push_back(std::move(ev));
-        }
-        
-        err = queue.enqueueMarkerWithWaitList(&writeEvents);
-        printError(err, "Error at CommandQueue::enqueueMarkerWithWaitList in "
+        err = queue.enqueueWriteImage(
+                m_imgbuf[static_cast<int>(idx)],
+                CL_TRUE,
+                m_origin, m_region, 0, 0,
+                get(idx));
+        printError(err, "Error at CommandQueue::enqueueWriteImage in "
                 "CLImageLayerData::loadToCL");
     }
 
@@ -64,31 +53,18 @@ namespace NeuralNet
     {
         auto queue = CLContext::getInstance().getCommandQueue();
         cl_int err;
-        std::vector<cl::Event> readEvents;
 
-        for (size_t i = 0; i < getTrainNum(); i++)
-        {
-            cl::Event ev;
-            err = queue.enqueueReadImage(
-                    m_images[static_cast<int>(idx) * getTrainNum() + i],
-                    CL_FALSE,
-                    m_origin, m_region, 0, 0,
-                    get(idx) + (getDataNum() * i),
-                    nullptr, &ev);
-            printError(err, "Error at CommandQueue::enqueueReadBuffer in "
-                    "CLImageLayerData::getFromCL");
-            readEvents.push_back(std::move(ev));
-        }
-        
-        err = queue.enqueueMarkerWithWaitList(&readEvents);
-        printError(err, "Error at CommandQueue::enqueueMarkerWithWaitList in "
-                "CLImageLayerData::getFromCL");
+        err = queue.enqueueReadImage(
+                m_imgbuf[static_cast<int>(idx)],
+                CL_TRUE,
+                m_origin, m_region, 0, 0,
+                get(idx));
+        printError(err, "Error at CommandQueue::enqueueReadImage in "
+                "CLImageLayerData::loadToCL");
     }
 
-    cl::Memory CLImageLayerData::getCLMemory(LayerData::DataIndex data_idx,
-            size_t train_idx) const
+    cl::Memory CLImageLayerData::getCLMemory(LayerData::DataIndex data_idx) const
     {
-        return m_images[static_cast<int>(data_idx) * getTrainNum()
-                + train_idx];
+        return m_imgbuf[static_cast<int>(data_idx)];
     }
 }

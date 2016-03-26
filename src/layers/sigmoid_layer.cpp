@@ -148,25 +148,23 @@ namespace NeuralNet
         refreshDropout();
 
         cl::CommandQueue queue = CLContext::getInstance().getCommandQueue();
-        auto train_num = current.getTrainNum();
-        for (size_t i=0; i<train_num; i++)
-        {
-            auto m_buf_pa = prev.getCLMemory(
-                    LayerData::DataIndex::ACTIVATION, i);
-            auto m_buf_cz = current.getCLMemory(
-                    LayerData::DataIndex::INTER_VALUE, i);
-            auto m_buf_ca = current.getCLMemory(
-                    LayerData::DataIndex::ACTIVATION, i);
 
-            m_fwd_img_kernel.setArg(0, m_buf_pa);
-            m_fwd_img_kernel.setArg(3, m_buf_cz);
-            m_fwd_img_kernel.setArg(4, m_buf_ca);
+        auto m_buf_pa = prev.getCLMemory(
+                LayerData::DataIndex::ACTIVATION);
+        auto m_buf_cz = current.getCLMemory(
+                LayerData::DataIndex::INTER_VALUE);
+        auto m_buf_ca = current.getCLMemory(
+                LayerData::DataIndex::ACTIVATION);
 
-            cl_int err = CL_SUCCESS;
-            err = queue.enqueueNDRangeKernel(m_fwd_img_kernel, cl::NullRange,
-                    cl::NDRange(m_current_d), cl::NullRange);
-            printError(err, "Error at CommandQueue::enqueNDRangeKernel");
-        }
+        m_fwd_img_kernel.setArg(0, m_buf_pa);
+        m_fwd_img_kernel.setArg(3, m_buf_cz);
+        m_fwd_img_kernel.setArg(4, m_buf_ca);
+
+        cl_int err = CL_SUCCESS;
+        err = queue.enqueueNDRangeKernel(m_fwd_img_kernel, cl::NullRange,
+                cl::NDRange(m_current_d, current.getTrainNum()),
+                cl::NullRange);
+        printError(err, "Error at CommandQueue::enqueNDRangeKernel");
     }
 
     void SigmoidLayer::forward_gpu(const CLBufferLayerData& prev,
@@ -175,25 +173,23 @@ namespace NeuralNet
         refreshDropout();
 
         cl::CommandQueue queue = CLContext::getInstance().getCommandQueue();
-        auto train_num = current.getTrainNum();
-        for (size_t i=0; i<train_num; i++)
-        {
-            auto m_buf_pa = prev.getCLMemory(
-                    LayerData::DataIndex::ACTIVATION, i);
-            auto m_buf_cz = current.getCLMemory(
-                    LayerData::DataIndex::INTER_VALUE, i);
-            auto m_buf_ca = current.getCLMemory(
-                    LayerData::DataIndex::ACTIVATION, i);
 
-            m_fwd_kernel.setArg(0, m_buf_pa);
-            m_fwd_kernel.setArg(3, m_buf_cz);
-            m_fwd_kernel.setArg(4, m_buf_ca);
+        auto m_buf_pa = prev.getCLMemory(
+                LayerData::DataIndex::ACTIVATION);
+        auto m_buf_cz = current.getCLMemory(
+                LayerData::DataIndex::INTER_VALUE);
+        auto m_buf_ca = current.getCLMemory(
+                LayerData::DataIndex::ACTIVATION);
 
-            cl_int err = CL_SUCCESS;
-            err = queue.enqueueNDRangeKernel(m_fwd_kernel, cl::NullRange,
-                    cl::NDRange(m_current_d), cl::NullRange);
-            printError(err, "Error at CommandQueue::enqueNDRangeKernel");
-        }
+        m_fwd_kernel.setArg(0, m_buf_pa);
+        m_fwd_kernel.setArg(3, m_buf_cz);
+        m_fwd_kernel.setArg(4, m_buf_ca);
+
+        cl_int err = CL_SUCCESS;
+        err = queue.enqueueNDRangeKernel(m_fwd_kernel, cl::NullRange,
+                cl::NDRange(m_current_d, current.getTrainNum()),
+                cl::NullRange);
+        printError(err, "Error at CommandQueue::enqueNDRangeKernel");
     }
 
     void SigmoidLayer::backward_cpu(LayerData& prev, LayerData& current)

@@ -20,8 +20,8 @@ namespace NeuralNet
         virtual void loadToCL(DataIndex idx) = 0;
         virtual void getFromCL(DataIndex idx) = 0;
 
-        virtual cl::Memory getCLMemory(LayerData::DataIndex data_idx,
-                size_t train_idx) const = 0;
+        virtual cl::Memory getCLMemory(LayerData::DataIndex data_idx)
+            const = 0;
     };
 }
 

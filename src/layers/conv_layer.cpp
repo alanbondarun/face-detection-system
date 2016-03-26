@@ -93,6 +93,11 @@ namespace NeuralNet
             m_fwd_kernel.setArg(3, m_imgbuf_w);
             m_fwd_kernel.setArg(4, m_imgbuf_b);
 
+            int i_in_width = m_set.image_width;
+            int i_out_width = m_output_width;
+            m_fwd_kernel.setArg(5, sizeof(int), &i_in_width);
+            m_fwd_kernel.setArg(6, sizeof(int), &i_out_width);
+
             refreshCLLayerInfo();
         }
     }
@@ -152,28 +157,25 @@ namespace NeuralNet
 
     void ConvLayer::forward_gpu(const CLLayerData& prev, CLLayerData& current)
     {
-        auto train_num = current.getTrainNum();
         auto queue = CLContext::getInstance().getCommandQueue();
 
-        for (size_t i = 0; i < train_num; i++)
-        {
-            auto m_buf_pa = prev.getCLMemory(
-                    LayerData::DataIndex::ACTIVATION, i);
-            auto m_buf_cz = current.getCLMemory(
-                    LayerData::DataIndex::INTER_VALUE, i);
-            auto m_buf_ca = current.getCLMemory(
-                    LayerData::DataIndex::ACTIVATION, i);
-            m_fwd_kernel.setArg(0, m_buf_pa);
-            m_fwd_kernel.setArg(1, m_buf_cz);
-            m_fwd_kernel.setArg(2, m_buf_ca);
+        auto m_buf_pa = prev.getCLMemory(
+                LayerData::DataIndex::ACTIVATION);
+        auto m_buf_cz = current.getCLMemory(
+                LayerData::DataIndex::INTER_VALUE);
+        auto m_buf_ca = current.getCLMemory(
+                LayerData::DataIndex::ACTIVATION);
+        m_fwd_kernel.setArg(0, m_buf_pa);
+        m_fwd_kernel.setArg(1, m_buf_cz);
+        m_fwd_kernel.setArg(2, m_buf_ca);
 
-            cl_int err = CL_SUCCESS;
-            err = queue.enqueueNDRangeKernel(m_fwd_kernel, cl::NullRange,
-                    cl::NDRange(m_output_width, m_output_height,
-                        m_set.current_map_num),
-                    cl::NullRange);
-            printError(err, "Error at CommandQueue::enqueNDRangeKernel");
-        }
+        cl_int err = CL_SUCCESS;
+        err = queue.enqueueNDRangeKernel(m_fwd_kernel, cl::NullRange,
+                cl::NDRange(m_output_width * m_output_height,
+                    m_set.current_map_num,
+                    current.getTrainNum()),
+                cl::NullRange);
+        printError(err, "Error at CommandQueue::enqueNDRangeKernel");
     }
 
     void ConvLayer::backward_cpu(LayerData& prev, LayerData& current)

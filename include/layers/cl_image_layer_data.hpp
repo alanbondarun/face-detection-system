@@ -25,14 +25,13 @@ namespace NeuralNet
         virtual void loadToCL(DataIndex idx);
         virtual void getFromCL(DataIndex idx);
 
-        virtual cl::Memory getCLMemory(LayerData::DataIndex data_idx,
-                size_t train_idx) const;
+        virtual cl::Memory getCLMemory(LayerData::DataIndex data_idx) const;
 
     private:
         const size_t m_width, m_height, m_map;
         const Channel m_ch;
         cl::size_t<3> m_origin, m_region;
-        std::vector<cl::Image3D> m_images;
+        std::vector<cl::Image3D> m_imgbuf;
     };
 }
 

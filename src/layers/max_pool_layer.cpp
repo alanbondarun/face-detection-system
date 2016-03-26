@@ -20,12 +20,14 @@ namespace NeuralNet
             // create kernel
             m_fwd_kernel = cl::Kernel(CLContext::getInstance().getProgram(), "max_pool_forward");
 
+            int i_in_width = m_dim.image_width;
             int pool_width = m_dim.pool_width;
             int pool_height = m_dim.pool_height;
             int stride = m_dim.stride;
-            m_fwd_kernel.setArg(4, sizeof(int), &pool_width);
-            m_fwd_kernel.setArg(5, sizeof(int), &pool_height);
-            m_fwd_kernel.setArg(6, sizeof(int), &stride);
+            m_fwd_kernel.setArg(4, sizeof(int), &i_in_width);
+            m_fwd_kernel.setArg(5, sizeof(int), &pool_width);
+            m_fwd_kernel.setArg(6, sizeof(int), &pool_height);
+            m_fwd_kernel.setArg(7, sizeof(int), &stride);
         }
     }
 
@@ -57,32 +59,28 @@ namespace NeuralNet
 
     void MaxPoolLayer::forward_gpu(const CLLayerData& prev, CLLayerData& current)
     {
-        auto train_num = current.getTrainNum();
+        auto m_buf_pa = prev.getCLMemory(
+                LayerData::DataIndex::ACTIVATION);
+        auto m_buf_pz = prev.getCLMemory(
+                LayerData::DataIndex::INTER_VALUE);
+        auto m_buf_ca = current.getCLMemory(
+                LayerData::DataIndex::ACTIVATION);
+        auto m_buf_cz = current.getCLMemory(
+                LayerData::DataIndex::INTER_VALUE);
+        m_fwd_kernel.setArg(0, m_buf_pz);
+        m_fwd_kernel.setArg(1, m_buf_pa);
+        m_fwd_kernel.setArg(2, m_buf_cz);
+        m_fwd_kernel.setArg(3, m_buf_ca);
 
-        for (size_t i=0; i<train_num; i++)
-        {
-            auto m_buf_pa = prev.getCLMemory(
-                    LayerData::DataIndex::ACTIVATION, i);
-            auto m_buf_pz = prev.getCLMemory(
-                    LayerData::DataIndex::INTER_VALUE, i);
-            auto m_buf_ca = current.getCLMemory(
-                    LayerData::DataIndex::ACTIVATION, i);
-            auto m_buf_cz = current.getCLMemory(
-                    LayerData::DataIndex::INTER_VALUE, i);
-            m_fwd_kernel.setArg(0, m_buf_pz);
-            m_fwd_kernel.setArg(1, m_buf_pa);
-            m_fwd_kernel.setArg(2, m_buf_cz);
-            m_fwd_kernel.setArg(3, m_buf_ca);
+        auto queue = CLContext::getInstance().getCommandQueue();
+        cl_int err = CL_SUCCESS;
 
-            auto queue = CLContext::getInstance().getCommandQueue();
-            cl_int err = CL_SUCCESS;
-
-            err = queue.enqueueNDRangeKernel(m_fwd_kernel, cl::NullRange,
-                    cl::NDRange(m_output_width, m_output_height,
-                        m_dim.map_num),
-                    cl::NullRange);
-            printError(err, "Error at CommandQueue::enqueNDRangeKernel");
-        }
+        err = queue.enqueueNDRangeKernel(m_fwd_kernel, cl::NullRange,
+                cl::NDRange(m_output_width * m_output_height,
+                    m_dim.map_num,
+                    current.getTrainNum()),
+                cl::NullRange);
+        printError(err, "Error at CommandQueue::enqueNDRangeKernel");
     }
 
     void MaxPoolLayer::backward_cpu(LayerData& prev, LayerData& current)
