@@ -2,15 +2,15 @@
     "input": {
         "type": "image",
         "size": {
-            "width": 32,
-            "height": 32,
+            "width": 24,
+            "height": 24,
             "channel_num": 1
         }
     },
     "uses_gpu": true,
     "train_num": 7000,
     "batch_size": 1,
-    "epoch_num": 50,
+    "epoch_num": 100,
     "max_eval_patch": 128,
     "learn_rate": 0.01,
     "learn_rate_drop": {
@@ -20,6 +20,7 @@
         "drop_thresh": 0.005,
         "halt_thresh_rate": 0.0001
     },
+    "weight_decay": 0.00001,
     "start_id": [1],
     "layers": [
         {
@@ -28,7 +29,7 @@
             "data_location": "1.json",
             "child": [2],
             "dimensions": {
-                "map_num": 32,
+                "map_num": 16,
                 "recep_size": 5,
                 "enable_zero_pad": true,
                 "activation_func": "relu"
@@ -51,7 +52,7 @@
             "data_location": "3.json",
             "child": [4],
             "dimensions": {
-                "map_num": 32,
+                "map_num": 16,
                 "recep_size": 3,
                 "enable_zero_pad": true,
                 "activation_func": "relu"
@@ -74,7 +75,7 @@
             "data_location": "5.json",
             "child": [6],
             "dimensions": {
-                "size": 256
+                "size": 128
             },
             "enable_dropout": false
         },

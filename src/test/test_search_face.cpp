@@ -6,6 +6,7 @@
 #include <chrono>
 #include <ctime>
 #include <cmath>
+#include <cstdio>
 #include "netpbm/pm.h"
 #include "utils/make_unique.hpp"
 #include "utils/cl_exception.hpp"
@@ -21,22 +22,94 @@
 
 #include "face_finder.hpp"
 
+void analyzeResult(const std::vector< std::vector<float> >& values)
+{
+    int maxn=0, maxs=0;
+    for (auto& val: values)
+    {
+        maxn = std::max(maxn, static_cast<int>(val[0]));
+        maxs = std::max(maxs, static_cast<int>(val[1]));
+    }
+
+    std::vector<int> nums(maxn + 31), scores(maxs + 4);
+    float a=0, b=0;
+    for (auto& val: values)
+    {
+        a += val[0];
+        b += val[1];
+
+        nums[static_cast<size_t>(val[0])]++;
+        scores[static_cast<size_t>(val[1])]++;
+    }
+
+    std::cout << "### avg positive patch: " << (a/values.size()) <<
+        ", avg score: " << (b/values.size()) << std::endl;
+    std::cout << "### nums" << std::endl;
+    for (unsigned i=0; i<nums.size(); i += 10)
+    {
+        printf("%3u ", i);
+
+        int kk = 0;
+        for (unsigned j=i; j < std::max(i+10,
+                    static_cast<unsigned>(nums.size())); j++)
+        {
+            kk += nums[j];
+        }
+        for (int j=0; j<kk/4; j++)
+        {
+            printf("#");
+        }
+        printf("\n");
+    }
+    std::cout << "\n### scores\n";
+    for (unsigned i=0; i<scores.size(); i++)
+    {
+        printf("%3u ", i);
+        for (int j=0; j<scores[i]/2; j++)
+        {
+            printf("#");
+        }
+        printf("\n");
+    }
+}
+
+void face(NeuralNet::FaceFinder& finder)
+{
+    const int num_pics = 200;
+    std::vector< std::vector<float> > values;
+    for (int i=1; i<=num_pics; i++)
+    {
+        std::ostringstream oss;
+        oss << "../../fddb-images/img_" << i << ".bmp";
+
+        auto value = finder.evaluate(oss.str());
+        values.push_back(value);
+    }
+    std::cout << "### FACE" << std::endl;
+    analyzeResult(values);
+}
+
+void nonface(NeuralNet::FaceFinder& finder)
+{
+    std::vector< std::vector<float> > values;
+    for (int i=6001; i<=6400; i++)
+    {
+        std::ostringstream oss;
+        oss << "300tests/img_" << i << ".bmp";
+
+        auto value = finder.evaluate(oss.str());
+        values.push_back(value);
+    }
+
+    std::cout << "### NONFACE" << std::endl;
+    analyzeResult(values);
+}
+
 int main(int argc, char* argv[])
 {
     pm_init(argv[0], 0);
 
     NeuralNet::FaceFinder finder("../net_set/search_face.json");
-
-    std::vector< std::string > img_str{
-        "300imgs/n1.bmp", "300imgs/n2.bmp", "300imgs/n3.bmp",
-        "300imgs/f1.bmp", "300imgs/f2.bmp", "300imgs/f3.bmp",
-        "300imgs/test3.bmp", "300imgs/img_198.bmp"
-    };
-
-    for (auto& path: img_str)
-    {
-        auto value = finder.evaluate(path);
-        std::cout << "value = (" << value[0] << "," << value[1] << ")" <<
-            std::endl;
-    }
+    face(finder);
+    nonface(finder);
 }

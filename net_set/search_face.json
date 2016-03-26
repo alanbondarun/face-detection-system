@@ -1,12 +1,11 @@
 {
-    "width": 400,
-    "height": 300,
-    "patch_size": 32,
-    "stride": 8,
+    "width": 300,
+    "height": 225,
+    "patch_size": 24,
+    "stride": 6,
     "shrink_ratio": 0.8,
-    "min_image_width": 166,
+    "min_image_width": 100,
     "net_config_file": "../net_set/test.json",
-    "test_file": "n3.bmp",
     "grayscale": true,
     "uses_gpu": true
 }
