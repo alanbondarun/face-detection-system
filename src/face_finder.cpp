@@ -528,6 +528,9 @@ namespace NeuralNet
         std::cout << "score = " << score << ", score calc time: "
             << elapsed_seconds.count() << std::endl;
 
-        return std::vector<float>{positive_res, score};
+        return std::vector<float>{
+            static_cast<float>(positive_res),
+            static_cast<float>(score)
+        };
     }
 } // namespace NeuralNet
