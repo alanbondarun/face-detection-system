@@ -38,31 +38,51 @@ namespace NeuralNet
     void CLImageLayerData::loadToCL(DataIndex idx)
     {
         auto queue = CLContext::getInstance().getCommandQueue();
+        cl_int err;
+        std::vector<cl::Event> writeEvents;
+
         for (size_t i = 0; i < getTrainNum(); i++)
         {
-            cl_int err = queue.enqueueWriteImage(
+            cl::Event ev;
+            err = queue.enqueueWriteImage(
                     m_images[static_cast<int>(idx) * getTrainNum() + i],
-                    CL_TRUE,
+                    CL_FALSE,
                     m_origin, m_region, 0, 0,
-                    get(idx) + (getDataNum() * i));
+                    get(idx) + (getDataNum() * i),
+                    nullptr, &ev);
             printError(err, "Error at CommandQueue::enqueueWriteImage in "
                     "CLImageLayerData::loadToCL");
+            writeEvents.push_back(std::move(ev));
         }
+        
+        err = queue.enqueueMarkerWithWaitList(&writeEvents);
+        printError(err, "Error at CommandQueue::enqueueMarkerWithWaitList in "
+                "CLImageLayerData::loadToCL");
     }
 
     void CLImageLayerData::getFromCL(DataIndex idx)
     {
         auto queue = CLContext::getInstance().getCommandQueue();
+        cl_int err;
+        std::vector<cl::Event> readEvents;
+
         for (size_t i = 0; i < getTrainNum(); i++)
         {
-            cl_int err = queue.enqueueReadImage(
+            cl::Event ev;
+            err = queue.enqueueReadImage(
                     m_images[static_cast<int>(idx) * getTrainNum() + i],
-                    CL_TRUE,
+                    CL_FALSE,
                     m_origin, m_region, 0, 0,
-                    get(idx) + (getDataNum() * i));
+                    get(idx) + (getDataNum() * i),
+                    nullptr, &ev);
             printError(err, "Error at CommandQueue::enqueueReadBuffer in "
                     "CLImageLayerData::getFromCL");
+            readEvents.push_back(std::move(ev));
         }
+        
+        err = queue.enqueueMarkerWithWaitList(&readEvents);
+        printError(err, "Error at CommandQueue::enqueueMarkerWithWaitList in "
+                "CLImageLayerData::getFromCL");
     }
 
     cl::Memory CLImageLayerData::getCLMemory(LayerData::DataIndex data_idx,

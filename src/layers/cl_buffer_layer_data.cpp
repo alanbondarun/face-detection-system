@@ -22,33 +22,55 @@ namespace NeuralNet
     void CLBufferLayerData::loadToCL(DataIndex idx)
     {
         auto queue = CLContext::getInstance().getCommandQueue();
+        cl_int err;
+        std::vector<cl::Event> writeEvents;
+
         for (size_t i = 0; i < getTrainNum(); i++)
         {
-            cl_int err = queue.enqueueWriteBuffer(
+            cl::Event ev;
+            err = queue.enqueueWriteBuffer(
                     m_buffers[static_cast<int>(idx) * getTrainNum() + i],
-                    CL_TRUE,
+                    CL_FALSE,
                     0,
                     sizeof(float) * getDataNum(),
-                    get(idx) + (getDataNum() * i));
+                    get(idx) + (getDataNum() * i),
+                    nullptr, &ev);
             printError(err, "Error at CommandQueue::enqueueWriteBuffer in "
                     "CLBufferLayerData::loadToCL");
+            writeEvents.push_back(std::move(ev));
         }
+        
+        err = queue.enqueueMarkerWithWaitList(&writeEvents);
+        printError(err, "Error at CommandQueue::enqueueMarkerWithWaitList in "
+                "CLBufferLayerData::loadToCL");
     }
 
     void CLBufferLayerData::getFromCL(DataIndex idx)
     {
         auto queue = CLContext::getInstance().getCommandQueue();
+        cl_int err;
+        std::vector<cl::Event> readEvents;
+
         for (size_t i = 0; i < getTrainNum(); i++)
         {
-            cl_int err = queue.enqueueReadBuffer(
+            cl_bool block_read = (getDataNum() < 128)?CL_TRUE:CL_FALSE;
+
+            cl::Event ev;
+            err = queue.enqueueReadBuffer(
                     m_buffers[static_cast<int>(idx) * getTrainNum() + i],
-                    CL_TRUE,
+                    block_read,
                     0,
                     sizeof(float) * getDataNum(),
-                    get(idx) + (getDataNum() * i));
+                    get(idx) + (getDataNum() * i),
+                    nullptr, &ev);
             printError(err, "Error at CommandQueue::enqueueReadBuffer in "
                     "CLBufferLayerData::getFromCL");
+            readEvents.push_back(std::move(ev));
         }
+        
+        err = queue.enqueueMarkerWithWaitList(&readEvents);
+        printError(err, "Error at CommandQueue::enqueueMarkerWithWaitList in "
+                "CLImageLayerData::getFromCL");
     }
 
     cl::Memory CLBufferLayerData::getCLMemory(LayerData::DataIndex data_idx,
