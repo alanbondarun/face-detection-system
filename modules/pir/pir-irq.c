@@ -72,7 +72,7 @@ static struct dev_pm_ops dpmops = {
 };
 
 static struct dev_pm_domain dpmdomain;
-
+/*
 static void suspend_func(struct work_struct *dummy)
 {
     int ret;
@@ -83,7 +83,7 @@ static void suspend_func(struct work_struct *dummy)
 }
 
 static DECLARE_WORK(suspend_work, suspend_func);
-
+*/
 static int suspend_valid(suspend_state_t state)
 {
     return (state == PM_SUSPEND_MEM);
@@ -138,11 +138,11 @@ irqreturn_t irq_handler(int irq, void *dev_id)
     event_detected = !event_detected;
     if (event_detected)
     {
-        schedule_work(&wakeup_work);
+//        schedule_work(&wakeup_work);
         waiting_bit = 1;
         pir_timer_delete(&pir_timer);
-        if (!initial_event)
-            pm_wakeup_event(pir_device, 0);
+//        if (!initial_event)
+//            pm_wakeup_event(pir_device, 0);
         initial_event = 0;
     }
     if (waiting_bit && !event_detected)
@@ -208,7 +208,7 @@ static int __init init_pir_module(void)
     }
 
     /* device wakeup setting */
-    ret = device_init_wakeup(pir_device, true);
+/*    ret = device_init_wakeup(pir_device, true);
     if (ret != 0)
     {
         printk("ERROR at device_init_wakeup: error code %d\n", ret);
@@ -216,7 +216,7 @@ static int __init init_pir_module(void)
     }
 
     dpmdomain.ops = dpmops;
-    pir_device->pm_domain = &dpmdomain;
+    pir_device->pm_domain = &dpmdomain;*/
 
     /* suspend opeartions setup */
     suspend_set_ops(&sops);
@@ -226,10 +226,10 @@ static int __init init_pir_module(void)
 
 static void __exit exit_pir_module(void)
 {
-    if (pir_device)
+/*    if (pir_device)
     {
         device_init_wakeup(pir_device, false);
-    }
+    }*/
 
     pir_timer_delete(&pir_timer);
     free_irq(pir_int_num, NULL);
