@@ -319,14 +319,14 @@ namespace NeuralNet
                     cl::NullRange);
             printError(err, "enqueNDRangeKernel");
 
+            cl::size_t<3> patch_region;
+            patch_region[0] = i_patch * i_patch;
+            patch_region[1] = patches_w;
+            patch_region[2] = patches_h;
+
             if (m_config.grayscale)
             {
                 auto prep_buf = preprocessGrayscalePatches(patch_img_buf);
-
-                cl::size_t<3> patch_region;
-                patch_region[0] = i_patch * i_patch;
-                patch_region[1] = patches_w;
-                patch_region[2] = patches_h;
 
                 std::vector<float> patch_vals(i_patch * i_patch * patches_w *
                         patches_h);
@@ -340,7 +340,17 @@ namespace NeuralNet
             }
             else
             {
-                // TODO: loading RGB patches!
+                std::vector<float> patch_vals(i_patch * i_patch * patches_w *
+                        patches_h * 4);
+                err = queue.enqueueReadImage(patch_img_buf, CL_TRUE,
+                        in_offset, patch_region,
+                        0, 0, patch_vals.data());
+                printError(err, "enqueueReadImage");
+
+                auto resolved_vals = resolveMixedValues(patch_vals,
+                        4, 3, i_patch * i_patch);
+                patch_data.insert(patch_data.end(),
+                        resolved_vals.begin(), resolved_vals.end());
             }
         }
     }
@@ -473,6 +483,11 @@ namespace NeuralNet
         auto time_point_start = std::chrono::system_clock::now();
         auto image = loadBitmapImage(filepath.c_str());
         auto time_point_finish = std::chrono::system_clock::now();
+
+        if (!image)
+        {
+            throw FaceFinderException(filepath + " not found");
+        }
 
         std::chrono::duration<double> elapsed_seconds = time_point_finish -
             time_point_start;

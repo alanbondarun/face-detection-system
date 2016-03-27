@@ -116,6 +116,11 @@ namespace NeuralNet
      * Exports the given image as a PPM file, and returns whether succeeded
      */
     bool saveAsPPM(const std::unique_ptr<Image>& img_ptr, const char* filepath);
+
+    std::vector<float> resolveMixedValues(
+            const std::vector<float>& mixed_vals,
+            size_t in_channels, size_t out_channels,
+            size_t unit_size);
 }
 
 #endif // __LOAD_IMAGE_HPP

@@ -603,4 +603,28 @@ namespace NeuralNet
         fclose(fp);
         return true;
     }
+
+    std::vector<float> resolveMixedValues(
+            const std::vector<float>& mixed_vals,
+            size_t in_channels, size_t out_channels,
+            size_t unit_size)
+    {
+        const size_t sch_num = mixed_vals.size() / in_channels;
+        const size_t unit_num = sch_num / unit_size;
+        std::vector<float> retval(sch_num * out_channels);
+
+        for (size_t i=0; i < unit_num; i++)
+        {
+            for (size_t c=0; c < out_channels; c++)
+            {
+                for (size_t j=0; j < unit_size; j++)
+                {
+                    retval[j + (i*out_channels + c)*unit_size]
+                        = mixed_vals[c + (i*unit_size + j)*in_channels];
+                }
+            }
+        }
+
+        return retval;
+    }
 }
