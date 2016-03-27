@@ -1,6 +1,6 @@
 {
-    "width": 300,
-    "height": 225,
+    "width": 320,
+    "height": 240,
     "patch_size": 24,
     "stride": 6,
     "shrink_ratio": 0.8,

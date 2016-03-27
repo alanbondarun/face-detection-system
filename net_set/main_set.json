@@ -1,0 +1,6 @@
+{
+    "patch_num_thresh": 249,
+    "vote_num": 5,
+    "vote_to_win": 2,
+    "img_to_eval": "img_3.bmp"
+}
