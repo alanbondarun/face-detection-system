@@ -13,6 +13,7 @@ IMAGE_SUBDIR := image
 
 TARGETS := $(BUILD_DIR)/led-user $(BUILD_DIR)/test_nn $(BUILD_DIR)/test_load_image \
 	$(BUILD_DIR)/test_search_face \
+    $(BUILD_DIR)/test_main \
 	$(BUILD_DIR)/test_cl
 EXTLIB_OBJS := $(addprefix $(OBJ_DIR)/, $(EXTLIB_SUBDIR)/jsoncpp.o)
 NEURAL_NET_OBJS := $(EXTLIB_OBJS) $(addprefix $(OBJ_DIR)/, $(CALC_SUBDIR)/calc-cpu.o \
@@ -125,6 +126,10 @@ $(BUILD_DIR)/test_search_face: $(OBJ_DIR)/$(TEST_SUBDIR)/test_search_face.o \
 	$(CXX) $^ $(CXXFLAGS) $(DEPEND_FLAGS) -MT $@ -MF $(patsubst %.o,%.d,$@) -o $@
 
 $(BUILD_DIR)/test_cl: $(OBJ_DIR)/$(TEST_SUBDIR)/test_cl.o $(NEURAL_NET_OBJS)
+	$(CXX) $^ $(CXXFLAGS) $(DEPEND_FLAGS) -MT $@ -MF $(patsubst %.o,%.d,$@) -o $@
+
+$(BUILD_DIR)/test_main: $(OBJ_DIR)/$(TEST_SUBDIR)/test_main.o \
+		$(NEURAL_NET_OBJS)
 	$(CXX) $^ $(CXXFLAGS) $(DEPEND_FLAGS) -MT $@ -MF $(patsubst %.o,%.d,$@) -o $@
 
 -include $(MIDDLE_OBJS_DEP)
