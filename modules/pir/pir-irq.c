@@ -18,7 +18,7 @@
 #define DEVICE_NAME "pir"
 #define IR_GPIO_PORT 28
 
-const static unsigned long timeout_sec = 5*HZ;
+const static unsigned long timeout_sec = 20*HZ;
 
 /* device callbacks */
 static int device_open(struct inode *, struct file *);

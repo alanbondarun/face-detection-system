@@ -15,7 +15,7 @@ int main()
         printf("error opening file\n");
         return 0;
     }
-
+    int s = 0;
     while (1)
     {
         char buf[256];
@@ -23,14 +23,20 @@ int main()
 
         if (buf[1])
         {
-            write(led4_fd, "1", 2);
+           //write(led4_fd, "1", 2);
+            s = system("avconv -f video4linux2 -s 320x240 -r 10 -i /dev/video0 -frames 3 img_%d.bmp");
+            if(s==-1){
+                printf("error in avconv\n");
+            } 
         }
         else
         {
-            write(led4_fd, "0", 2);
+            //write(led4_fd, "0", 2);
+            remove("img_3.bmp");
+            printf("finish video capture ");
         }
         printf("PIR input = %d, led on = %d\n", buf[0], buf[1]);
-        usleep(100000);
+        usleep(1000000);
     }
 
     close(volup_fd);
